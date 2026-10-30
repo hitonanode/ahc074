@@ -2,23 +2,6 @@
 
 実行時間制限: 2 sec / メモリ制限: 1024 MiB
 
-### Story
-
-Takahashi has decided to open F Cafe, a cafe where robots prepare the food and drinks.
-When shown a barcode, a kitchen robot makes the corresponding item.
-With many items on the menu, Takahashi planned to print each item's barcode on a separate sheet of paper.
-On opening day, however, he realized that he did not have enough sheets to print them all.
-
-Takahashi came up with an idea: stack sheets printed with black-and-white patterns and cut holes in some places.
-By rearranging the sheets to display different barcodes, he should be able to handle every item using fewer sheets than there are items.
-The sheets are stacked in a special device, where a sheet can be pulled out by a part exposed at the front and reinserted at any position.
-
-The items available today and their barcodes are known, but the order in which customers will request them is not.
-Takahashi wants to design the sheets before opening so that he can minimize both incorrect orders and sheet movements during business hours.
-Help him design and rearrange the limited number of sheets to efficiently convey incoming orders to the robots.
-
-Changes in the sheet order and displayed barcode in a small example
-
 ### Problem Statement
 
 There is a barcode display device with $N$ windows arranged in a horizontal row, and there are $K$ sheets of paper.
@@ -225,8 +208,6 @@ For $r\geq 1$, choose $a_r$ uniformly from the $P-1$ numbers other than $a_{r-1}
 - [Local version](https://img.atcoder.jp/ahc074/YAAu43G9.zip): You need a compilation environment of [Rust language](https://www.rust-lang.org/).
   If it does not compile, please try `rustup update`.
   - [Pre-compiled binary for Windows](https://img.atcoder.jp/ahc074/YAAu43G9_windows.zip): If you are not familiar with the Rust language environment, please use this instead.
-
-Please be aware that sharing visualization results or discussing solutions/ideas during the contest is prohibited.
 
 #### Specification of the input file used by the tools
 
