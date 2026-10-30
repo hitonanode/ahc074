@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AHC074 実験結果</title>
+<!-- scripts/report.py がこのテンプレートに評価結果を埋め込み、runs/report.html を作る。 -->
+<style>
+  /* Colors for both color schemes. Relative scores use one diverging scale everywhere: red (worse
+     than the reference), neutral gray (equal), blue (better). --heat-cap is the share (%) of the pole
+     color in the strongest tint; at 60 the text on a tint keeps a contrast above 5 in both schemes. */
+  :root {
+    color-scheme: light dark;
+    --page: light-dark(#f9f9f7, #0d0d0d);
+    --surface: light-dark(#fcfcfb, #1a1a19);
+    --ink: light-dark(#0b0b0b, #ffffff);
+    --ink2: light-dark(#52514e, #c3c2b7);
+    --grid: light-dark(#e1e0d9, #2c2c2a);
+    --axis: light-dark(#c3c2b7, #55554f);
+    --accent: light-dark(#2a78d6, #3987e5);
+    --critical: light-dark(#d03b3b, #e66767);
+    --heat-mid: light-dark(#f0efec, #383835);
+    --heat-pos: light-dark(#2a78d6, #3987e5);
+    --heat-neg: light-dark(#e34948, #e66767);
+    --heat-cap: 60;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--page); color: var(--ink); font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { margin: 0; background: var(--page); }
+  h1 { margin: 0; font-size: 15px; font-weight: 600; }
+  h2 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+  main { padding: 0 16px 40px; }
+  section { margin-top: 22px; }
+  section, .panel { scroll-margin-top: 76px; }  /* keeps scrollIntoView clear of the sticky bar */
+  small { font-size: 11px; }
+  code { font-size: 12px; }
+  .note { margin: 0 0 6px; color: var(--ink2); font-size: 12px; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px;
+         padding: 8px 16px; background: var(--page); border-bottom: 1px solid var(--grid); }
+  .bar .note { margin: 0 0 0 auto; }
+  #fresh { display: none; padding: 2px 10px; border-radius: 5px; background: var(--accent); color: #fff; border: 0; }
+  #fresh.shown { display: inline-block; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; }
+  select, input, button { font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--axis);
+                          border-radius: 5px; padding: 2px 8px; }
+  button { cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  input[type="number"] { width: 6em; }
+  input[type="checkbox"] { accent-color: var(--accent); }
+  a { color: var(--accent); }
+
+  /* Tables. Cells of a table are separate (not collapsed), so that tinted cells get a gap in the
+     surface color between them instead of a drawn border. */
+  .scroll { max-width: 100%; overflow: auto; background: var(--surface); border: 1px solid var(--grid); border-radius: 6px; }
+  .scroll.runs { max-height: 46vh; }
+  table { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+  th, td { padding: 2px 8px; text-align: right; white-space: nowrap; font-weight: 400; border-bottom: 1px solid var(--grid); }
+  .text { text-align: left; }
+  thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); color: var(--ink2); font-weight: 600;
+             vertical-align: bottom; border-bottom-color: var(--axis); }
+  tfoot th, tfoot td { position: sticky; bottom: 0; z-index: 1; background: var(--surface); font-weight: 600;
+                       border-top: 1px solid var(--axis); border-bottom: 0; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--ink); }
+  th.run { min-width: 78px; max-width: 120px; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+  th.run small { display: block; color: var(--ink2); font-weight: 400; }
+  tbody tr:hover > :not(.heat) { background: color-mix(in oklab, var(--ink) 6%, var(--surface)); }
+  .heat { background: var(--heat-mid); color: var(--ink); border: 1px solid var(--surface); }
+  .heat.neg { background: color-mix(in oklab, var(--heat-neg) calc(var(--t) * var(--heat-cap) * 1%), var(--heat-mid)); }
+  .heat.pos { background: color-mix(in oklab, var(--heat-pos) calc(var(--t) * var(--heat-cap) * 1%), var(--heat-mid)); }
+  .wa { font-weight: 600; }
+  .wa:not(.heat) { color: var(--critical); }
+  .legend { display: inline-flex; align-items: center; gap: 6px; color: var(--ink2); font-size: 12px; }
+  .legend i { display: inline-block; width: 16px; height: 14px; }
+  .legend .scale { display: inline-flex; }
+
+  #runs tbody tr { cursor: pointer; }
+  #runs tr.selected > :not(.heat) { background: color-mix(in oklab, var(--accent) 10%, var(--surface)); }
+  /* The comment takes the width left by the other columns and is cut there (width: 100% with
+     max-width: 0 keeps a cell from widening its table); the full text is in its tooltip. */
+  #runs { width: 100%; }
+  #runs td.comment { width: 100%; max-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink2); }
+  #ref, #open-run { max-width: 240px; }
+  #skipped { margin-top: 6px; color: var(--ink2); font-size: 12px; }
+  #skipped summary { cursor: pointer; }
+
+  /* The case table and the visualizer sit side by side on a wide window. */
+  .cases { display: grid; grid-template-columns: minmax(0, max-content) minmax(520px, 1fr); gap: 12px; align-items: start; }
+  .cases > .scroll, .vis { max-height: calc(100vh - 64px); }
+  .vis { overflow: auto; }
+  @media (max-width: 1250px) {
+    .cases { grid-template-columns: minmax(0, 1fr); }
+    .vis { max-height: none; }
+  }
+  #cases th.seed, #cases td.score { cursor: pointer; }
+  #cases td.score small { display: inline-block; min-width: 3.3em; }
+  #cases .open { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+  #panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 12px; }
+  .panel { background: var(--surface); border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; }
+  .panel header { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 5px 8px; border-bottom: 1px solid var(--grid); }
+  .panel header .title { margin-right: auto; }
+  .panel-body p { margin: 0; padding: 8px; }
+  .panel iframe { display: block; width: 100%; height: 900px; border: 0; background: #fff; }
+  #mode-note { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>AHC074 実験結果</h1>
+  <label>基準 <select id="ref"></select></label>
+  <label>色の幅 <select id="range"></select></label>
+  <label>セル <select id="cell"></select></label>
+  <span class="legend" id="legend"></span>
+  <button type="button" id="fresh" title="新しい評価結果があります">更新があります（再読み込み）</button>
+  <span class="note" id="meta"></span>
+</header>
+<main>
+  <section>
+    <h2>解法の比較</h2>
+    <p class="note">スコア = 2KE + T（K = 192、E = 誤った注文の数、T = 操作の総数。小さいほど良い）。
+      相対スコア = 100 × 基準のスコア ÷ その run のスコア（ケースごとに計算して平均、高いほど良い。WA は 0）。
+      勝-分-負 = 基準よりスコアが良い・同じ・悪いケースの数。行をクリックして選んだ run が、下の表の列になります。</p>
+    <div class="row">
+      <button type="button" id="select-top" title="全 run のベストに対する相対スコアの上位 3 個">上位 3 個を選ぶ</button>
+      <button type="button" id="select-latest">新しい 3 個を選ぶ</button>
+      <button type="button" id="select-none">選択を外す</button>
+    </div>
+    <div class="scroll runs"><table id="runs"></table></div>
+    <details id="skipped"></details>
+  </section>
+  <section>
+    <h2>ケース別スコア</h2>
+    <p class="note">見出しをクリックすると並び替え（run の列は相対スコア順）。
+      スコアをクリックするとそのケースを公式ビジュアライザで開き、seed をクリックすると選択中の run をすべて並べて開きます。</p>
+    <p class="note" id="mode-note"></p>
+    <div class="cases">
+      <div class="scroll"><table id="cases"></table></div>
+      <div class="vis">
+        <form class="row" id="open-form">
+          <label>run <select id="open-run"></select></label>
+          <label>seed <input type="number" id="open-seed" required></label>
+          <button>ビジュアライザで開く</button>
+          <button type="button" id="close-all">すべて閉じる</button>
+        </form>
+        <div id="panels"></div>
+      </div>
+    </div>
+  </section>
+  <section><p class="note">scripts/pahcer_run.py の評価が終わるたびに、このページは作り直されます（手で作り直すなら scripts/report.py）。</p></section>
+</main>
+<script id="report-data" type="application/json">/*REPORT_DATA*/</script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let DATA;
+try {
+  DATA = JSON.parse($('report-data').textContent);
+} catch (e) {
+  document.querySelector('main').textContent =
+    'このファイルはテンプレートです。scripts/report.py を実行すると、評価結果を埋め込んだ runs/report.html ができます。';
+  throw e;
+}
+
+const [LO, HI] = DATA.seeds;
+const NS = HI - LO;        // number of cases; a case index i stands for seed LO + i
+const RUNS = DATA.runs;    // newest first; scores[i] is 0 for WA
+const byId = new Map(RUNS.map(r => [r.id, r]));
+const RANGES = [2, 5, 10, 20, 40];
+const STORE = 'ahc074-report';
+// Served over HTTP by scripts/serve_report.py: the visualizer is a same-origin copy of the
+// official one, into which the output can be loaded. Opened as a file: only the official page.
+const SERVED = location.protocol === 'http:' || location.protocol === 'https:';
+
+const state = {
+  selected: new Set(),  // ids of the runs shown as columns
+  ref: 'all',           // what a relative score of 100 means: 'all', 'selected' or a run id
+  range: 10,            // distance from 100 at which the color is strongest
+  cell: 'score',        // what a case cell shows: 'score', 'E' or 'T'
+  runSort: {key: 'rel', desc: true},
+  caseSort: {key: 'seed', desc: false},
+};
+let REF = [];             // reference score by case index; Infinity where there is none
+const panels = new Map(); // "run id|case index" -> the open visualizer panel
+
+// ---------------------------------------------------------------- helpers
+
+// Builds an element. Children that are strings become text nodes: run names and comments are
+// data, and must not be parsed as HTML.
+function el(tag, attrs, ...children) {
+  const node = document.createElement(tag);
+  for (const [name, value] of Object.entries(attrs || {})) {
+    if (value == null || value === false) continue;
+    if (name.startsWith('on')) node.addEventListener(name.slice(2), value);
+    else if (name === 'dataset') Object.assign(node.dataset, value);
+    else node.setAttribute(name, value === true ? '' : value);
+  }
+  node.append(...children.flat().filter(c => c != null));
+  return node;
+}
+
+const fmt = (x, digits) => (x == null || !isFinite(x) ? '–' : x.toFixed(digits));
+const seedText = i => String(LO + i).padStart(4, '0');
+const panelKey = (run, i) => `${run.id}|${i}`;
+
+// Mean of the values that are not null.
+function mean(values) {
+  let n = 0, total = 0;
+  for (const v of values) if (v != null) { n++; total += v; }
+  return n ? total / n : null;
+}
+
+// Sorts by value(item); null values go last in both directions, and ties keep their order.
+function sortBy(items, value, desc) {
+  const sign = desc ? -1 : 1;
+  return items.map((item, at) => [value(item), at, item]).sort((a, b) => {
+    if (a[0] == null || b[0] == null) return (a[0] == null) - (b[0] == null) || a[1] - b[1];
+    return sign * (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0) || a[1] - b[1];
+  }).map(t => t[2]);
+}
+
+// Colors a cell by a relative score: red below 100, blue above, strongest at 100 -/+ state.range.
+function heat(cell, rel) {
+  if (rel == null) return cell;
+  const d = Math.max(-1, Math.min(1, (rel - 100) / state.range));
+  cell.classList.add('heat', d < 0 ? 'neg' : 'pos');
+  cell.style.setProperty('--t', Math.abs(d).toFixed(3));
+  return cell;
+}
+
+// A header cell that sorts its table: the first click uses descFirst, the next ones flip.
+function sortHeader(sort, key, descFirst, attrs, label, more) {
+  const active = sort.key === key;
+  return el('th', {
+    ...attrs,
+    class: `sortable ${attrs.class || ''}`,
+    'aria-sort': active ? (sort.desc ? 'descending' : 'ascending') : null,
+    onclick: () => {
+      if (active) sort.desc = !sort.desc;
+      else Object.assign(sort, {key, desc: descFirst});
+      update();
+    },
+  }, label, active ? (sort.desc ? ' ▼' : ' ▲') : null, more);
+}
+
+const runHeaderAttrs = r => ({class: 'run', title: `${r.id}\n${r.comment}`});
+const runWhen = r => el('small', {}, r.when);
+
+// ---------------------------------------------------------------- data
+
+// Best (smallest) score of each case over all the runs in this report.
+const BEST = Array.from({length: NS}, (_, i) => Math.min(...RUNS.map(r => r.scores[i] || Infinity)));
+for (const r of RUNS) {
+  r.name = r.id.replace(/^\d{8}-\d{6}_/, '');
+  r.when = `${r.id.slice(4, 6)}/${r.id.slice(6, 8)} ${r.id.slice(9, 11)}:${r.id.slice(11, 13)}`;
+  r.wa = r.scores.filter(s => s === 0).length;
+  const valid = s => s > 0;
+  r.meanScore = mean(r.scores.map(s => (valid(s) ? s : null)));  // WA is left out
+  r.meanE = mean(r.E.map((e, i) => (valid(r.scores[i]) ? e : null)));
+  r.meanT = mean(r.T.map((t, i) => (valid(r.scores[i]) ? t : null)));
+  r.vsBest = mean(r.scores.map((s, i) => (s > 0 ? 100 * BEST[i] / s : 0)));  // relative score for ref 'all'
+}
+
+// Columns of the run table: value() is the sort key, cell() builds the cell.
+const RUN_COLUMNS = [
+  {key: 'name', label: 'run', value: r => r.name, text: true,
+   cell: r => el('td', {class: 'text', title: r.id}, r.name)},
+  {key: 'id', label: '日時', value: r => r.id, descFirst: true, text: true,
+   cell: r => el('td', {class: 'text'}, r.when)},
+  {key: 'rel', label: '相対スコア', value: r => r.meanRel, descFirst: true,
+   cell: r => heat(el('td', {}, fmt(r.meanRel, 2)), r.meanRel)},
+  {key: 'score', label: '平均スコア', value: r => r.meanScore, title: '2KE + T の平均（低いほど良い。WA を除く）',
+   cell: r => el('td', {}, fmt(r.meanScore, 1))},
+  {key: 'E', label: '平均 E', value: r => r.meanE, title: '誤った注文の数の平均（WA を除く）',
+   cell: r => el('td', {}, fmt(r.meanE, 2))},
+  {key: 'T', label: '平均 T', value: r => r.meanT, title: '操作の総数の平均（WA を除く）',
+   cell: r => el('td', {}, fmt(r.meanT, 1))},
+  {key: 'wins', label: '勝-分-負', value: r => r.wins * NS + r.ties, descFirst: true,
+   title: '基準よりスコアが良い / 同じ / 悪いケースの数（基準が「全 run のベスト」なら、分 = ベストに並んだ数）',
+   cell: r => el('td', {}, `${r.wins}-${r.ties}-${r.losses}`)},
+  {key: 'wa', label: 'WA', value: r => r.wa, descFirst: true,
+   cell: r => el('td', {class: r.wa ? 'wa' : null}, String(r.wa))},
+  {key: 'time', label: '最大時間', value: r => r.max_time, descFirst: true,
+   title: '1 ケースの最大実行時間（手元。制限は 2 秒）',
+   cell: r => el('td', {class: r.max_time > 2 ? 'wa' : null}, `${fmt(r.max_time, 2)} s`)},
+];
+const CASE_COLUMNS = [
+  {key: 'seed', label: 'seed', value: i => i},
+  {key: 'ref', label: '基準', value: i => (isFinite(REF[i]) ? REF[i] : null)},
+];
+const CELLS = {score: 'スコア', E: 'E（誤り）', T: 'T（操作数）'};
+
+function orderedRuns() {
+  const column = RUN_COLUMNS.find(c => c.key === state.runSort.key);
+  return sortBy(RUNS, column.value, state.runSort.desc);
+}
+const selectedRuns = () => orderedRuns().filter(r => state.selected.has(r.id));
+
+// Recomputes the reference scores and every relative score for the current state.
+function recompute() {
+  if (state.ref === 'all') REF = BEST;
+  else if (state.ref === 'selected') {
+    const runs = RUNS.filter(r => state.selected.has(r.id));
+    REF = Array.from({length: NS}, (_, i) => Math.min(Infinity, ...runs.map(r => r.scores[i] || Infinity)));
+  } else REF = byId.get(state.ref).scores.map(s => s || Infinity);
+  for (const r of RUNS) {
+    r.wins = r.ties = r.losses = 0;  // cases with a score better than / equal to / worse than the reference
+    r.rel = r.scores.map((s, i) => {
+      if (!isFinite(REF[i])) return null;
+      if (s === REF[i]) r.ties++; else if (s > 0 && s < REF[i]) r.wins++; else r.losses++;
+      return s > 0 ? 100 * REF[i] / s : 0;
+    });
+    r.meanRel = mean(r.rel);
+  }
+}
+
+function selectTop() {
+  state.selected = new Set(sortBy(RUNS, r => r.vsBest, true).slice(0, 3).map(r => r.id));
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify({selected: [...state.selected], ref: state.ref, range: state.range,
+                                                cell: state.cell}));
+  } catch (e) { /* storage may be unavailable; the page works without it */ }
+}
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE)) || {};
+    state.selected = new Set((saved.selected || []).filter(id => byId.has(id)));
+    if (saved.ref === 'selected' || byId.has(saved.ref)) state.ref = saved.ref;
+    if (RANGES.includes(saved.range)) state.range = saved.range;
+    if (saved.cell in CELLS) state.cell = saved.cell;
+  } catch (e) { /* start from the defaults */ }
+}
+
+// ---------------------------------------------------------------- rendering
+
+function renderLegend() {
+  const steps = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1];
+  $('legend').replaceChildren(
+    `相対スコア ${100 - state.range} 以下`,
+    el('span', {class: 'scale'}, steps.map(d => heat(el('i'), 100 + d * state.range))),
+    `${100 + state.range} 以上（灰色 = 100 = 基準と同じ）`);
+}
+
+function renderRuns() {
+  const head = el('tr', {},
+    el('th'),
+    RUN_COLUMNS.map(c => sortHeader(state.runSort, c.key, !!c.descFirst, {class: c.text ? 'text' : '', title: c.title}, c.label)),
+    el('th', {class: 'text'}, 'コメント'));
+  const rows = orderedRuns().map(r => {
+    const selected = state.selected.has(r.id);
+    return el('tr', {
+      class: selected ? 'selected' : null,
+      onclick: () => { if (selected) state.selected.delete(r.id); else state.selected.add(r.id); update(); },
+    },
+      el('td', {}, el('input', {type: 'checkbox', checked: selected, 'aria-label': `${r.name} を比べる`})),
+      RUN_COLUMNS.map(c => c.cell(r)),
+      el('td', {class: 'text comment', title: `${r.comment}\n${r.source || ''}`}, (r.record ? '' : '[no-record] ') + r.comment));
+  });
+  $('runs').replaceChildren(el('thead', {}, head), el('tbody', {}, rows));
+}
+
+// The text of a case cell for the chosen cell mode.
+function cellText(r, i) {
+  if (!r.scores[i]) return 'WA';
+  if (state.cell === 'E') return String(r.E[i]);
+  if (state.cell === 'T') return String(r.T[i]);
+  return String(r.scores[i]);
+}
+
+function renderCases() {
+  const runs = selectedRuns();
+  const sort = state.caseSort;
+  const sortRun = runs.find(r => r.id === sort.key);
+  const column = CASE_COLUMNS.find(c => c.key === sort.key) || CASE_COLUMNS[0];
+  if (!sortRun && column.key !== sort.key) Object.assign(sort, {key: 'seed', desc: false});  // its run was deselected
+  const all = Array.from({length: NS}, (_, i) => i);
+  const cases = sortBy(all, sortRun ? i => sortRun.rel[i] : column.value, sort.desc);
+
+  const head = el('tr', {},
+    CASE_COLUMNS.map(c => sortHeader(sort, c.key, false, {}, c.label)),
+    runs.map(r => sortHeader(sort, r.id, false, runHeaderAttrs(r), r.name, runWhen(r))));
+  const rows = cases.map(i => el('tr', {},
+    el('th', {class: 'seed', dataset: {i}, title: '選択中の run をすべて並べて開く'}, seedText(i)),
+    CASE_COLUMNS.slice(1).map(c => el('td', {}, fmt(c.value(i), 0))),
+    runs.map(r => heat(el('td', {
+      class: `score${r.scores[i] ? '' : ' wa'}${panels.has(panelKey(r, i)) ? ' open' : ''}`,
+      dataset: {run: r.id, i},
+      title: r.scores[i] ? `score ${r.scores[i]} = 2K×E + T, E=${r.E[i]}, T=${r.T[i]}, ${fmt(r.times[i], 3)} s`
+                         : `WA: ${r.errors[i] || ''}`,
+    }, cellText(r, i), ' ', el('small', {}, fmt(r.rel[i], 1))), r.rel[i]))));
+  const foot = el('tr', {},
+    el('th', {class: 'text', colspan: CASE_COLUMNS.length}, `平均相対スコア（${cases.length} ケース）`),
+    runs.map(r => { const m = mean(cases.map(i => r.rel[i])); return heat(el('td', {}, fmt(m, 2)), m); }));
+  $('cases').replaceChildren(el('thead', {}, head), el('tbody', {}, rows), el('tfoot', {}, foot));
+}
+
+function update() {
+  recompute();
+  renderLegend();
+  renderRuns();
+  renderCases();
+  saveState();
+}
+
+// ---------------------------------------------------------------- visualizer panels
+
+const COPY_LABEL = '出力をコピー';
+async function copyText(text, button) {
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    copied = true;
+  } catch (e) {
+    // The Clipboard API is missing or not allowed here: copy through a selection instead.
+    const area = el('textarea', {style: 'position: fixed; opacity: 0'}, text);
+    document.body.append(area);
+    area.select();
+    try { copied = document.execCommand('copy'); } catch (e2) { /* stays false */ }
+    area.remove();
+  }
+  button.textContent = copied ? 'コピーしました' : 'コピーできません';
+  setTimeout(() => { button.textContent = COPY_LABEL; }, 1500);
+}
+
+function closePanel(key) {
+  panels.get(key)?.remove();
+  panels.delete(key);
+}
+
+// Marks the score cells whose panel is open, without rebuilding the table.
+function markOpen() {
+  for (const cell of $('cases').querySelectorAll('td.score')) {
+    cell.classList.toggle('open', panels.has(`${cell.dataset.run}|${cell.dataset.i}`));
+  }
+}
+
+// Loads the output into a same-origin copy of the official visualizer: waits for its wasm
+// (window.ahcReady), puts the output in its Output box and redraws. The explanation card is
+// hidden, and the frame is sized to the page so that it does not scroll on its own.
+async function fillFrame(frame, text) {
+  const win = frame.contentWindow;
+  await win.ahcReady;
+  const doc = frame.contentDocument;
+  doc.head.append(Object.assign(doc.createElement('style'), {
+    textContent: '.intro-card { display: none !important; } body { margin-top: 0 !important; }'}));
+  doc.getElementById('output').value = text;
+  win.updateOutput();
+  const fit = () => { frame.style.height = `${doc.documentElement.scrollHeight}px`; };
+  fit();
+  new win.ResizeObserver(fit).observe(doc.body);
+}
+
+// Shows case i of a run in the visualizer.
+function openPanel(run, i) {
+  const key = panelKey(run, i);
+  if (panels.has(key)) return;
+  const seed = LO + i;
+  const outPath = `${run.id}/out/${seedText(i)}.txt`;  // relative to runs/
+  const body = el('div', {class: 'panel-body'});
+  const official = el('a', {href: `${DATA.visualizer_url}?lang=ja&seed=${seed}`, target: '_blank', rel: 'noopener'}, '公式で開く');
+  const copy = el('button', {type: 'button', disabled: !SERVED}, COPY_LABEL);
+  const score = run.scores[i] ? `score ${run.scores[i]}（E=${run.E[i]}, T=${run.T[i]}）` : `WA（${run.errors[i] || ''}）`;
+  const panel = el('article', {class: 'panel'},
+    el('header', {},
+      el('span', {class: 'title'}, el('strong', {}, run.name), ` ／ seed ${seedText(i)} ／ ${score}`),
+      official, copy,
+      el('button', {type: 'button', 'aria-label': '閉じる', onclick: () => { closePanel(key); markOpen(); }}, '×')),
+    body);
+  panels.set(key, panel);
+  $('panels').append(panel);
+  panel.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+
+  if (!SERVED) {
+    body.append(el('p', {}, '出力ファイル: ', el('code', {}, `runs/${outPath}`), '。',
+      'ファイルとして開いたページからは出力を読み込めません。scripts/serve_report.py を起動して、表示された URL で開き直すと、' +
+      'ここに出力を読み込んだビジュアライザが表示されます（または「公式で開く」のページで出力ファイルを選んでください）。'));
+    return;
+  }
+  body.append(el('p', {}, '出力を読み込んでいます…'));
+  fetch(outPath).then(res => {
+    if (!res.ok) throw new Error(`${outPath} を読めません (HTTP ${res.status})`);
+    return res.text();
+  }).then(text => {
+    if (!panel.isConnected) return;
+    copy.onclick = () => copyText(text, copy);
+    const frame = el('iframe', {src: `${DATA.mirror_url}?lang=ja&seed=${seed}`, title: `${run.name} seed ${seedText(i)}`});
+    frame.addEventListener('load', () => {
+      fillFrame(frame, text).catch(error => {
+        body.prepend(el('p', {}, `ビジュアライザに出力を読み込めません: ${error.message}`));
+      });
+    }, {once: true});
+    body.replaceChildren(frame);
+  }).catch(error => {
+    if (panel.isConnected) body.replaceChildren(el('p', {}, error.message));
+  });
+}
+
+// When served, checks every 10 s whether the report was rebuilt, and offers to reload.
+function watchForUpdates() {
+  if (!SERVED) return;
+  setInterval(async () => {
+    try {
+      const res = await fetch(`report_stamp.txt?t=${Date.now()}`, {cache: 'no-store'});
+      if (res.ok && (await res.text()).trim() !== DATA.generated_at) $('fresh').classList.add('shown');
+    } catch (e) { /* the server is down; try again later */ }
+  }, 10000);
+}
+
+// ---------------------------------------------------------------- setup
+
+$('meta').textContent = `${DATA.generated_at.slice(0, 16).replace('T', ' ')} 生成 ／ ${RUNS.length} run ／ seed ${LO}〜${HI - 1}`;
+$('mode-note').textContent = SERVED
+  ? 'ビジュアライザは公式のものを手元にコピーしたもので、出力を自動で読み込みます。'
+  : 'ファイルとして開いています。ビジュアライザに出力を自動で読み込むには、scripts/serve_report.py を起動し、表示された URL で開いてください。';
+if (DATA.skipped.length) {
+  $('skipped').replaceChildren(
+    el('summary', {}, `載せていない run（${DATA.skipped.length} 個）`),
+    el('ul', {}, DATA.skipped.map(s => el('li', {}, `${s.id}：${s.reason}`))));
+} else $('skipped').hidden = true;
+
+if (!RUNS.length) {
+  document.querySelector('main').replaceChildren(el('p', {}, `seed ${LO}〜${HI - 1} をすべて評価した run がまだありません。`));
+} else {
+  const runOptions = () => RUNS.map(r => el('option', {value: r.id}, `${r.name}（${r.when}）`));
+  $('ref').append(
+    el('option', {value: 'all'}, '全 run のベスト'),
+    el('option', {value: 'selected'}, '選択中の run のベスト'),
+    el('optgroup', {label: 'この run のスコア'}, runOptions()));
+  $('ref').addEventListener('change', e => { state.ref = e.target.value; update(); });
+  $('range').append(...RANGES.map(v => el('option', {value: v}, `±${v}`)));
+  $('range').addEventListener('change', e => { state.range = Number(e.target.value); update(); });
+  $('cell').append(...Object.entries(CELLS).map(([v, label]) => el('option', {value: v}, label)));
+  $('cell').addEventListener('change', e => { state.cell = e.target.value; update(); });
+  $('select-top').addEventListener('click', () => { selectTop(); update(); });
+  $('select-latest').addEventListener('click', () => { state.selected = new Set(RUNS.slice(0, 3).map(r => r.id)); update(); });
+  $('select-none').addEventListener('click', () => { state.selected.clear(); update(); });
+
+  // One listener for the whole case table, which is rebuilt on every update.
+  $('cases').addEventListener('click', e => {
+    const cell = e.target.closest('td.score, th.seed');
+    if (!cell) return;
+    const i = Number(cell.dataset.i);
+    if (cell.dataset.run) {
+      const run = byId.get(cell.dataset.run);
+      if (panels.has(panelKey(run, i))) closePanel(panelKey(run, i)); else openPanel(run, i);
+    } else {
+      // A seed opens the case for every selected run, or closes them if all are open already.
+      const runs = selectedRuns();
+      const allOpen = runs.every(r => panels.has(panelKey(r, i)));
+      for (const r of runs) { if (allOpen) closePanel(panelKey(r, i)); else openPanel(r, i); }
+    }
+    markOpen();
+  });
+
+  $('open-run').append(...runOptions());
+  Object.assign($('open-seed'), {min: LO, max: HI - 1, value: LO});
+  $('open-form').addEventListener('submit', e => {
+    e.preventDefault();
+    openPanel(byId.get($('open-run').value), Number($('open-seed').value) - LO);
+    markOpen();
+  });
+  $('close-all').addEventListener('click', () => { for (const key of [...panels.keys()]) closePanel(key); markOpen(); });
+  $('fresh').addEventListener('click', () => location.reload());
+
+  loadState();
+  recompute();
+  if (!state.selected.size) selectTop();
+  $('ref').value = state.ref;
+  $('range').value = state.range;
+  $('cell').value = state.cell;
+  update();
+  watchForUpdates();
+}
+</script>
+</body>
+</html>
