@@ -1,6 +1,8 @@
 # scripts/pahcer_run.py uses this file as a template: it takes [general], [problem] and
 # start_seed / end_seed / threads of [test]. The compile command, paths and test steps are
-# generated per run (runs/<run-id>/pahcer_config.toml), so do not run `pahcer run` with this file.
+# generated per run (runs/<run-id>/pahcer_config.toml).
+# `pahcer list` works with this file. `pahcer run` with it stops at the compile step below on purpose:
+# evaluate with scripts/pahcer_run.py, which keeps the records and runs one evaluation at a time.
 # start_seed..end_seed (half-open) is the set of local cases, tools/in/0000.txt..0499.txt.
 [general]
 version = "0.4.0"
@@ -15,3 +17,13 @@ start_seed = 0
 end_seed = 500
 threads = 0
 out_dir = "./pahcer"
+
+# pahcer requires these sections; scripts/pahcer_run.py ignores them.
+[[test.compile_steps]]
+program = "sh"
+args = ["-c", "echo 'pahcer run は使わず scripts/pahcer_run.py で評価してください' >&2; exit 1"]
+
+[[test.test_steps]]
+program = "false"
+args = []
+measure_time = false

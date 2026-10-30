@@ -334,6 +334,23 @@ def add_judge_messages(result: dict, run_dir: Path) -> None:
             case["error_message"] = judge_message(err.read_text(errors="replace")) if err.exists() else "no err file"
 
 
+def rescore_relative(result: dict, best_path: Path) -> None:
+    """Recomputes relative scores against the best scores including this run.
+
+    pahcer computes them against the best scores from before the run, so a case that beats the
+    old best gets more than 100 (pahcer list recomputes them, and shows the corrected values).
+    """
+    best = {int(k): v for k, v in json.loads(best_path.read_text()).items()} if best_path.exists() else {}
+    for case in result["cases"]:
+        s = case["score"]
+        if s > 0:
+            ref = min(best.get(case["seed"]) or s, s)
+            case["relative_score"] = 100.0 * ref / s
+        else:
+            case["relative_score"] = 0.0
+    result["total_relative_score"] = sum(c["relative_score"] for c in result["cases"])
+
+
 def summarize(result: dict, metrics: dict[int, dict] | None) -> dict:
     n = result["case_count"]
     cases = result["cases"]
@@ -462,6 +479,7 @@ def evaluate(args, root: Path, template: dict) -> int:
             return returncode
         result = json.loads(result_json.read_text())
         add_judge_messages(result, run_dir)
+        rescore_relative(result, out_dir / "best_scores.json")
         replay.write_json_atomic(run_dir / "result.json", result, indent=2)
         # Still under the lock, so the next evaluation does not share the CPU with the replay.
         metrics = compute_metrics(run_dir)
