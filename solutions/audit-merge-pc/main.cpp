@@ -2186,14 +2186,20 @@ struct Solver {
                             break;
                         }
                     }
+                    if (!again && replay_ok(mv, i)) {  // or the first move is not needed at all
+                        mv.erase(mv.begin() + i);
+                        again = true;
+                    }
                     break;  // only the next move of the same paper
                 }
         }
         std::vector<int> ord = start;
         mvs.clear();
         for (auto& m : mv) {
+            int before = std::find(ord.begin(), ord.end(), m.k) - ord.begin();
             apply(ord, m);
-            mvs.push_back({m.k, (int)(std::find(ord.begin(), ord.end(), m.k) - ord.begin())});
+            int after = std::find(ord.begin(), ord.end(), m.k) - ord.begin();
+            if (after != before) mvs.push_back({m.k, after});  // a merged move may leave it in place
         }
     }
 
