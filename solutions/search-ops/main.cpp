@@ -558,9 +558,17 @@ struct Solver {
     std::vector<GroupMDP> mdps;  // [0] 6 windows, [1] 5 windows, [2] 4 windows
     std::vector<int> order;    // stack, top first
     int top_d = -1;            // dedicated paper lifted to the top, -1 if none
-    int filler = -1;           // column top moved just below the generic layer to cover handle holes
+    // Fillers: column papers moved just below the generic layer to cover handle holes of the lifted
+    // paper (see choose_filler). pred >= 0: taken from below the column top, goes back below pred.
+    struct Filler {
+        int paper, pred;
+    };
+    std::vector<Filler> fillers;
+    bool is_filler(int k) const {
+        for (auto& f : fillers) if (f.paper == k) return true;
+        return false;
+    }
     std::vector<std::pair<int, int>> ops;
-    long long stat_dig = 0, stat_tri = 0, stat_gcare_moves = 0, stat_gcare_windows = 0, stat_hholes = 0;
 
     explicit Solver(std::vector<u64> a) : A(std::move(a)) {}
 
@@ -1061,7 +1069,7 @@ struct Solver {
         ops.push_back({k, j + 1});
     }
     // Papers of column l that are in place (not lifted to the top, not used as a filler).
-    bool in_column(int k, int l) const { return col_of[k] == l && k != top_d && k != filler; }
+    bool in_column(int k, int l) const { return col_of[k] == l && k != top_d && !is_filler(k); }
     int column_top(int l) const {
         for (int k : order) if (in_column(k, l)) return k;
         return -1;
@@ -1097,8 +1105,6 @@ struct Solver {
         }
         target &= care;
         if (!care) return;
-        size_t ops_before = ops.size();
-        struct Rec { Solver* s; int t, c; size_t b; ~Rec() { s->gstat_moves[t][c] += s->ops.size() - b; s->gstat_cnt[t][c]++; } } rec{this, gr.type, __builtin_popcount(care), ops_before};
         for (int step = 0; step < 64; step++) {
             std::array<std::int8_t, 8> p{};
             int t = 0;
@@ -1136,57 +1142,6 @@ struct Solver {
             if ((int)(paper[mem[i]].black >> hw & 1) == c) return i;
         return 0;
     }
-    // Analysis only: after D (target u) is lifted, could the top X of a column c, placed just below
-    // the generic layer (so that it shows only on handle windows), cover several handle holes of D
-    // with the right colors? Net gain = baseline digs of the covered holes - 2 (place X, return X).
-    double stat_filler_gain = 0;
-    long long stat_filler_pos = 0;
-    void analyze_fillers(int u, int d, u64 holes) {
-        u64 hh = holes & ~gmask;
-        std::vector<int> fix(H);
-        for (int j = 0; j < H; j++)
-            fix[j] = (hh >> handle[j] & 1) ? handle_fix_cost(j, A[u] >> handle[j] & 1) : 0;
-        int best = 0;
-        for (int c = 0; c < H; c++) {
-            if (!(hh >> handle[c] & 1)) continue;
-            int x = column_top(c);
-            if (x < 0 || x == d) continue;
-            u64 shown = paper[x].opaque & hh;
-            if ((paper[x].black ^ A[u]) & shown) continue;
-            int save = 0;
-            for (int j = 0; j < H; j++)
-                if (j != c && (shown >> handle[j] & 1)) save += fix[j];
-            best = std::max(best, save - 2);
-        }
-        stat_filler_gain += best;
-        stat_filler_pos += best > 0;
-        // Staircase of fillers: X_{c_1}, X_{c_2}, ... (c_1 < c_2 < ...) stacked in this order below the
-        // generic layer; X_{c_i} shows on the holes in (c_{i-1}, c_i] (assumes full handle prefixes).
-        std::vector<double> f(H + 1, -1e9);
-        f[0] = 0;  // f[i]: best gain with the last filler ending at column i-1 (0: none)
-        double bestc = 0;
-        for (int c2 = 0; c2 < H; c2++) {
-            if (!(hh >> handle[c2] & 1)) continue;
-            int x = column_top(c2);
-            if (x < 0 || x == d) continue;
-            for (int c1 = -1; c1 < c2; c1++) {
-                if (f[c1 + 1] < -1e8) continue;
-                u64 seg = 0;
-                for (int j = c1 + 1; j <= c2; j++) seg |= 1ULL << handle[j];
-                u64 shown = seg & hh;
-                if ((paper[x].opaque & shown) != shown) continue;
-                if ((paper[x].black ^ A[u]) & shown) continue;
-                int save = 0;
-                for (int j = c1 + 1; j < c2; j++) if (hh >> handle[j] & 1) save += fix[j];
-                f[c2 + 1] = std::max(f[c2 + 1], f[c1 + 1] + save - 2);
-            }
-            bestc = std::max(bestc, f[c2 + 1]);
-        }
-        stat_chain_gain += bestc;
-    }
-    double stat_chain_gain = 0;
-    long long gstat_moves[3][8] = {}, gstat_cnt[3][8] = {};
-
     u64 display() const {
         u64 covered = 0, black = 0;
         for (int k : order) {
@@ -1196,13 +1151,23 @@ struct Solver {
         return black;
     }
 
-    // Returns the out-of-place paper x (the lifted paper or the filler) to its column, at the top
+    // Returns the out-of-place paper x (the lifted paper or a filler) to its column, at the top
     // (mode 2) or at the bottom (mode 1); both keep the cyclic order of the column. Mode 0 is the
-    // hub7 rule: take the end that leaves the better top for target u.
+    // hub7 rule: take the end that leaves the better top for target u. A filler taken from below
+    // the column top goes back just below its cyclic predecessor instead.
     void return_paper(int x, int u, int mode) {
         int l = col_of[x];
         if (x == top_d) top_d = -1;
-        if (x == filler) filler = -1;
+        for (size_t i = 0; i < fillers.size(); i++) {
+            if (fillers[i].paper != x) continue;
+            int pred = fillers[i].pred;
+            fillers.erase(fillers.begin() + i);
+            if (pred >= 0) {
+                move_after(x, pred);
+                return;
+            }
+            break;
+        }
         std::vector<int> mem;  // column l top to bottom, without x
         for (int k : order) if (k != x && in_column(k, l)) mem.push_back(k);
         bool at_top = false;
@@ -1239,7 +1204,7 @@ struct Solver {
             // Below the last paper of the generic layer and of columns 0..l.
             int last = -1;
             for (int k : order) {
-                if (k == x || k == top_d || k == filler) continue;
+                if (k == x || k == top_d || is_filler(k)) continue;
                 if (group_of[k] >= 0 || (col_of[k] >= 0 && col_of[k] <= l)) last = k;
             }
             move_after(x, last);
@@ -1249,44 +1214,62 @@ struct Solver {
     // Plan options for one request (see process()).
     struct PlanOpt {
         int ret_mode = 0;       // return of the previous top paper (return_paper modes)
-        int fret_mode = 0;      // return of the previous filler
+        int fret_mode = 0;      // return of the previous fillers taken from the column tops
         bool use_filler = false;
         bool keep = false;      // the previous top paper is also the paper of u (a pair): keep it
     };
 
     // After D (target u) is lifted: the column top X of a column c whose handle is a hole of D,
-    // placed just below the generic layer, shows on every handle hole of D up to h_c where X is
-    // opaque. If X has the colors of A_u there, the columns it covers need no digs. X goes back to
-    // its column at the next request, so it pays when it saves at least 3 digs. Returns the column
-    // of the best filler, or -1.
-    int choose_filler(int u, int d, u64 hh) const {
+    // placed just below the generic layer (or below the fillers already placed), shows on every
+    // remaining handle hole of D up to h_c where X is opaque. If X has the colors of A_u there, the
+    // columns it covers need no digs. X goes back to its column at the next request, so it pays
+    // when it saves at least 3 digs.
+    // A deeper paper X_p of the column (p <= kFillerDepth) can serve too: X_0, ..., X_{p-1} are moved
+    // in this order just below X_p, X_0, ..., X_{p-2}, which leaves X_p on top and X_0, ..., X_{p-1}
+    // in their cyclic order below it; X_p goes back below X_{p-1} at the next request, so the
+    // cyclic order of the column (and its color alternation) is kept. Cost p + 2.
+    // Returns {column, depth} of the best filler, or {-1, 0}.
+    int kFillerDepth = env_int("FILLER_DEPTH", 3);
+    std::pair<int, int> choose_filler(int u, int d, u64 hh) const {
         std::vector<int> fix(H, 0);
         for (int j = 0; j < H; j++)
             if (hh >> handle[j] & 1) fix[j] = handle_fix_cost(j, A[u] >> handle[j] & 1);
-        int best = 2, best_c = -1;
+        int best = 0, best_c = -1, best_depth = 0;
+        std::vector<int> top;
         for (int c = 0; c < H; c++) {
             if (!(hh >> handle[c] & 1)) continue;
-            int x = column_top(c);
-            if (x < 0 || x == d) continue;
-            u64 shown = paper[x].opaque & hh;
-            if ((paper[x].black ^ A[u]) & shown) continue;
-            int save = 0;
-            for (int j = 0; j < H; j++)
-                if (j != c && (shown >> handle[j] & 1)) save += fix[j];
-            if (save > best) {
-                best = save;
-                best_c = c;
+            top.clear();  // the top papers of column c
+            for (int k : order) {
+                if (!in_column(k, c)) continue;
+                top.push_back(k);
+                if ((int)top.size() > kFillerDepth) break;
+            }
+            if (top.empty() || top[0] == d) continue;
+            for (int depth = 0; depth < (int)top.size(); depth++) {
+                int f = top[depth];
+                u64 shown = paper[f].opaque & hh;
+                if ((paper[f].black ^ A[u]) & shown) continue;
+                int save = 0;
+                for (int j = 0; j < H; j++)
+                    if ((j != c || depth) && (shown >> handle[j] & 1)) save += fix[j];
+                int gain = save - 2 - depth;
+                if (gain > best) {
+                    best = gain;
+                    best_c = c;
+                    best_depth = depth;
+                }
             }
         }
-        return best_c;
+        return {best_c, best_depth};
     }
 
+    int kMaxFillers = env_int("MAX_FILLERS", 4);
     void run_plan(int u, const PlanOpt& opt) {
         u64 all = gmask;
         for (int l = 0; l < H; l++) all |= 1ULL << handle[l];
         bool kept = opt.keep && top_d >= 0 && ded[u] == top_d;
         if (top_d >= 0 && !kept) return_paper(top_d, u, opt.ret_mode);
-        if (filler >= 0) return_paper(filler, u, opt.fret_mode);
+        while (!fillers.empty()) return_paper(fillers.back().paper, u, opt.fret_mode);
         if (ded[u] >= 0) {
             int d = ded[u], l = col_of[d];
             u64 holes = all & ~paper[d].opaque;
@@ -1297,16 +1280,31 @@ struct Solver {
                 top_d = d;
             }
             u64 hh = holes & ~gmask;
-            if (opt.use_filler) {
-                int c = choose_filler(u, d, hh);
-                if (c >= 0) {
-                    int x = column_top(c);
-                    int last = -1;  // just below the generic layer
-                    for (int i = 0; i < K; i++) if (group_of[order[i]] >= 0) last = order[i];
-                    move_after(x, last);
-                    filler = x;
-                    hh &= ~paper[x].opaque;
+            while (opt.use_filler && (int)fillers.size() < kMaxFillers) {
+                auto [c, depth] = choose_filler(u, d, hh);
+                if (c < 0) break;
+                std::vector<int> top;  // the top papers of column c
+                for (int k : order) {
+                    if (!in_column(k, c)) continue;
+                    top.push_back(k);
+                    if ((int)top.size() > depth) break;
                 }
+                int pred = -1;
+                if (depth > 0) {  // X_0..X_{depth-1} below X_depth, keeping their order
+                    int prev = top[depth];
+                    for (int i = 0; i < depth; i++) {
+                        move_after(top[i], prev);
+                        prev = top[i];
+                    }
+                    pred = top[depth - 1];
+                }
+                int x = top[depth];
+                int last = -1;  // just below the generic layer and the fillers placed before
+                for (int i = 0; i < K; i++) if (group_of[order[i]] >= 0) last = order[i];
+                if (!fillers.empty()) last = fillers.back().paper;
+                move_after(x, last);
+                fillers.push_back({x, pred});
+                hh &= ~paper[x].opaque;
             }
             for (int l2 = 0; l2 < H; l2++)
                 if (hh >> handle[l2] & 1) set_handle(l2, A[u] >> handle[l2] & 1);
@@ -1317,135 +1315,67 @@ struct Solver {
     }
 
     // Search over plans: every combination of the options is simulated on a copy of the state, and
-    // the one with the fewest moves (+1 if it leaves a filler to return later) is kept.
+    // the one with the fewest moves (+1 per filler left to return later) is kept.
+    struct State {
+        std::vector<int> order;
+        int top_d;
+        std::vector<Filler> fillers;
+    };
+    State save() const { return {order, top_d, fillers}; }
+    void restore(const State& st) {
+        order = st.order;
+        top_d = st.top_d;
+        fillers = st.fillers;
+    }
     bool search_on = env_int("SEARCH", 1) != 0;
     long long stat_kept = 0, stat_fill = 0;
     std::vector<std::pair<int, int>> process(int u) {
-        std::vector<int> order0 = order;
-        int top0 = top_d, fill0 = filler;
+        const State st0 = save();
+        int top0 = top_d;
         std::vector<PlanOpt> opts;
         if (!search_on) {
             opts.push_back(PlanOpt{});
         } else {
+            bool has_free_filler = false;  // a filler that goes back to the top or the bottom
+            for (auto& f : fillers) has_free_filler |= f.pred < 0;
             for (int rm = 1; rm <= 2; rm++)
-                for (int fm = 1; fm <= (fill0 >= 0 ? 2 : 1); fm++)
+                for (int fm = 1; fm <= (has_free_filler ? 2 : 1); fm++)
                     for (int uf = 0; uf < 2; uf++)
                         for (int kp = 0; kp < ((top0 >= 0 && ded[u] == top0) ? 2 : 1); kp++)
                             opts.push_back(PlanOpt{rm, fm, uf == 1, kp == 1});
         }
         double best = 1e18;
         std::vector<std::pair<int, int>> best_ops;
-        std::vector<int> best_order;
-        int best_top = -1, best_fill = -1;
+        State best_state;
         PlanOpt best_opt;
         check_vis = true;
         for (const PlanOpt& o : opts) {
-            order = order0;
-            top_d = top0;
-            filler = fill0;
+            restore(st0);
             ops.clear();
             invalid = false;
             run_plan(u, o);
             if (invalid || display() != A[u]) continue;
-            double cost = ops.size() + (filler >= 0 ? 1 : 0);
+            double cost = ops.size() + fillers.size();
             if (cost < best) {
                 best = cost;
                 best_ops = ops;
-                best_order = order;
-                best_top = top_d;
-                best_fill = filler;
+                best_state = save();
                 best_opt = o;
             }
         }
         check_vis = false;
-        if (best_order.empty()) {  // no valid plan (should not happen): the plain hub7 procedure
-            order = order0;
-            top_d = top0;
-            filler = fill0;
+        if (best > 1e17) {  // no valid plan (should not happen): the plain hub7 procedure
+            restore(st0);
             ops.clear();
             run_plan(u, PlanOpt{});
             return ops;
         }
-        order = best_order;
-        top_d = best_top;
-        filler = best_fill;
+        restore(best_state);
         ops = best_ops;
         stat_kept += best_opt.keep && top0 >= 0 && ded[u] == top0;
-        stat_fill += best_fill >= 0 && best_fill != fill0;
-#ifdef ROLLOUT_CHECK
-        if (++req_count % 37 == 5) rollout_check(u, order0, top0, fill0, opts, best);
-        order = best_order;
-        top_d = best_top;
-        filler = best_fill;
-        ops = best_ops;
-#endif
+        stat_fill += fillers.size();
         return ops;
     }
-
-#ifdef ROLLOUT_CHECK
-    // Analysis only: papers out of the layered structure ([lifted] [generic] [filler] [column 0] ...
-    // [column H-1] [unused]); each would need a move to restore it.
-    int misplaced() const {
-        double mx = -10;
-        int bad = 0;
-        for (int i = 0; i < K; i++) {
-            int k = order[i];
-            double key;
-            if (k == top_d) key = (i == 0) ? -3 : 1e9;
-            else if (group_of[k] >= 0) key = -2;
-            else if (k == filler) key = -1;
-            else if (col_of[k] >= 0) key = col_of[k];
-            else key = H;
-            if (key < mx) bad++;
-            else mx = key;
-        }
-        return bad;
-    }
-    // Analysis only: every legal first move (visible paper, any depth) followed by every plan option.
-    // Counts how often this beats the plan search, and by which kind of first move.
-    long long req_count = 0, rc_checked = 0, rc_better = 0;
-    double rc_gain = 0;
-    long long rc_kind[6] = {};
-    void rollout_check(int u, const std::vector<int>& order0, int top0, int fill0,
-                       const std::vector<PlanOpt>& opts, double best) {
-        rc_checked++;
-        double best2 = best;
-        int kind2 = -1;
-        check_vis = true;
-        for (int k0 = 0; k0 < K; k0++) {
-            order = order0;
-            top_d = top0;
-            filler = fill0;
-            if (!visible(k0)) continue;
-            int kind = k0 == top0 ? 0 : k0 == fill0 ? 1 : group_of[k0] >= 0 ? 2 : k0 == ded[u] ? 3 : col_of[k0] >= 0 ? 4 : 5;
-            for (int d0 = 0; d0 < K; d0++) {
-                for (const PlanOpt& o : opts) {
-                    order = order0;
-                    top_d = top0;
-                    filler = fill0;
-                    ops.clear();
-                    invalid = false;
-                    move(k0, d0);
-                    if (k0 == top0 && d0 != 0) top_d = -1;  // no longer on top: treated as a column paper
-                    if (k0 == fill0) filler = -1;
-                    run_plan(u, o);
-                    if (invalid || display() != A[u]) continue;
-                    double cost = ops.size() + (filler >= 0 ? 1 : 0) + misplaced();
-                    if (cost < best2 - 1e-9) {
-                        best2 = cost;
-                        kind2 = kind;
-                    }
-                }
-            }
-        }
-        check_vis = false;
-        if (best2 < best - 1e-9) {
-            rc_better++;
-            rc_gain += best - best2;
-            rc_kind[kind2]++;
-        }
-    }
-#endif
 };
 
 }  // namespace
@@ -1491,26 +1421,9 @@ int main() {
     std::cerr << "ded_moves_per_req = " << (ded_req ? (double)ded_moves / ded_req : 0) << '\n';
     std::cerr << "gen_moves_per_req = " << (r - ded_req ? (double)(total - ded_moves) / (r - ded_req) : 0) << '\n';
     std::cerr << "self_wrong = " << wrong << '\n';
-    std::cerr << "dig_per_ded = " << (ded_req ? (double)solver.stat_dig / ded_req : 0) << '\n';
-    std::cerr << "tri_per_ded = " << (ded_req ? (double)solver.stat_tri / ded_req : 0) << '\n';
-    std::cerr << "gcare_moves_per_ded = " << (double)solver.stat_gcare_moves / std::max(1LL, ded_req) << '\n';
-    std::cerr << "gcare_windows_per_ded = " << (double)solver.stat_gcare_windows / std::max(1LL, ded_req) << '\n';
-    std::cerr << "handle_holes_per_ded = " << (double)solver.stat_hholes / std::max(1LL, ded_req) << '\n';
-    std::cerr << "filler_gain_per_req = " << solver.stat_filler_gain / r << '\n';
-    std::cerr << "chain_gain_per_req = " << solver.stat_chain_gain / r << '\n';
-    std::cerr << "filler_pos_frac = " << (double)solver.stat_filler_pos / r << '\n';
     std::cerr << "partner_hits = " << partner_hits << '\n';
     std::cerr << "kept_partner = " << solver.stat_kept << '\n';
-#ifdef ROLLOUT_CHECK
-    std::cerr << "rc_checked = " << solver.rc_checked << "\nrc_better = " << solver.rc_better
-              << "\nrc_gain_per_checked = " << solver.rc_gain / std::max(1LL, solver.rc_checked) << '\n';
-    for (int t = 0; t < 6; t++) std::cerr << "rc_kind" << t << " = " << solver.rc_kind[t] << '\n';
-#endif
     std::cerr << "fillers_used = " << solver.stat_fill << '\n';
     std::cerr << "total_moves = " << total << '\n';
-    for (int t = 0; t < 3; t++)
-        for (int c = 1; c <= 6; c++)
-            if (solver.gstat_cnt[t][c])
-                std::cerr << "gcost_t" << t << "_h" << c << " = " << (double)solver.gstat_moves[t][c] / solver.gstat_cnt[t][c] << "\ngfreq_t" << t << "_h" << c << " = " << (double)solver.gstat_cnt[t][c] / r << '\n';
     return 0;
 }
