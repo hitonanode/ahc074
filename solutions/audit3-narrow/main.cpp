@@ -4,12 +4,15 @@
 // each candidate used to be offered only at its lowest level (just past its deepest wrong handle).
 // The same paper at a deeper level lv covers h_lv..h_c only and leaves h_lvl..h_{lv-1} to another
 // filler; the DPs could not combine two papers whose lowest intervals overlap. Now every lv whose
-// handle h_{lv-1} is a hole the paper would cover is offered too (new fillers, old fillers moved to a
-// new level, and the previous lifted paper used as a filler in run_joint; new fillers in
-// choose_fillers_prelift). The third audit found it by trying every legal first move (visible paper
-// x every depth) before the plan search (seed 0-11, every 4th request): 6.6% of the requests had a
-// better plan, 0.014 moves per request, the largest gains (1-2.4 moves) from a paper at a narrower
-// level or two papers stacked at one level.
+// handle h_lv is a hole the paper would cover is offered too (the deepest level giving that coverage;
+// new fillers, old fillers moved to a new level, and the previous lifted paper used as a filler in
+// run_joint; new fillers in choose_fillers_prelift). Seed 0-95 with the annealing fixed: -0.241 +-
+// 0.050% (levels just past a covered hole instead, which overlap more: -0.192 +- 0.047%; only in
+// run_joint / only in choose_fillers_prelift: -0.137 / -0.107%). The third audit found it by trying
+// every legal first move (visible paper x every depth) before the plan search (solutions/audit3-tools,
+// audit2-blk, seed 0-11, every 4th request): 6.6% of the requests had a better plan, 0.014 moves per
+// request, the largest gains (1-2.4 moves) from a paper at a narrower level or two papers stacked at
+// one level.
 // left-ap: solutions/left-fast with the linearized filler proxy of solutions/mix-ap in the annealing
 // (mix-ap on mix-pt: -0.110 +- 0.066%, not significant; retried with the faster annealing).
 // left-fast: solutions/audit2-blk with a faster annealing (same moves, same costs): a handle swap
@@ -2133,7 +2136,7 @@ struct Solver {
                 if (gain > 0) cand_end[c].push_back({lvl, gain, depth, post ? 1 : 0});
                 if (kNarrowP) {  // audit3: narrower levels
                     for (int lv = lvl + 1; lv <= c; lv++) {
-                        int j = lv - 1;
+                        int j = lv;
                         if (!(shown >> handle[j] & 1)) continue;
                         bool post2 = c > l && lv <= l && (paper[f].opaque >> handle[l] & 1);
                         if (post2 && !hole_c) continue;
@@ -2420,10 +2423,11 @@ struct Solver {
                 }
             }
             // audit3: narrower levels lv (the paper covers [lv, c] only and leaves [lvl, lv - 1]
-            // to other papers), at every lv whose handle lv - 1 is a hole of D the paper covers.
+            // to other papers), at every lv whose handle h_lv is a hole of D the paper covers (the
+            // deepest level giving that coverage, so that it overlaps the fewest other intervals).
             if (kNarrowJ && lvl <= c) {
                 for (int lv = lvl + 1; lv <= c; lv++) {
-                    int j = lv - 1;
+                    int j = lv;
                     if (!((hh >> handle[j] & 1) && (paper[x].opaque >> handle[j] & 1))) continue;
                     if (!is_x0 && lv == L) continue;  // the stay candidate
                     double g = saved(x, lv, c, false) - (is_x0 ? kJointPrev : kJointRelevel);
@@ -2456,7 +2460,7 @@ struct Solver {
                 if (g >= kFillerCost && g > 0) cand_end[c].push_back({lvl, c, (double)g, 0, f, post});
                 if (kNarrowJ) {  // audit3: narrower levels
                     for (int lv = lvl + 1; lv <= c; lv++) {
-                        int j = lv - 1;
+                        int j = lv;
                         if (!((hh >> handle[j] & 1) && (paper[f].opaque >> handle[j] & 1))) continue;
                         bool post2 = d_out || (c > l && lv <= l && (paper[f].opaque >> handle[l] & 1));
                         int g2 = saved(f, lv, c, depth == 0 && hole_c) - 1 - depth;
