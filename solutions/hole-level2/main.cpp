@@ -1,6 +1,7 @@
 // hole-level2: solutions/hole-level where the previous lifted paper may itself become a leveled
 // filler for the new target (plan option ret_mode 3) instead of going back to its column: it has
-// to leave the top anyway, so it costs one move less than a filler taken from a column.
+// to leave the top anyway, so it costs one move less than a filler taken from a column. Likewise
+// a filler of the previous request may move straight to a new level (fret_mode 3).
 // hole-level: solutions/search-bf2 whose fillers may also be inserted deeper in the stack, just
 // above the top of column c' (the "level"): there a filler X of column c shows only on the handles
 // h_{c'}..h_c (every paper of columns 0..c'-1 is a hole there), so it only has to match A_u on
@@ -1089,6 +1090,65 @@ struct Solver {
             for (int k : deferred) return_paper(k, u, opt.fret_mode);
             fillers.push_back(fl);
             stat_prev_fill_try++;
+        } else if (opt.fret_mode == 3) {
+            // Old fillers that can cover holes of D = ded[u] deeper than its column move straight
+            // to their new level (if they gain at least 2 digs); the others go back to the bottom.
+            if (top_d >= 0 && !kept) return_paper(top_d, u, opt.ret_mode);
+            int d = ded[u];
+            std::vector<Filler> old = fillers;
+            std::vector<Filler> placed;
+            for (int i = (int)old.size() - 1; i >= 0; i--) {
+                int x = old[i].paper, cf = col_of[x];
+                bool use = false;
+                int lvl = 0;
+                u64 cov = 0;
+                if (d >= 0 && x != d && col_of[d] < cf && visible(x)) {
+                    u64 hh_u = all & ~paper[d].opaque & ~gmask & ~pre_cov;
+                    u64 shown = paper[x].opaque & hh_u;
+                    u64 bad = (paper[x].black ^ A[u]) & shown;
+                    lvl = col_of[d] + 1;
+                    for (int j = 0; j < H; j++)
+                        if (bad >> handle[j] & 1) lvl = std::max(lvl, j + 1);
+                    bool ok = lvl <= cf;
+                    for (auto& e : placed) if (e.lvl > lvl && cf >= e.lvl) ok = false;
+                    if (ok) {
+                        int save = 0;
+                        for (int j = lvl; j <= cf; j++) {
+                            if (!(shown >> handle[j] & 1)) continue;
+                            cov |= 1ULL << handle[j];
+                            if (j != cf) save += handle_fix_cost(j, A[u] >> handle[j] & 1);
+                        }
+                        use = save >= 2;
+                    }
+                }
+                if (!use) {
+                    return_paper(x, u, 1);
+                    continue;
+                }
+                for (size_t k = 0; k < fillers.size(); k++)
+                    if (fillers[k].paper == x) {
+                        fillers.erase(fillers.begin() + k);
+                        break;
+                    }
+                int q = -1;
+                for (int k2 = 0; k2 < K; k2++) {
+                    int k = order[k2];
+                    if (k != x && col_of[k] >= lvl && in_column(k, col_of[k])) {
+                        q = k2;
+                        break;
+                    }
+                }
+                int xi = index_of(x);
+                if (q < 0) q = K;
+                move(x, xi < q ? q - 1 : q);
+                Filler fl = old[i];
+                fl.lvl = lvl;
+                fl.hi = cf;
+                placed.push_back(fl);
+                pre_cov |= cov;
+                stat_refill_try++;
+            }
+            for (auto& fl : placed) fillers.push_back(fl);
         } else {
             if (top_d >= 0 && !kept) return_paper(top_d, u, opt.ret_mode);
             while (!fillers.empty()) return_paper(fillers.back().paper, u, opt.fret_mode);
@@ -1178,7 +1238,9 @@ struct Solver {
     }
     bool search_on = env_int("SEARCH", 1) != 0;
     bool prev_filler = env_int("PREV_FILLER", 1) != 0;
-    long long stat_kept = 0, stat_fill = 0, stat_level_fill = 0, stat_prev_fill_try = 0, stat_prev_fill = 0;
+    bool refill = env_int("REFILL", 1) != 0;
+    long long stat_kept = 0, stat_fill = 0, stat_level_fill = 0, stat_prev_fill_try = 0, stat_prev_fill = 0,
+              stat_refill_try = 0, stat_refill = 0;
     std::vector<std::pair<int, int>> process(int u) {
         const State st0 = save();
         int top0 = top_d;
@@ -1191,10 +1253,13 @@ struct Solver {
             bool prev_ok = top0 >= 0 && ded[u] >= 0 && ded[u] != top0 && col_of[ded[u]] < col_of[top0] &&
                            prev_filler;
             for (int rm = 1; rm <= (prev_ok ? 3 : 2); rm++)
-                for (int fm = 1; fm <= (has_free_filler ? 2 : 1); fm++)
+                for (int fm : {1, 2, 3})
                     for (int uf = 0; uf < 2; uf++)
                         for (int kp = 0; kp < ((top0 >= 0 && ded[u] == top0) ? 2 : 1); kp++)
-                            opts.push_back(PlanOpt{rm, fm, uf == 1, kp == 1});
+                            if ((fm == 2 && !has_free_filler) || (fm == 3 && (!refill || fillers.empty() || rm == 3)))
+                                continue;
+                            else
+                                opts.push_back(PlanOpt{rm, fm, uf == 1, kp == 1});
         }
         double best = 1e18;
         std::vector<std::pair<int, int>> best_ops;
@@ -1226,6 +1291,7 @@ struct Solver {
         ops = best_ops;
         stat_kept += best_opt.keep && top0 >= 0 && ded[u] == top0;
         stat_prev_fill += best_opt.ret_mode == 3;
+        stat_refill += best_opt.fret_mode == 3;
         stat_fill += fillers.size();
         return ops;
     }
@@ -1276,6 +1342,7 @@ int main() {
     std::cerr << "fillers_used = " << solver.stat_fill << '\n';
     std::cerr << "level_fillers_tried = " << solver.stat_level_fill << '\n';
     std::cerr << "prev_fillers_used = " << solver.stat_prev_fill << '\n';
+    std::cerr << "refill_plans_used = " << solver.stat_refill << '\n';
     std::cerr << "total_moves = " << total << '\n';
     return 0;
 }
