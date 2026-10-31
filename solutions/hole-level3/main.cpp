@@ -2,7 +2,11 @@
 // column top is visible: a paper of a column c shallower than D whose handle D covers can still
 // cover the shallow holes of a pair paper D in h_{c'}..h_c (it is a hole at D's handle, so it
 // never hides D). Fillers whose interval reaches D's own handle are placed after the lift.
-// hole-level2: solutions/hole-level where the previous lifted paper may itself become a leveled
+// Papers left out of their column are charged 0.8 move in the plan cost (they are often re-used
+// instead of returned), and old fillers that are harmless for the new target (they do not hide its
+// column and show its colors on the holes they cover) may stay where they are (fret_mode 4). A plan
+// is kept only if every paper left out stays visible once the lifted paper is set aside.
+// hole-level2:solutions/hole-level where the previous lifted paper may itself become a leveled
 // filler for the new target (plan option ret_mode 3) instead of going back to its column: it has
 // to leave the top anyway, so it costs one move less than a filler taken from a column. Likewise
 // a filler of the previous request may move straight to a new level (fret_mode 3).
@@ -1206,6 +1210,27 @@ struct Solver {
                     use = save >= 2;
                 }
             }
+            if (!use && keep_harmless_now && d >= 0 && x != d) {
+                // Leave it where it is if it does not hide D's column top and shows A_u on the
+                // holes of D it covers (it may serve a later target).
+                int L = olds[i].lvl, l = col_of[d];
+                bool harm = L <= l && l <= cf && (paper[x].opaque >> handle[l] & 1);
+                for (auto& e : placed) if (e.lvl > L && cf >= e.lvl) harm = true;
+                u64 hcov = 0;
+                for (int j = L; j <= cf; j++) hcov |= 1ULL << handle[j];
+                hcov &= paper[x].opaque & (all & ~paper[d].opaque & ~gmask) & ~pre_cov;
+                if ((paper[x].black ^ A[u]) & hcov) harm = true;
+                if (!harm && visible(x)) {
+                    for (size_t k = 0; k < fillers.size(); k++)
+                        if (fillers[k].paper == x) {
+                            fillers.erase(fillers.begin() + k);
+                            break;
+                        }
+                    placed.push_back(olds[i]);
+                    pre_cov |= hcov;
+                    continue;
+                }
+            }
             if (!use) {
                 return_paper(x, u, mode);
                 continue;
@@ -1238,7 +1263,10 @@ struct Solver {
     bool filler_dp = env_int("FILLER_DP", 1) != 0;
     bool prelift = env_int("PRELIFT", 1) != 0;
     double kFillerCharge = env_double("FILL_W", 0.8);
+    bool keep_harmless = env_int("KEEP_HARMLESS", 1) != 0;
+    bool keep_harmless_now = false;
     void run_plan(int u, const PlanOpt& opt) {
+        keep_harmless_now = opt.fret_mode == 4;
         u64 all = gmask;
         for (int l = 0; l < H; l++) all |= 1ULL << handle[l];
         bool kept = opt.keep && top_d >= 0 && ded[u] == top_d;
@@ -1268,7 +1296,7 @@ struct Solver {
                 placed.push_back(fp);
             }
             pre_cov |= cov0;
-            if (opt.fret_mode == 3) {
+            if (opt.fret_mode >= 3) {
                 refill_or_return(u, vis_old, all, pre_cov, placed, 1);
             } else {
                 for (int i = (int)vis_old.size() - 1; i >= 0; i--) return_paper(vis_old[i].paper, u, opt.fret_mode);
@@ -1285,14 +1313,14 @@ struct Solver {
             if (q < 0) q = K;
             move(x, xi < q ? q - 1 : q);
             top_d = -1;
-            if (opt.fret_mode == 3) {
+            if (opt.fret_mode >= 3) {
                 refill_or_return(u, def_old, all, pre_cov, placed, 1);
             } else {
                 for (int i = (int)def_old.size() - 1; i >= 0; i--) return_paper(def_old[i].paper, u, opt.fret_mode);
             }
             for (auto& f : placed) fillers.push_back(f);
             stat_prev_fill_try++;
-        } else if (opt.fret_mode == 3) {
+        } else if (opt.fret_mode >= 3) {
             if (top_d >= 0 && !kept) return_paper(top_d, u, opt.ret_mode);
             std::vector<Filler> old = fillers, placed;
             refill_or_return(u, old, all, pre_cov, placed, 1);
@@ -1384,6 +1412,25 @@ struct Solver {
         }
     }
 
+    // Every filler is visible with the lifted paper set aside (it goes back first at the next
+    // request), so that it can always be returned.
+    bool fillers_reachable() const {
+        for (auto& f : fillers) {
+            u64 e = paper[f.paper].opaque;
+            bool vis = false;
+            for (int x : order) {
+                if (x == top_d) continue;
+                if (x == f.paper) {
+                    vis = e != 0;
+                    break;
+                }
+                e &= ~paper[x].opaque;
+            }
+            if (!vis) return false;
+        }
+        return true;
+    }
+
     // Search over plans: every combination of the options is simulated on a copy of the state, and
     // the one with the fewest moves (+1 per filler left to return later) is kept.
     struct State {
@@ -1414,10 +1461,10 @@ struct Solver {
             for (auto& f : fillers) has_free_filler |= f.pred < 0;
             bool prev_ok = top0 >= 0 && ded[u] >= 0 && ded[u] != top0 && prev_filler;
             for (int rm = 1; rm <= (prev_ok ? 3 : 2); rm++)
-                for (int fm : {1, 2, 3})
-                    for (int uf = 0; uf < 2; uf++)
+                for (int fm : {1, 2, 3, 4})
+                    for (int uf = env_int("UF_MIN", 1); uf < 2; uf++)  // plans without fillers are never better
                         for (int kp = 0; kp < ((top0 >= 0 && ded[u] == top0) ? 2 : 1); kp++)
-                            if ((fm == 2 && !has_free_filler) || (fm == 3 && (!refill || fillers.empty())))
+                            if ((fm == 2 && !has_free_filler) || (fm >= 3 && (!refill || fillers.empty())) || (fm == 4 && !keep_harmless))
                                 continue;
                             else
                                 opts.push_back(PlanOpt{rm, fm, uf == 1, kp == 1});
@@ -1433,6 +1480,7 @@ struct Solver {
             invalid = false;
             run_plan(u, o);
             if (invalid || display() != A[u]) continue;
+            if (!fillers_reachable()) continue;
             // A filler left out costs its return later, but is often re-used (refill) instead,
             // so it is charged less than a move now (seed 0-95: 1.0 -> 0.8 is -0.48%).
             double cost = ops.size() + kFillerCharge * fillers.size();
