@@ -1,7 +1,8 @@
 // left-fast: solutions/audit2-blk with a faster annealing (same moves, same costs): a handle swap
 // scans only the units of the columns it changes (lists of the units per column) instead of every
 // unit, the temperature is recomputed every 256 iterations, and the acceptance test reads -log u
-// from a table instead of computing exp.
+// from a table instead of computing exp, and the annealing uses xoshiro256** (about 1.85x the
+// iterations of audit2-blk in all).
 // audit2-blk: solutions/audit2-ret whose generic layer is driven by a lookahead policy (set_blocks):
 // over the orders of the base paper and the flip papers (720 states for 5 blocks, legal moves of
 // visible papers only), the request takes a shortest path to a state showing the wanted
@@ -151,6 +152,31 @@ double env_double(const char* name, double def) {
     const char* s = std::getenv(name);
     return s ? std::atof(s) : def;
 }
+
+// xoshiro256** (left-fast: the annealing's generator; std::mt19937_64 took a large part of an
+// iteration). Seeded by splitmix64.
+struct Xoshiro256 {
+    u64 s[4];
+    explicit Xoshiro256(u64 seed) {
+        for (auto& x : s) {
+            u64 z = (seed += 0x9e3779b97f4a7c15ULL);
+            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+            z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+            x = z ^ (z >> 31);
+        }
+    }
+    static u64 rotl(u64 x, int k) { return (x << k) | (x >> (64 - k)); }
+    u64 operator()() {
+        const u64 r = rotl(s[1] * 5, 7) * 9, t = s[1] << 17;
+        s[2] ^= s[0];
+        s[3] ^= s[1];
+        s[1] ^= s[2];
+        s[0] ^= s[3];
+        s[2] ^= t;
+        s[3] = rotl(s[3], 45);
+        return r;
+    }
+};
 
 struct Block {
     u64 mask = 0;   // windows of the block
@@ -971,7 +997,7 @@ struct Solver {
         if (kBiasMix > 0) refresh();
         std::cerr << "anneal_start_sec = " << elapsed_sec() << '\n';
         std::cerr << "model_cost_before = " << total_cost() << '\n';
-        std::mt19937_64 rng(777);
+        Xoshiro256 rng(777);
         // left-fast: a multiply-shift instead of a 64-bit modulo.
         auto rnd = [&](int n) { return (int)(((unsigned __int128)rng() * (unsigned)n) >> 64); };
         auto unif = [&]() { return (rng() >> 11) * 0x1.0p-53; };
