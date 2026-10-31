@@ -7,6 +7,10 @@
 //     windows. This raises the consistent partners per target by about 40% and more.
 //   - From 10% of the annealing on, Y is frozen and the re-pairing move draws the new partner
 //     among the consistent partners of the target kept (random exchanges are mostly rejected).
+//   - A pair still inconsistent after the annealing and its repair (about 2% of the cases at
+//     H = 34) is fixed by splitting the block (a new flip paper), paid by one unit less: two
+//     singles merged, or an augmenting path (a pair keeps one target with a single, the other
+//     target joins another single).
 // search-bf2: solutions/gen-bf2 with the moves of every request chosen by a search over plans
 // (solutions/search-ops): each combination of the plan options (return of the previous paper at the
 // top or the bottom of its column, fillers or not, keeping the lifted paper for its pair partner)
@@ -182,8 +186,9 @@ struct Solver {
             // Also exchanges a G window with a handle window (which windows are generic).
             std::vector<int> hw;
             for (int j = G; j < N; j++) hw.push_back(j);
-            int swaps = env_int("CB_PSWAPS", 600);
-            const double gh_rate = env_double("CB_PGH", 0.3);
+            int swaps = env_int("CB_PSWAPS", 3000);
+            const double gh_rate = env_double("CB_PGH", 0.3), pmove_rate = env_double("CB_PMOVE", 0.0);
+            const int pmin = env_int("CB_PMIN", 3);
             for (int it = 0; it < swaps && nb >= 2; it++) {
                 if ((rng() >> 11) * 0x1.0p-53 < gh_rate) {
                     int b1 = rng() % nb, i1 = rng() % bw[b1].size(), k = rng() % hw.size();
@@ -196,6 +201,19 @@ struct Solver {
                 }
                 int b1 = rng() % nb, b2 = rng() % (nb - 1);
                 if (b2 >= b1) b2++;
+                if ((rng() >> 11) * 0x1.0p-53 < pmove_rate) {
+                    // Move a window from b1 to b2 (block sizes change; at most 8 windows).
+                    if ((int)bw[b1].size() <= pmin || bw[b2].size() >= 8) continue;
+                    int i1 = rng() % bw[b1].size();
+                    auto o1 = bw[b1], o2 = bw[b2];
+                    bw[b2].push_back(bw[b1][i1]);
+                    bw[b1].erase(bw[b1].begin() + i1);
+                    int y1, y2;
+                    double f1 = best_y(bw[b1], y1), f2 = best_y(bw[b2], y2);
+                    if (f1 + f2 > fb[b1] + fb[b2] + 1e-12) fb[b1] = f1, fb[b2] = f2, yb[b1] = y1, yb[b2] = y2;
+                    else bw[b1] = o1, bw[b2] = o2;
+                    continue;
+                }
                 int i1 = rng() % bw[b1].size(), i2 = rng() % bw[b2].size();
                 std::swap(bw[b1][i1], bw[b2][i2]);
                 int y1, y2;
@@ -315,6 +333,116 @@ struct Solver {
             }
         }
         anneal_units(units, members, color_at);
+        // Fallback for a pair still inconsistent after the annealing and its repair (about 2% of
+        // the cases): split each block where it is inconsistent (a new flip paper for the windows
+        // where A_u differs from Y_b; splitting never breaks another pair), paying the paper by
+        // merging two single targets into a pair consistent with the blocks.
+        {
+            std::vector<u64> shallow_l(H + 1, 0);
+            for (int l = 0; l < H; l++) shallow_l[l + 1] = shallow_l[l] | 1ULL << handle[l];
+            std::vector<int> col_of_unit(units.size(), -1);
+            for (int l = 0; l < H; l++) for (int c = 0; c < 2; c++) for (int x : members[l][c]) col_of_unit[x] = l;
+            int splits = 0, failed = 0;
+            for (int x = 0; x < (int)units.size(); x++) {
+                auto [u, v] = units[x];
+                if (v < 0 || col_of_unit[x] < 0) continue;
+                for (int b = 0; b < (int)blocks.size(); b++) {
+                    u64 d = (A[u] ^ A[v]) & blocks[b].mask;
+                    u64 xx = (A[u] ^ blocks[b].y) & d;
+                    if (!d || xx == 0 || xx == d) continue;
+                    // The cheapest merge of two singles: consistent, agreeing at the handle of the
+                    // first one's column, and the second one's column keeps both colors.
+                    double best = 1e18;
+                    int bw_ = -1, bz = -1;
+                    for (int xw = 0; xw < (int)units.size(); xw++) {
+                        if (units[xw][1] >= 0 || col_of_unit[xw] < 0) continue;
+                        int lw = col_of_unit[xw], w = units[xw][0];
+                        for (int xz = 0; xz < (int)units.size(); xz++) {
+                            if (xz == xw || units[xz][1] >= 0 || col_of_unit[xz] < 0) continue;
+                            int z = units[xz][0], lz = col_of_unit[xz];
+                            u64 dz = A[w] ^ A[z];
+                            if (dz >> handle[lw] & 1) continue;
+                            auto [t, bad] = touch(A[w], dz);
+                            if (bad) continue;
+                            int cz = A[z] >> handle[lz] & 1;
+                            if (members[lz][cz].size() <= 1) continue;
+                            double c = 2 * (0.51 * __builtin_popcountll(dz & shallow_l[lw]) + 0.5 * t);
+                            if (c < best) best = c, bw_ = xw, bz = xz;
+                        }
+                    }
+                    if (bw_ < 0) {
+                        // Two singles rarely make a consistent pair (the annealing paired those
+                        // that could), so take an augmenting path: a pair (a, b) keeps a with a
+                        // single c (consistent, same color at its handle), and b joins a single d
+                        // in d's column. One unit less, columns keep their colors.
+                        int bp = -1, bkeep = -1, bc = -1, bd = -1;
+                        for (int xp = 0; xp < (int)units.size(); xp++) {
+                            if (units[xp][1] < 0 || col_of_unit[xp] < 0 || xp == x) continue;
+                            int lp = col_of_unit[xp];
+                            for (int keep = 0; keep < 2; keep++) {
+                                int a = units[xp][keep], bb = units[xp][1 - keep];
+                                for (int xc = 0; xc < (int)units.size(); xc++) {
+                                    if (units[xc][1] >= 0 || col_of_unit[xc] < 0) continue;
+                                    int c = units[xc][0], lc = col_of_unit[xc];
+                                    u64 dac = A[a] ^ A[c];
+                                    if (dac >> handle[lp] & 1) continue;
+                                    int colc = A[c] >> handle[lc] & 1;
+                                    if (members[lc][colc].size() <= 1) continue;
+                                    auto [t1, bad1] = touch(A[a], dac);
+                                    if (bad1) continue;
+                                    double c1 = 0.51 * __builtin_popcountll(dac & shallow_l[lp]) + 0.5 * t1;
+                                    if (2 * c1 >= best) continue;
+                                    for (int xd = 0; xd < (int)units.size(); xd++) {
+                                        if (xd == xc || units[xd][1] >= 0 || col_of_unit[xd] < 0) continue;
+                                        int d2 = units[xd][0], ld = col_of_unit[xd];
+                                        u64 dbd = A[bb] ^ A[d2];
+                                        if (dbd >> handle[ld] & 1) continue;
+                                        auto [t2, bad2] = touch(A[bb], dbd);
+                                        if (bad2) continue;
+                                        double cc = 2 * (c1 + 0.51 * __builtin_popcountll(dbd & shallow_l[ld]) + 0.5 * t2);
+                                        if (cc < best) best = cc, bp = xp, bkeep = keep, bc = xc, bd = xd;
+                                    }
+                                }
+                            }
+                        }
+                        if (bp < 0) {
+                            failed++;
+                            continue;
+                        }
+                        int a = units[bp][bkeep], bb = units[bp][1 - bkeep];
+                        int c = units[bc][0], lc = col_of_unit[bc], colc = A[c] >> handle[lc] & 1;
+                        auto& mc = members[lc][colc];
+                        mc.erase(std::find(mc.begin(), mc.end(), bc));
+                        col_of_unit[bc] = -1;
+                        units[bp] = {a, c};
+                        units[bd][1] = bb;
+                        Block nbk;
+                        nbk.mask = xx;
+                        nbk.y = blocks[b].y & xx;
+                        blocks[b].mask &= ~xx;
+                        blocks[b].y &= ~xx;
+                        blocks.push_back(nbk);
+                        splits++;
+                        continue;
+                    }
+                    int z = units[bz][0], lz = col_of_unit[bz], cz = A[z] >> handle[lz] & 1;
+                    auto& mz = members[lz][cz];
+                    mz.erase(std::find(mz.begin(), mz.end(), bz));
+                    col_of_unit[bz] = -1;
+                    units[bw_][1] = z;
+                    Block nbk;
+                    nbk.mask = xx;
+                    nbk.y = blocks[b].y & xx;
+                    blocks[b].mask &= ~xx;
+                    blocks[b].y &= ~xx;
+                    blocks.push_back(nbk);
+                    splits++;
+                }
+            }
+            nb = blocks.size();
+            next = nb + 1;
+            std::cerr << "split_fallback = " << splits << "\nsplit_failed = " << failed << '\n';
+        }
         // Generic papers (after the annealing fixed Y_b).
         std::vector<int> generic_order;
         {
