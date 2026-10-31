@@ -1037,6 +1037,24 @@ struct Solver {
         return want;
     }
 
+    // Level for an out-of-place paper x (the previous lifted paper or an old filler, column cx) to
+    // serve as a filler for D (column l, handle holes hh): just past its deepest wrong handle, and
+    // below D's column when x would cover h_l (it must not hide D's column top). -1 if it covers
+    // nothing there. cov receives the covered holes.
+    int level_for(int x, int d, u64 hh, int u, u64& cov) const {
+        int cx = col_of[x], l = col_of[d];
+        u64 shown = paper[x].opaque & hh;
+        u64 bad = (paper[x].black ^ A[u]) & shown;
+        int lvl = 0;
+        for (int j = 0; j < H; j++)
+            if (bad >> handle[j] & 1) lvl = std::max(lvl, j + 1);
+        if (cx >= l && (paper[x].opaque >> handle[l] & 1)) lvl = std::max(lvl, l + 1);
+        cov = 0;
+        for (int j = lvl; j <= cx; j++)
+            if (shown >> handle[j] & 1) cov |= 1ULL << handle[j];
+        return cov ? lvl : -1;
+    }
+
     int kMaxFillers = env_int("MAX_FILLERS", 8);
     bool filler_dp = env_int("FILLER_DP", 1) != 0;
     void run_plan(int u, const PlanOpt& opt) {
@@ -1049,18 +1067,13 @@ struct Solver {
             // at level lvl it covers the holes of D in h_lvl..h_lp where it is opaque, and must
             // show A_u there. The old fillers go back first when they can (x on top may hide them).
             int x = top_d, lp = col_of[x], d = ded[u];
-            if (d < 0 || d == x || col_of[d] >= lp) {
+            if (d < 0 || d == x) {
                 invalid = true;
                 return;
             }
-            int l = col_of[d];
-            u64 hh_u = all & ~paper[d].opaque & ~gmask;
-            u64 shown = paper[x].opaque & hh_u;
-            u64 bad = (paper[x].black ^ A[u]) & shown;
-            int lvl = l + 1;
-            for (int j = 0; j < H; j++)
-                if (bad >> handle[j] & 1) lvl = std::max(lvl, j + 1);
-            if (lvl > lp) {
+            u64 cov0 = 0;
+            int lvl = level_for(x, d, all & ~paper[d].opaque & ~gmask, u, cov0);
+            if (lvl < 0) {
                 invalid = true;
                 return;
             }
@@ -1085,8 +1098,7 @@ struct Solver {
             Filler fl{x, -1};
             fl.lvl = lvl;
             fl.hi = lp;
-            for (int j = lvl; j <= lp; j++) pre_cov |= 1ULL << handle[j];
-            pre_cov &= paper[x].opaque;
+            pre_cov |= cov0;
             for (int k : deferred) return_paper(k, u, opt.fret_mode);
             fillers.push_back(fl);
             stat_prev_fill_try++;
@@ -1102,22 +1114,14 @@ struct Solver {
                 bool use = false;
                 int lvl = 0;
                 u64 cov = 0;
-                if (d >= 0 && x != d && col_of[d] < cf && visible(x)) {
-                    u64 hh_u = all & ~paper[d].opaque & ~gmask & ~pre_cov;
-                    u64 shown = paper[x].opaque & hh_u;
-                    u64 bad = (paper[x].black ^ A[u]) & shown;
-                    lvl = col_of[d] + 1;
-                    for (int j = 0; j < H; j++)
-                        if (bad >> handle[j] & 1) lvl = std::max(lvl, j + 1);
-                    bool ok = lvl <= cf;
+                if (d >= 0 && x != d && visible(x)) {
+                    lvl = level_for(x, d, all & ~paper[d].opaque & ~gmask & ~pre_cov, u, cov);
+                    bool ok = lvl >= 0;
                     for (auto& e : placed) if (e.lvl > lvl && cf >= e.lvl) ok = false;
                     if (ok) {
                         int save = 0;
-                        for (int j = lvl; j <= cf; j++) {
-                            if (!(shown >> handle[j] & 1)) continue;
-                            cov |= 1ULL << handle[j];
-                            if (j != cf) save += handle_fix_cost(j, A[u] >> handle[j] & 1);
-                        }
+                        for (int j = lvl; j <= cf; j++)
+                            if (cov >> handle[j] & 1) save += handle_fix_cost(j, A[u] >> handle[j] & 1);
                         use = save >= 2;
                     }
                 }
@@ -1250,8 +1254,7 @@ struct Solver {
         } else {
             bool has_free_filler = false;  // a filler that goes back to the top or the bottom
             for (auto& f : fillers) has_free_filler |= f.pred < 0;
-            bool prev_ok = top0 >= 0 && ded[u] >= 0 && ded[u] != top0 && col_of[ded[u]] < col_of[top0] &&
-                           prev_filler;
+            bool prev_ok = top0 >= 0 && ded[u] >= 0 && ded[u] != top0 && prev_filler;
             for (int rm = 1; rm <= (prev_ok ? 3 : 2); rm++)
                 for (int fm : {1, 2, 3})
                     for (int uf = 0; uf < 2; uf++)
