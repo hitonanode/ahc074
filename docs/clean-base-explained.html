@@ -1,0 +1,1401 @@
+<title>AHC074 clean-base 解説</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root {
+  --bg: #fbfaf7;
+  --fg: #1d1d1f;
+  --muted: #5d5d66;
+  --border: #d9d6cf;
+  --surface: #f2efe8;
+  --code-bg: #efece5;
+  --accent: #b4451f;
+  --link: #1f5fa8;
+  --cell-black: #26262b;
+  --cell-white: #ffffff;
+  --cell-stroke: #8a8780;
+  --hole-stroke: #a9a59c;
+  --mark-bg: #f6e3c6;
+  --bad: #c0262d;
+  --c-gen: #3d7a5a;
+  --c-gen-soft: #a9cdb8;
+  --c-pair: #b4451f;
+  --c-ded: #2f5d9a;
+  --c-ded-soft: #d5deea;
+  --c-fill: #c08a1e;
+  --handle: #2f5d9a;
+  --good: #2c7a3f;
+  --warn: #9a5b00;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17171a;
+    --fg: #e8e6e1;
+    --muted: #a3a09a;
+    --border: #3a3936;
+    --surface: #212124;
+    --code-bg: #26262a;
+    --accent: #f08a5d;
+    --link: #8ab8f0;
+    --cell-black: #0d0d0f;
+    --cell-white: #e9e7e2;
+    --cell-stroke: #7d7a73;
+    --hole-stroke: #6f6c66;
+    --mark-bg: #4a3a22;
+    --bad: #ff6b6b;
+    --c-gen: #6cc08e;
+    --c-gen-soft: #2f5a42;
+    --c-pair: #f08a5d;
+    --c-ded: #7fa8e0;
+    --c-ded-soft: #2b3447;
+    --c-fill: #e0b04a;
+    --handle: #8ab8f0;
+    --good: #6cc08e;
+    --warn: #e0b04a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17171a;
+  --fg: #e8e6e1;
+  --muted: #a3a09a;
+  --border: #3a3936;
+  --surface: #212124;
+  --code-bg: #26262a;
+  --accent: #f08a5d;
+  --link: #8ab8f0;
+  --cell-black: #0d0d0f;
+  --cell-white: #e9e7e2;
+  --cell-stroke: #7d7a73;
+  --hole-stroke: #6f6c66;
+  --mark-bg: #4a3a22;
+  --bad: #ff6b6b;
+  --c-gen: #6cc08e;
+  --c-gen-soft: #2f5a42;
+  --c-pair: #f08a5d;
+  --c-ded: #7fa8e0;
+  --c-ded-soft: #2b3447;
+  --c-fill: #e0b04a;
+  --handle: #8ab8f0;
+  --good: #6cc08e;
+  --warn: #e0b04a;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+  overflow-x: hidden;
+}
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding-top: 24px;
+  padding-bottom: 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1 { font-size: 1.7rem; line-height: 1.35; margin: 0.4em 0 0.2em; }
+h2 { font-size: 1.35rem; margin: 2.4em 0 0.6em; padding-bottom: 0.25em; border-bottom: 2px solid var(--border); }
+h3 { font-size: 1.1rem; margin: 1.8em 0 0.5em; }
+h4 { font-size: 1rem; margin: 1.4em 0 0.4em; color: var(--muted); }
+p, li { overflow-wrap: anywhere; }
+a { color: var(--link); }
+code, pre, kbd { font-family: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace; font-size: 0.88em; }
+code { background: var(--code-bg); padding: 0.08em 0.35em; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 12px 14px; border-radius: 6px; overflow-x: auto; line-height: 1.5; }
+pre code { background: none; padding: 0; }
+.sub { color: var(--muted); margin-top: 0; }
+.note { color: var(--muted); font-size: 0.92em; }
+.box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin: 1em 0; }
+.box > :first-child { margin-top: 0; }
+.box > :last-child { margin-bottom: 0; }
+.key { border-left: 4px solid var(--accent); }
+.tbl { overflow-x: auto; margin: 1em 0; border: 1px solid var(--border); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92em; line-height: 1.55; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+th { background: var(--surface); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+td.n, th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.nw { white-space: nowrap; }
+.toc { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 18px; }
+.toc ol { margin: 0.3em 0; padding-left: 1.4em; }
+.toc li { margin: 0.1em 0; }
+.toc ol ol { font-size: 0.94em; }
+.figwrap { margin: 1em 0; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--bg); }
+.figscroll { overflow-x: auto; }
+.figscroll svg.fig { min-width: 760px; }
+svg.fig { width: 100%; height: auto; display: block; font-family: inherit; }
+.caption { font-size: 0.9em; color: var(--muted); margin: 0.5em 2px 0; }
+.tag { display: inline-block; font-size: 0.78em; padding: 0 0.5em; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+.good { color: var(--good); }
+.warn { color: var(--warn); }
+.steps li { margin: 0.35em 0; }
+/* SVG */
+.s-blk { fill: var(--cell-black); stroke: var(--cell-stroke); stroke-width: 0.6; }
+.s-wht { fill: var(--cell-white); stroke: var(--cell-stroke); stroke-width: 0.6; }
+.s-hole { fill: none; stroke: var(--hole-stroke); stroke-width: 0.8; stroke-dasharray: 2 2; }
+.s-dim { opacity: 0.3; }
+.s-vis { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.s-mark { fill: var(--mark-bg); }
+.s-brk { stroke: var(--muted); stroke-width: 1; }
+.s-sep { stroke: var(--border); stroke-width: 1; }
+.t-title { font-size: 14px; font-weight: 600; fill: var(--fg); }
+.t-head { font-size: 10px; fill: var(--muted); }
+.t-head-h { font-size: 10px; fill: var(--handle); }
+.t-lab { font-size: 11px; fill: var(--fg); }
+.t-lab-s { font-size: 10px; fill: var(--muted); }
+.t-tiny { font-size: 9px; fill: var(--muted); }
+.k-gen { fill: var(--c-gen); }
+.k-pair { fill: var(--c-pair); }
+.k-c3 { fill: var(--c-fill); }
+.t-bad { font-size: 12px; fill: var(--bad); font-weight: 700; }
+.t-note { font-size: 11.5px; fill: var(--muted); }
+.f-ded { fill: var(--c-pair); }
+.f-holecut { fill: var(--bg); }
+.f-gen { fill: var(--c-gen); }
+.f-genY { fill: var(--c-gen-soft); }
+.f-flip { fill: var(--c-gen); }
+.f-fill { fill: var(--c-fill); }
+.f-ded-dim { fill: var(--c-ded-soft); }
+.f-handle { fill: var(--c-ded); }
+</style>
+
+<main>
+<h1>AHC074 clean-base 解説</h1>
+<p class="sub">Layered Barcode Display の現在の最良解を整理した <code>solutions/clean-base/main.cpp</code>（2522 行）が何をしているか、どこを触れば改善に着手できるか。今後の新しい解法のベース。</p>
+
+<div class="box key">
+<p><b>この文書の前提。</b>問題文は読んだが、改善の経緯（trial_log.md や PR）は知らない読者向け。clean-base は、最良解 <code>solutions/audit4-flip-clk</code>（audit4-flip に時計の倍率 <code>CLOCK_SCALE</code> を入れただけのもの）を、<b>手（出力）を変えずに</b>書き直した版（3753 → 2522 行。PR #32、trial_log.md の「最良解の整理（clean-）」、<code>solutions/clean-base/README.md</code>）。焼きなましと山登りを同じ回数に固定すると stdout が全件一致し、500 件の同時比較（run <code>20261101-010139</code>）でも audit4-flip-clk 比 −0.016 ± 0.062%（251/0/249）で差はない。</p>
+<p>そのため仕組みの説明と数字の多くは、元の解説（<code>docs/audit4-flip-explained.html</code>）と trial_log.md の記録（audit4-flip とその計測版で取ったもの）を引き継いでいる。数字の出典は箇所ごとに書いた。clean-base 自身の数字は run <code>20261101-010139_clean-base</code>（500 件、平均スコア 11739.6、E = 0、1 注文 11.46 手、WA 0）から取った。行番号・関数名・定数は commit 75cf73f の <code>solutions/clean-base/main.cpp</code>。この文書のために新しい評価は回していない。</p>
+</div>
+
+<nav class="toc" aria-label="目次">
+<b>目次</b>
+<ol>
+<li><a href="#overview">全体像</a>
+  <ol>
+  <li><a href="#oneline">一言でいうと</a></li>
+  <li><a href="#papers">紙 192 枚の内訳</a></li>
+  <li><a href="#stack">重ね順の構造と模型</a></li>
+  <li><a href="#glossary">用語集</a></li>
+  </ol></li>
+<li><a href="#design">設計（最初の約 1.15 秒）</a>
+  <ol>
+  <li><a href="#design-flow">流れと時間</a></li>
+  <li><a href="#design-blocks">窓・ブロック・Y の山登り（choose_blocks）</a></li>
+  <li><a href="#design-pairs">対と列の初期化</a></li>
+  <li><a href="#design-anneal">焼きなまし（anneal_units）</a></li>
+  <li><a href="#design-climb">山登り（filler_climb の proxy）</a></li>
+  <li><a href="#design-emit">予備の分割と紙の生成</a></li>
+  </ol></li>
+<li><a href="#request">注文処理</a>
+  <ol>
+  <li><a href="#req-flow">1 注文の手順</a></li>
+  <li><a href="#req-example">実例（seed 0、注文 104）</a></li>
+  <li><a href="#req-search">計画探索（process）</a></li>
+  <li><a href="#req-generic">汎用層の先読み</a></li>
+  <li><a href="#req-fillers">穴埋め紙の区間 DP</a></li>
+  <li><a href="#req-post">二重の手の併合と記録の作り直し</a></li>
+  </ol></li>
+<li><a href="#numbers">数字</a>
+  <ol>
+  <li><a href="#num-breakdown">1 注文の手数の内訳と下限</a></li>
+  <li><a href="#num-time">時間の内訳</a></li>
+  <li><a href="#num-history">スコアの推移</a></li>
+  </ol></li>
+<li><a href="#lessons">効いたもの・効かなかったもの</a></li>
+<li><a href="#guide">改善に着手するためのガイド</a>
+  <ol>
+  <li><a href="#guide-map">コードの地図</a></li>
+  <li><a href="#guide-params">主な定数の一覧</a></li>
+  <li><a href="#guide-stderr">stderr の指標</a></li>
+  <li><a href="#guide-eval">評価のしかたと道具</a></li>
+  <li><a href="#guide-speed">書き換えるときの速さの注意</a></li>
+  <li><a href="#guide-next">まだ試されていない・余地がありそうな方向</a></li>
+  <li><a href="#guide-unverified">この文書で確かめられなかったこと</a></li>
+  </ol></li>
+</ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="overview">1. 全体像</h2>
+
+<h3 id="oneline">1.1 一言でいうと</h3>
+<div class="box key">
+<p><b>256 個のバーコードのほぼ全部に「専用の紙」を用意し（2 個で 1 枚を共有する「対」を含む）、注文が来たらその紙を掘り出して山の一番上へ持ち上げる。紙の穴からのぞく窓だけを、ほかの紙を動かして目標の色に合わせる。</b></p>
+</div>
+<p>窓 64 個は 2 種類に分かれる（コードでは <code>H</code> = 34、<code>G</code> = <code>N − H</code> = 30。59 行）。</p>
+<ul>
+<li><b>汎用窓 G（30 個）</b>: 山の上の方にある<b>汎用層</b>（土台 1 枚 + 反転紙 5 枚）が常に覆う。専用紙が対で、2 つの目標の色が違う窓は専用紙の穴になり、そこは汎用層の向き（ブロックごとに Y か ~Y）で合わせる。</li>
+<li><b>ハンドル窓 h<sub>0</sub>…h<sub>33</sub>（34 個）</b>: 専用紙は 34 本の<b>列</b>に分かれていて、列 l の紙は h<sub>0</sub>…h<sub>l</sub> で不透明、h<sub>l+1</sub> 以深で穴（<b>三角形</b>）。列 0, 1, … の順に汎用層の下へ積むと、列 l の一番上の紙は h<sub>l</sub> でだけ見えるので、そこを掴んで<b>掘る</b>（一番上の紙を列の一番下へ回す）ことができる。</li>
+</ul>
+<p>注文 u の専用紙 D が列 l にあれば、列 l を掘って D を列の一番上にし、D を山の一番上へ持ち上げる（<code>lift()</code>）。D は h<sub>l+1</sub> 以深で穴なので、そこには各列の一番上の紙の色が見える。違っていればその列を掘るか（<code>fix_handles()</code>）、深い列の紙をまとめて差し込んで覆う（<b>穴埋め紙</b>）。どの手順をとるかは、注文ごとに最大 28 通りの<b>計画</b>を実際に走らせて最も安いものを選ぶ（<code>process()</code>）。誤り E は全 500 件で 0。</p>
+<p class="note">main.cpp の冒頭 42 行のコメントに、この全体像と主要な関数の役割が英語でまとまっている。audit4-flip の冒頭にあった各版の変更履歴（約 190 行）は clean-base では削られ、経緯は trial_log.md だけにある。</p>
+
+<h3 id="papers">1.2 紙 192 枚の内訳</h3>
+<div class="tbl"><table>
+<tr><th>種類</th><th class="n">枚数</th><th>模様</th><th>置き場所・役割</th><th>コード上の名前</th></tr>
+<tr><td>土台 F</td><td class="n">1</td><td>G の 30 窓で色 Y（ブロックごとの Y<sub>b</sub>）、ハンドル窓は穴</td><td>汎用層。F より上に反転紙がないブロックは Y を見せる</td><td class="nw"><code>base_paper</code>（紙番号 0）</td></tr>
+<tr><td>反転紙 F<sub>b</sub></td><td class="n">5</td><td>ブロック b で ~Y<sub>b</sub>、b 未満のブロックで Y（「リセット」）、他は穴</td><td>汎用層。ブロック b で一番上の紙が F<sub>b</sub> なら b は「オン」（~Y<sub>b</sub>）</td><td class="nw"><code>blocks[b].pf</code>（紙番号 1 + b）, <code>flip_cov</code></td></tr>
+<tr><td>専用紙（単独）</td><td class="n">116</td><td>G と h<sub>0</sub>…h<sub>l</sub> で目標の色、h<sub>l+1</sub> 以深は穴</td><td>列 l。1 目標専用</td><td class="nw"><code>ded[u]</code>, <code>col_of[k]</code></td></tr>
+<tr><td>専用紙（対）</td><td class="n">70</td><td>単独と同じ。ただし 2 目標の色が違う窓も穴（汎用窓では平均 10.7 窓。cons-probe の計測）</td><td>列 l。2 目標が共有。2 目標は自分の列のハンドル h<sub>l</sub> で同じ色</td><td class="nw"><code>units</code>（(u, v)、単独は v = −1）</td></tr>
+<tr><td>全面が穴</td><td class="n">0</td><td>—</td><td>（余りが出たときだけ。この設定では出ない）</td><td></td></tr>
+</table></div>
+<p>専用紙は 192 − 6 = 186 枚で、256 目標 = 単独 116 + 対 70 × 2。汎用層は任意の模様を出せないので、<b>全目標が単独か対の紙を持つ</b>（run 010139 の全 500 件で <code>inconsistent_pairs = 0</code>、<code>blocks = 5</code>、<code>split_fallback = 0</code>）。列の大きさは浅い列が 2 枚、深くなるほど増えて最深は 12〜14 枚（audit4-flip の seed 0: 2 枚 × 12 列、4 枚 × 7 列、6 枚 × 5 列、8・10・12 枚 × 各 3 列、14 枚 × 1 列）。列の中の紙は、自分のハンドル h<sub>l</sub> での色が白黒交互になるように並べる（<code>make_papers()</code>）。紙番号は初期位置そのもので、上から土台、反転紙、列 0, 1, … の順。</p>
+
+<h3 id="stack">1.3 重ね順の構造と模型</h3>
+<p>山の上から順に、[持ち上げた専用紙 D] → [据え置きの紙（あれば）] → <b>汎用層</b>（6 枚） → [穴埋め紙（あれば）] → <b>列 0 → 列 1 → … → 列 33</b>。待機中（注文の間）は、前の注文の D と穴埋め紙が列の外に出たまま残っている。</p>
+<div class="figwrap figscroll">
+<svg viewBox="0 0 940 455" class="fig" role="img" aria-label="clean-base の重ね順の全体図">
+<text x="260" y="20" class="t-head" text-anchor="middle">汎用窓 G（30 窓 = 6 窓 × 5 ブロック）</text>
+<text x="520" y="20" class="t-head-h" text-anchor="middle">ハンドル窓 h0 … h33（34 窓）</text>
+<line x1="171" y1="28" x2="205" y2="28" class="s-brk"/>
+<text x="188" y="39" class="t-tiny" text-anchor="middle">B0</text>
+<line x1="207" y1="28" x2="241" y2="28" class="s-brk"/>
+<text x="224" y="39" class="t-tiny" text-anchor="middle">B1</text>
+<line x1="243" y1="28" x2="277" y2="28" class="s-brk"/>
+<text x="260" y="39" class="t-tiny" text-anchor="middle">B2</text>
+<line x1="279" y1="28" x2="313" y2="28" class="s-brk"/>
+<text x="296" y="39" class="t-tiny" text-anchor="middle">B3</text>
+<line x1="315" y1="28" x2="349" y2="28" class="s-brk"/>
+<text x="332" y="39" class="t-tiny" text-anchor="middle">B4</text>
+<text x="355.0" y="39" class="t-tiny" text-anchor="middle">h0</text>
+<text x="465.0" y="39" class="t-tiny" text-anchor="middle">h11</text>
+<text x="575.0" y="39" class="t-tiny" text-anchor="middle">h22</text>
+<text x="685.0" y="39" class="t-tiny" text-anchor="middle">h33</text>
+<text x="164" y="58.0" class="t-lab k-pair" text-anchor="end">持ち上げた専用紙 D</text>
+<rect x="170" y="48" width="180" height="12" class="f-ded"/>
+<rect x="350" y="48" width="130" height="12" class="f-ded"/>
+<rect x="194" y="48" width="6" height="12" class="f-holecut"/>
+<rect x="272" y="48" width="6" height="12" class="f-holecut"/>
+<rect x="320" y="48" width="6" height="12" class="f-holecut"/>
+<rect x="400" y="48" width="10" height="12" class="f-holecut"/>
+<text x="696" y="58.0" class="t-note">例: 列 12 の対の紙。h13 以深は穴</text>
+<text x="164" y="75.0" class="t-lab k-gen" text-anchor="end">土台 F</text>
+<rect x="170" y="66" width="180" height="10" class="f-gen"/>
+<text x="164" y="86.0" class="t-lab k-gen" text-anchor="end">反転紙 F0</text>
+<rect x="170" y="78" width="36" height="8" class="f-flip"/>
+<text x="164" y="96.0" class="t-lab k-gen" text-anchor="end">反転紙 F1</text>
+<rect x="170" y="88" width="36" height="8" class="f-genY"/>
+<rect x="206" y="88" width="36" height="8" class="f-flip"/>
+<text x="164" y="106.0" class="t-lab k-gen" text-anchor="end">反転紙 F2</text>
+<rect x="170" y="98" width="72" height="8" class="f-genY"/>
+<rect x="242" y="98" width="36" height="8" class="f-flip"/>
+<text x="164" y="116.0" class="t-lab k-gen" text-anchor="end">反転紙 F3</text>
+<rect x="170" y="108" width="108" height="8" class="f-genY"/>
+<rect x="278" y="108" width="36" height="8" class="f-flip"/>
+<text x="164" y="126.0" class="t-lab k-gen" text-anchor="end">反転紙 F4</text>
+<rect x="170" y="118" width="144" height="8" class="f-genY"/>
+<rect x="314" y="118" width="36" height="8" class="f-flip"/>
+<text x="696" y="126.0" class="t-note">ブロック b は ~Y_b、b 未満は Y</text>
+<text x="164" y="141.0" class="t-lab k-c3" text-anchor="end">穴埋め紙（段5・列20）</text>
+<rect x="170" y="132" width="180" height="10" class="f-ded-dim"/>
+<rect x="350" y="132" width="50" height="10" class="f-ded-dim"/>
+<rect x="400" y="132" width="160" height="10" class="f-fill"/>
+<text x="696" y="141.0" class="t-note">h5…h20 に見える</text>
+<text x="164" y="153.5" class="t-lab-s" text-anchor="end">列 0（2 枚）</text>
+<rect x="170" y="148" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="148" width="0" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="148" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="157.1" class="t-lab-s" text-anchor="end">列 1（2 枚）</text>
+<rect x="170" y="151.6" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="151.6" width="10" height="3.0" class="f-ded-dim"/>
+<rect x="360" y="151.6" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="160.7" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="155.2" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="155.2" width="20" height="3.0" class="f-ded-dim"/>
+<rect x="370" y="155.2" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="164.29999999999998" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="158.79999999999998" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="158.79999999999998" width="30" height="3.0" class="f-ded-dim"/>
+<rect x="380" y="158.79999999999998" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="167.89999999999998" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="162.39999999999998" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="162.39999999999998" width="40" height="3.0" class="f-ded-dim"/>
+<rect x="390" y="162.39999999999998" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="171.49999999999997" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="165.99999999999997" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="165.99999999999997" width="50" height="3.0" class="f-ded-dim"/>
+<rect x="400" y="165.99999999999997" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="175.09999999999997" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="169.59999999999997" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="169.59999999999997" width="60" height="3.0" class="f-ded-dim"/>
+<rect x="410" y="169.59999999999997" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="178.69999999999996" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="173.19999999999996" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="173.19999999999996" width="70" height="3.0" class="f-ded-dim"/>
+<rect x="420" y="173.19999999999996" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="182.29999999999995" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="176.79999999999995" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="176.79999999999995" width="80" height="3.0" class="f-ded-dim"/>
+<rect x="430" y="176.79999999999995" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="185.89999999999995" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="180.39999999999995" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="180.39999999999995" width="90" height="3.0" class="f-ded-dim"/>
+<rect x="440" y="180.39999999999995" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="189.49999999999994" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="183.99999999999994" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="183.99999999999994" width="100" height="3.0" class="f-ded-dim"/>
+<rect x="450" y="183.99999999999994" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="193.09999999999994" class="t-lab-s" text-anchor="end">列 11（2 枚）</text>
+<rect x="170" y="187.59999999999994" width="180" height="3.0" class="f-ded-dim"/>
+<rect x="350" y="187.59999999999994" width="110" height="3.0" class="f-ded-dim"/>
+<rect x="460" y="187.59999999999994" width="10" height="3.0" class="f-handle"/>
+<text x="164" y="198.19999999999993" class="t-lab-s" text-anchor="end">列 12（4 枚）</text>
+<rect x="170" y="191.19999999999993" width="180" height="6.0" class="f-ded-dim"/>
+<rect x="350" y="191.19999999999993" width="120" height="6.0" class="f-ded-dim"/>
+<rect x="470" y="191.19999999999993" width="10" height="6.0" class="f-handle"/>
+<text x="164" y="204.79999999999993" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="197.79999999999993" width="180" height="6.0" class="f-ded-dim"/>
+<rect x="350" y="197.79999999999993" width="130" height="6.0" class="f-ded-dim"/>
+<rect x="480" y="197.79999999999993" width="10" height="6.0" class="f-handle"/>
+<text x="164" y="211.39999999999992" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="204.39999999999992" width="180" height="6.0" class="f-ded-dim"/>
+<rect x="350" y="204.39999999999992" width="140" height="6.0" class="f-ded-dim"/>
+<rect x="490" y="204.39999999999992" width="10" height="6.0" class="f-handle"/>
+<text x="164" y="217.99999999999991" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="210.99999999999991" width="180" height="6.0" class="f-ded-dim"/>
+<rect x="350" y="210.99999999999991" width="150" height="6.0" class="f-ded-dim"/>
+<rect x="500" y="210.99999999999991" width="10" height="6.0" class="f-handle"/>
+<text x="164" y="224.5999999999999" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="217.5999999999999" width="180" height="6.0" class="f-ded-dim"/>
+<rect x="350" y="217.5999999999999" width="160" height="6.0" class="f-ded-dim"/>
+<rect x="510" y="217.5999999999999" width="10" height="6.0" class="f-handle"/>
+<text x="164" y="231.1999999999999" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="224.1999999999999" width="180" height="6.0" class="f-ded-dim"/>
+<rect x="350" y="224.1999999999999" width="170" height="6.0" class="f-ded-dim"/>
+<rect x="520" y="224.1999999999999" width="10" height="6.0" class="f-handle"/>
+<text x="164" y="237.7999999999999" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="230.7999999999999" width="180" height="6.0" class="f-ded-dim"/>
+<rect x="350" y="230.7999999999999" width="180" height="6.0" class="f-ded-dim"/>
+<rect x="530" y="230.7999999999999" width="10" height="6.0" class="f-handle"/>
+<text x="164" y="245.8999999999999" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="237.3999999999999" width="180" height="9.0" class="f-ded-dim"/>
+<rect x="350" y="237.3999999999999" width="190" height="9.0" class="f-ded-dim"/>
+<rect x="540" y="237.3999999999999" width="10" height="9.0" class="f-handle"/>
+<text x="164" y="255.4999999999999" class="t-lab-s" text-anchor="end">列 20（6 枚）</text>
+<rect x="170" y="246.9999999999999" width="180" height="9.0" class="f-ded-dim"/>
+<rect x="350" y="246.9999999999999" width="200" height="9.0" class="f-ded-dim"/>
+<rect x="550" y="246.9999999999999" width="10" height="9.0" class="f-handle"/>
+<text x="164" y="265.0999999999999" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="256.5999999999999" width="180" height="9.0" class="f-ded-dim"/>
+<rect x="350" y="256.5999999999999" width="210" height="9.0" class="f-ded-dim"/>
+<rect x="560" y="256.5999999999999" width="10" height="9.0" class="f-handle"/>
+<text x="164" y="274.69999999999993" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="266.19999999999993" width="180" height="9.0" class="f-ded-dim"/>
+<rect x="350" y="266.19999999999993" width="220" height="9.0" class="f-ded-dim"/>
+<rect x="570" y="266.19999999999993" width="10" height="9.0" class="f-handle"/>
+<text x="164" y="284.29999999999995" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="275.79999999999995" width="180" height="9.0" class="f-ded-dim"/>
+<rect x="350" y="275.79999999999995" width="230" height="9.0" class="f-ded-dim"/>
+<rect x="580" y="275.79999999999995" width="10" height="9.0" class="f-handle"/>
+<text x="164" y="295.4" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="285.4" width="180" height="12.0" class="f-ded-dim"/>
+<rect x="350" y="285.4" width="240" height="12.0" class="f-ded-dim"/>
+<rect x="590" y="285.4" width="10" height="12.0" class="f-handle"/>
+<text x="164" y="308.0" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="298.0" width="180" height="12.0" class="f-ded-dim"/>
+<rect x="350" y="298.0" width="250" height="12.0" class="f-ded-dim"/>
+<rect x="600" y="298.0" width="10" height="12.0" class="f-handle"/>
+<text x="164" y="320.6" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="310.6" width="180" height="12.0" class="f-ded-dim"/>
+<rect x="350" y="310.6" width="260" height="12.0" class="f-ded-dim"/>
+<rect x="610" y="310.6" width="10" height="12.0" class="f-handle"/>
+<text x="164" y="334.70000000000005" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="323.20000000000005" width="180" height="15.0" class="f-ded-dim"/>
+<rect x="350" y="323.20000000000005" width="270" height="15.0" class="f-ded-dim"/>
+<rect x="620" y="323.20000000000005" width="10" height="15.0" class="f-handle"/>
+<text x="164" y="350.30000000000007" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="338.80000000000007" width="180" height="15.0" class="f-ded-dim"/>
+<rect x="350" y="338.80000000000007" width="280" height="15.0" class="f-ded-dim"/>
+<rect x="630" y="338.80000000000007" width="10" height="15.0" class="f-handle"/>
+<text x="164" y="365.9000000000001" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="354.4000000000001" width="180" height="15.0" class="f-ded-dim"/>
+<rect x="350" y="354.4000000000001" width="290" height="15.0" class="f-ded-dim"/>
+<rect x="640" y="354.4000000000001" width="10" height="15.0" class="f-handle"/>
+<text x="164" y="383.0000000000001" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="370.0000000000001" width="180" height="18.0" class="f-ded-dim"/>
+<rect x="350" y="370.0000000000001" width="300" height="18.0" class="f-ded-dim"/>
+<rect x="650" y="370.0000000000001" width="10" height="18.0" class="f-handle"/>
+<text x="164" y="401.60000000000014" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="388.60000000000014" width="180" height="18.0" class="f-ded-dim"/>
+<rect x="350" y="388.60000000000014" width="310" height="18.0" class="f-ded-dim"/>
+<rect x="660" y="388.60000000000014" width="10" height="18.0" class="f-handle"/>
+<text x="164" y="420.20000000000016" class="t-lab-s" text-anchor="end"></text>
+<rect x="170" y="407.20000000000016" width="180" height="18.0" class="f-ded-dim"/>
+<rect x="350" y="407.20000000000016" width="320" height="18.0" class="f-ded-dim"/>
+<rect x="670" y="407.20000000000016" width="10" height="18.0" class="f-handle"/>
+<text x="164" y="440.3000000000002" class="t-lab-s" text-anchor="end">列 33（14 枚）</text>
+<rect x="170" y="425.8000000000002" width="180" height="21.0" class="f-ded-dim"/>
+<rect x="350" y="425.8000000000002" width="330" height="21.0" class="f-ded-dim"/>
+<rect x="680" y="425.8000000000002" width="10" height="21.0" class="f-handle"/>
+<text x="696" y="162" class="t-note">列 l の紙: G と h0…hl で不透明、</text>
+<text x="696" y="178" class="t-note">h(l+1) 以深は穴（三角形）。</text>
+<text x="696" y="202" class="t-note">濃い部分 = 待機中に見える窓</text>
+<text x="696" y="218" class="t-note">（列 l の一番上の紙の h_l）。</text>
+<text x="696" y="242" class="t-note">帯の高さ = 列の紙の枚数</text>
+<text x="696" y="258" class="t-note">（seed 0: 2 枚 × 12 列 … 14 枚）。</text>
+</svg>
+</div>
+<p class="caption">図 1. 実際の重ね順の模式図（seed 0 の列の大きさ）。横軸は窓で、説明のため汎用窓とハンドル窓をまとめて並べた（実際のハンドル窓は 64 窓の中に散らばっていて、どの窓をハンドルにするかも設計で選ぶ）。濃い青は待機中に見える部分（列 l の上端の紙の h<sub>l</sub>）。</p>
+
+<p>次の模型は窓 10 個（汎用窓 g0〜g5 = ブロック B0, B1、ハンドル h0〜h3）、紙 12 枚の縮図。各行が 1 枚の紙（上が山の上）で、黒・白の四角が不透明、点線の四角が穴、赤い枠がその窓で見えている紙。薄い四角は不透明だが上の紙に隠れている。</p>
+<div class="figwrap figscroll">
+<svg viewBox="0 0 990 420" class="fig" role="img" aria-label="紙の重なりの模型: 待機中、D を持ち上げた後、穴埋め紙を差し込んだ後">
+<text x="6" y="22" class="t-title">(a) 待機中</text>
+<text x="108.0" y="50" class="t-head" text-anchor="middle">g0</text>
+<text x="128.0" y="50" class="t-head" text-anchor="middle">g1</text>
+<text x="148.0" y="50" class="t-head" text-anchor="middle">g2</text>
+<text x="168.0" y="50" class="t-head" text-anchor="middle">g3</text>
+<text x="188.0" y="50" class="t-head" text-anchor="middle">g4</text>
+<text x="208.0" y="50" class="t-head" text-anchor="middle">g5</text>
+<text x="228.0" y="50" class="t-head-h" text-anchor="middle">h0</text>
+<text x="248.0" y="50" class="t-head-h" text-anchor="middle">h1</text>
+<text x="268.0" y="50" class="t-head-h" text-anchor="middle">h2</text>
+<text x="288.0" y="50" class="t-head-h" text-anchor="middle">h3</text>
+<line x1="100" y1="36" x2="156" y2="36" class="s-brk"/>
+<line x1="160" y1="36" x2="216" y2="36" class="s-brk"/>
+<text x="92" y="70.0" class="t-lab k-gen" text-anchor="end">F₀ 反転</text>
+<rect x="100" y="58" width="16" height="16" class="s-blk"/>
+<rect x="98.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="120" y="58" width="16" height="16" class="s-wht"/>
+<rect x="118.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="140" y="58" width="16" height="16" class="s-wht"/>
+<rect x="138.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="162" y="60" width="12" height="12" class="s-hole"/>
+<rect x="182" y="60" width="12" height="12" class="s-hole"/>
+<rect x="202" y="60" width="12" height="12" class="s-hole"/>
+<rect x="222" y="60" width="12" height="12" class="s-hole"/>
+<rect x="242" y="60" width="12" height="12" class="s-hole"/>
+<rect x="262" y="60" width="12" height="12" class="s-hole"/>
+<rect x="282" y="60" width="12" height="12" class="s-hole"/>
+<text x="92" y="90.0" class="t-lab k-gen" text-anchor="end">F 土台</text>
+<rect x="100" y="78" width="16" height="16" class="s-wht s-dim"/>
+<rect x="120" y="78" width="16" height="16" class="s-blk s-dim"/>
+<rect x="140" y="78" width="16" height="16" class="s-blk s-dim"/>
+<rect x="160" y="78" width="16" height="16" class="s-wht"/>
+<rect x="158.5" y="76.5" width="19" height="19" class="s-vis"/>
+<rect x="180" y="78" width="16" height="16" class="s-wht"/>
+<rect x="178.5" y="76.5" width="19" height="19" class="s-vis"/>
+<rect x="200" y="78" width="16" height="16" class="s-blk"/>
+<rect x="198.5" y="76.5" width="19" height="19" class="s-vis"/>
+<rect x="222" y="80" width="12" height="12" class="s-hole"/>
+<rect x="242" y="80" width="12" height="12" class="s-hole"/>
+<rect x="262" y="80" width="12" height="12" class="s-hole"/>
+<rect x="282" y="80" width="12" height="12" class="s-hole"/>
+<text x="92" y="110.0" class="t-lab k-gen" text-anchor="end">F₁ 反転</text>
+<rect x="100" y="98" width="16" height="16" class="s-wht s-dim"/>
+<rect x="120" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="140" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="160" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="180" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="200" y="98" width="16" height="16" class="s-wht s-dim"/>
+<rect x="222" y="100" width="12" height="12" class="s-hole"/>
+<rect x="242" y="100" width="12" height="12" class="s-hole"/>
+<rect x="262" y="100" width="12" height="12" class="s-hole"/>
+<rect x="282" y="100" width="12" height="12" class="s-hole"/>
+<text x="92" y="130.0" class="t-lab k-c0" text-anchor="end">a 列0</text>
+<rect x="100" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="120" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="140" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="160" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="180" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="200" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="220" y="118" width="16" height="16" class="s-blk"/>
+<rect x="218.5" y="116.5" width="19" height="19" class="s-vis"/>
+<rect x="242" y="120" width="12" height="12" class="s-hole"/>
+<rect x="262" y="120" width="12" height="12" class="s-hole"/>
+<rect x="282" y="120" width="12" height="12" class="s-hole"/>
+<text x="92" y="150.0" class="t-lab k-pair" text-anchor="end">D 列0(対)</text>
+<rect x="100" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="120" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="140" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="160" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="182" y="140" width="12" height="12" class="s-hole"/>
+<rect x="200" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="220" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="242" y="140" width="12" height="12" class="s-hole"/>
+<rect x="262" y="140" width="12" height="12" class="s-hole"/>
+<rect x="282" y="140" width="12" height="12" class="s-hole"/>
+<text x="92" y="170.0" class="t-lab k-c1" text-anchor="end">c 列1</text>
+<rect x="100" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="120" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="140" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="160" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="180" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="200" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="220" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="240" y="158" width="16" height="16" class="s-wht"/>
+<rect x="238.5" y="156.5" width="19" height="19" class="s-vis"/>
+<rect x="262" y="160" width="12" height="12" class="s-hole"/>
+<rect x="282" y="160" width="12" height="12" class="s-hole"/>
+<text x="92" y="190.0" class="t-lab k-c1" text-anchor="end">c' 列1</text>
+<rect x="100" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="120" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="140" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="160" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="180" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="200" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="220" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="240" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="262" y="180" width="12" height="12" class="s-hole"/>
+<rect x="282" y="180" width="12" height="12" class="s-hole"/>
+<text x="92" y="210.0" class="t-lab k-c2" text-anchor="end">e 列2</text>
+<rect x="100" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="120" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="140" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="160" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="180" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="200" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="220" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="240" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="260" y="198" width="16" height="16" class="s-wht"/>
+<rect x="258.5" y="196.5" width="19" height="19" class="s-vis"/>
+<rect x="282" y="200" width="12" height="12" class="s-hole"/>
+<text x="92" y="230.0" class="t-lab k-c2" text-anchor="end">f 列2</text>
+<rect x="100" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="120" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="140" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="160" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="180" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="200" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="220" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="240" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="260" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="282" y="220" width="12" height="12" class="s-hole"/>
+<text x="92" y="250.0" class="t-lab k-c3" text-anchor="end">g 列3</text>
+<rect x="100" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="120" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="140" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="160" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="180" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="200" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="220" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="240" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="260" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="280" y="238" width="16" height="16" class="s-blk"/>
+<rect x="278.5" y="236.5" width="19" height="19" class="s-vis"/>
+<text x="92" y="270.0" class="t-lab k-c3" text-anchor="end">h 列3</text>
+<rect x="100" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="120" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="140" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="160" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="180" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="200" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="220" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="240" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="260" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="280" y="258" width="16" height="16" class="s-wht s-dim"/>
+<text x="92" y="290.0" class="t-lab k-c3" text-anchor="end">i 列3</text>
+<rect x="100" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="120" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="140" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="160" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="180" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="200" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="220" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="240" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="260" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="280" y="278" width="16" height="16" class="s-blk s-dim"/>
+<line x1="14" y1="301" x2="298" y2="301" class="s-sep"/>
+<text x="92" y="318.0" class="t-lab" text-anchor="end">表示</text>
+<rect x="100" y="306" width="16" height="16" class="s-blk"/>
+<rect x="120" y="306" width="16" height="16" class="s-wht"/>
+<rect x="140" y="306" width="16" height="16" class="s-wht"/>
+<rect x="160" y="306" width="16" height="16" class="s-wht"/>
+<rect x="180" y="306" width="16" height="16" class="s-wht"/>
+<rect x="200" y="306" width="16" height="16" class="s-blk"/>
+<rect x="220" y="306" width="16" height="16" class="s-blk"/>
+<rect x="240" y="306" width="16" height="16" class="s-wht"/>
+<rect x="260" y="306" width="16" height="16" class="s-wht"/>
+<rect x="280" y="306" width="16" height="16" class="s-blk"/>
+<text x="10" y="356" class="t-note">汎用窓 g0–g5 は汎用層 F₀, F, F₁ が覆う。</text>
+<text x="10" y="373" class="t-note">ハンドル h_l には列 l の一番上が見える。</text>
+<text x="334" y="22" class="t-title">(b) 汎用層・掘り・持ち上げの後</text>
+<text x="436.0" y="50" class="t-head" text-anchor="middle">g0</text>
+<text x="456.0" y="50" class="t-head" text-anchor="middle">g1</text>
+<text x="476.0" y="50" class="t-head" text-anchor="middle">g2</text>
+<text x="496.0" y="50" class="t-head" text-anchor="middle">g3</text>
+<text x="516.0" y="50" class="t-head" text-anchor="middle">g4</text>
+<text x="536.0" y="50" class="t-head" text-anchor="middle">g5</text>
+<text x="556.0" y="50" class="t-head-h" text-anchor="middle">h0</text>
+<text x="576.0" y="50" class="t-head-h" text-anchor="middle">h1</text>
+<text x="596.0" y="50" class="t-head-h" text-anchor="middle">h2</text>
+<text x="616.0" y="50" class="t-head-h" text-anchor="middle">h3</text>
+<line x1="428" y1="36" x2="484" y2="36" class="s-brk"/>
+<line x1="488" y1="36" x2="544" y2="36" class="s-brk"/>
+<rect x="336" y="57" width="290" height="18" class="s-mark" rx="3"/>
+<text x="420" y="70.0" class="t-lab k-pair" text-anchor="end">D 列0(対)</text>
+<rect x="428" y="58" width="16" height="16" class="s-wht"/>
+<rect x="426.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="448" y="58" width="16" height="16" class="s-blk"/>
+<rect x="446.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="468" y="58" width="16" height="16" class="s-blk"/>
+<rect x="466.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="488" y="58" width="16" height="16" class="s-wht"/>
+<rect x="486.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="510" y="60" width="12" height="12" class="s-hole"/>
+<rect x="528" y="58" width="16" height="16" class="s-blk"/>
+<rect x="526.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="548" y="58" width="16" height="16" class="s-wht"/>
+<rect x="546.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="570" y="60" width="12" height="12" class="s-hole"/>
+<rect x="590" y="60" width="12" height="12" class="s-hole"/>
+<rect x="610" y="60" width="12" height="12" class="s-hole"/>
+<text x="420" y="90.0" class="t-lab k-gen" text-anchor="end">F₀ 反転</text>
+<rect x="428" y="78" width="16" height="16" class="s-blk s-dim"/>
+<rect x="448" y="78" width="16" height="16" class="s-wht s-dim"/>
+<rect x="468" y="78" width="16" height="16" class="s-wht s-dim"/>
+<rect x="490" y="80" width="12" height="12" class="s-hole"/>
+<rect x="510" y="80" width="12" height="12" class="s-hole"/>
+<rect x="530" y="80" width="12" height="12" class="s-hole"/>
+<rect x="550" y="80" width="12" height="12" class="s-hole"/>
+<rect x="570" y="80" width="12" height="12" class="s-hole"/>
+<rect x="590" y="80" width="12" height="12" class="s-hole"/>
+<rect x="610" y="80" width="12" height="12" class="s-hole"/>
+<text x="420" y="110.0" class="t-lab k-gen" text-anchor="end">F₁ 反転</text>
+<rect x="428" y="98" width="16" height="16" class="s-wht s-dim"/>
+<rect x="448" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="468" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="488" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="508" y="98" width="16" height="16" class="s-blk"/>
+<rect x="506.5" y="96.5" width="19" height="19" class="s-vis"/>
+<rect x="528" y="98" width="16" height="16" class="s-wht s-dim"/>
+<rect x="550" y="100" width="12" height="12" class="s-hole"/>
+<rect x="570" y="100" width="12" height="12" class="s-hole"/>
+<rect x="590" y="100" width="12" height="12" class="s-hole"/>
+<rect x="610" y="100" width="12" height="12" class="s-hole"/>
+<text x="420" y="130.0" class="t-lab k-gen" text-anchor="end">F 土台</text>
+<rect x="428" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="448" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="468" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="488" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="508" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="528" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="550" y="120" width="12" height="12" class="s-hole"/>
+<rect x="570" y="120" width="12" height="12" class="s-hole"/>
+<rect x="590" y="120" width="12" height="12" class="s-hole"/>
+<rect x="610" y="120" width="12" height="12" class="s-hole"/>
+<text x="420" y="150.0" class="t-lab k-c0" text-anchor="end">a 列0</text>
+<rect x="428" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="448" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="468" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="488" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="508" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="528" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="548" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="570" y="140" width="12" height="12" class="s-hole"/>
+<rect x="590" y="140" width="12" height="12" class="s-hole"/>
+<rect x="610" y="140" width="12" height="12" class="s-hole"/>
+<text x="420" y="170.0" class="t-lab k-c1" text-anchor="end">c 列1</text>
+<rect x="428" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="448" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="468" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="488" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="508" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="528" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="548" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="568" y="158" width="16" height="16" class="s-wht"/>
+<rect x="566.5" y="156.5" width="19" height="19" class="s-vis"/>
+<rect x="590" y="160" width="12" height="12" class="s-hole"/>
+<rect x="610" y="160" width="12" height="12" class="s-hole"/>
+<text x="420" y="190.0" class="t-lab k-c1" text-anchor="end">c' 列1</text>
+<rect x="428" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="448" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="468" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="488" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="508" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="528" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="548" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="568" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="590" y="180" width="12" height="12" class="s-hole"/>
+<rect x="610" y="180" width="12" height="12" class="s-hole"/>
+<text x="420" y="210.0" class="t-lab k-c2" text-anchor="end">e 列2</text>
+<rect x="428" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="448" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="468" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="488" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="508" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="528" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="548" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="568" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="588" y="198" width="16" height="16" class="s-wht"/>
+<rect x="586.5" y="196.5" width="19" height="19" class="s-vis"/>
+<rect x="610" y="200" width="12" height="12" class="s-hole"/>
+<text x="420" y="230.0" class="t-lab k-c2" text-anchor="end">f 列2</text>
+<rect x="428" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="448" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="468" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="488" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="508" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="528" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="548" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="568" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="588" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="610" y="220" width="12" height="12" class="s-hole"/>
+<text x="420" y="250.0" class="t-lab k-c3" text-anchor="end">g 列3</text>
+<rect x="428" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="448" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="468" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="488" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="508" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="528" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="548" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="568" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="588" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="608" y="238" width="16" height="16" class="s-blk"/>
+<rect x="606.5" y="236.5" width="19" height="19" class="s-vis"/>
+<text x="420" y="270.0" class="t-lab k-c3" text-anchor="end">h 列3</text>
+<rect x="428" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="448" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="468" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="488" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="508" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="528" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="548" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="568" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="588" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="608" y="258" width="16" height="16" class="s-wht s-dim"/>
+<text x="420" y="290.0" class="t-lab k-c3" text-anchor="end">i 列3</text>
+<rect x="428" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="448" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="468" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="488" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="508" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="528" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="548" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="568" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="588" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="608" y="278" width="16" height="16" class="s-blk s-dim"/>
+<line x1="342" y1="301" x2="626" y2="301" class="s-sep"/>
+<text x="420" y="318.0" class="t-lab" text-anchor="end">表示</text>
+<rect x="428" y="306" width="16" height="16" class="s-wht"/>
+<rect x="448" y="306" width="16" height="16" class="s-blk"/>
+<rect x="468" y="306" width="16" height="16" class="s-blk"/>
+<rect x="488" y="306" width="16" height="16" class="s-wht"/>
+<rect x="508" y="306" width="16" height="16" class="s-blk"/>
+<rect x="528" y="306" width="16" height="16" class="s-blk"/>
+<rect x="548" y="306" width="16" height="16" class="s-wht"/>
+<rect x="568" y="306" width="16" height="16" class="s-wht"/>
+<rect x="588" y="306" width="16" height="16" class="s-wht"/>
+<rect x="608" y="306" width="16" height="16" class="s-blk"/>
+<text x="420" y="340.0" class="t-lab" text-anchor="end">目標 A_u</text>
+<rect x="428" y="328" width="16" height="16" class="s-wht"/>
+<rect x="448" y="328" width="16" height="16" class="s-blk"/>
+<rect x="468" y="328" width="16" height="16" class="s-blk"/>
+<rect x="488" y="328" width="16" height="16" class="s-wht"/>
+<rect x="508" y="328" width="16" height="16" class="s-blk"/>
+<rect x="528" y="328" width="16" height="16" class="s-blk"/>
+<rect x="548" y="328" width="16" height="16" class="s-wht"/>
+<rect x="568" y="328" width="16" height="16" class="s-blk"/>
+<text x="576.0" y="358" class="t-bad" text-anchor="middle">✗</text>
+<rect x="588" y="328" width="16" height="16" class="s-blk"/>
+<text x="596.0" y="358" class="t-bad" text-anchor="middle">✗</text>
+<rect x="608" y="328" width="16" height="16" class="s-blk"/>
+<text x="338" y="378" class="t-note">F を F₁ の下へ（汎用層 1 手）、列 0 を掘り</text>
+<text x="338" y="395" class="t-note">（a を列の底へ）、D を一番上へ。✗ = 不一致。</text>
+<text x="662" y="22" class="t-title">(c) 穴埋め紙 g を段 1 へ</text>
+<text x="764.0" y="50" class="t-head" text-anchor="middle">g0</text>
+<text x="784.0" y="50" class="t-head" text-anchor="middle">g1</text>
+<text x="804.0" y="50" class="t-head" text-anchor="middle">g2</text>
+<text x="824.0" y="50" class="t-head" text-anchor="middle">g3</text>
+<text x="844.0" y="50" class="t-head" text-anchor="middle">g4</text>
+<text x="864.0" y="50" class="t-head" text-anchor="middle">g5</text>
+<text x="884.0" y="50" class="t-head-h" text-anchor="middle">h0</text>
+<text x="904.0" y="50" class="t-head-h" text-anchor="middle">h1</text>
+<text x="924.0" y="50" class="t-head-h" text-anchor="middle">h2</text>
+<text x="944.0" y="50" class="t-head-h" text-anchor="middle">h3</text>
+<line x1="756" y1="36" x2="812" y2="36" class="s-brk"/>
+<line x1="816" y1="36" x2="872" y2="36" class="s-brk"/>
+<text x="748" y="70.0" class="t-lab k-pair" text-anchor="end">D 列0(対)</text>
+<rect x="756" y="58" width="16" height="16" class="s-wht"/>
+<rect x="754.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="776" y="58" width="16" height="16" class="s-blk"/>
+<rect x="774.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="796" y="58" width="16" height="16" class="s-blk"/>
+<rect x="794.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="816" y="58" width="16" height="16" class="s-wht"/>
+<rect x="814.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="838" y="60" width="12" height="12" class="s-hole"/>
+<rect x="856" y="58" width="16" height="16" class="s-blk"/>
+<rect x="854.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="876" y="58" width="16" height="16" class="s-wht"/>
+<rect x="874.5" y="56.5" width="19" height="19" class="s-vis"/>
+<rect x="898" y="60" width="12" height="12" class="s-hole"/>
+<rect x="918" y="60" width="12" height="12" class="s-hole"/>
+<rect x="938" y="60" width="12" height="12" class="s-hole"/>
+<text x="748" y="90.0" class="t-lab k-gen" text-anchor="end">F₀ 反転</text>
+<rect x="756" y="78" width="16" height="16" class="s-blk s-dim"/>
+<rect x="776" y="78" width="16" height="16" class="s-wht s-dim"/>
+<rect x="796" y="78" width="16" height="16" class="s-wht s-dim"/>
+<rect x="818" y="80" width="12" height="12" class="s-hole"/>
+<rect x="838" y="80" width="12" height="12" class="s-hole"/>
+<rect x="858" y="80" width="12" height="12" class="s-hole"/>
+<rect x="878" y="80" width="12" height="12" class="s-hole"/>
+<rect x="898" y="80" width="12" height="12" class="s-hole"/>
+<rect x="918" y="80" width="12" height="12" class="s-hole"/>
+<rect x="938" y="80" width="12" height="12" class="s-hole"/>
+<text x="748" y="110.0" class="t-lab k-gen" text-anchor="end">F₁ 反転</text>
+<rect x="756" y="98" width="16" height="16" class="s-wht s-dim"/>
+<rect x="776" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="796" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="816" y="98" width="16" height="16" class="s-blk s-dim"/>
+<rect x="836" y="98" width="16" height="16" class="s-blk"/>
+<rect x="834.5" y="96.5" width="19" height="19" class="s-vis"/>
+<rect x="856" y="98" width="16" height="16" class="s-wht s-dim"/>
+<rect x="878" y="100" width="12" height="12" class="s-hole"/>
+<rect x="898" y="100" width="12" height="12" class="s-hole"/>
+<rect x="918" y="100" width="12" height="12" class="s-hole"/>
+<rect x="938" y="100" width="12" height="12" class="s-hole"/>
+<text x="748" y="130.0" class="t-lab k-gen" text-anchor="end">F 土台</text>
+<rect x="756" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="776" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="796" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="816" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="836" y="118" width="16" height="16" class="s-wht s-dim"/>
+<rect x="856" y="118" width="16" height="16" class="s-blk s-dim"/>
+<rect x="878" y="120" width="12" height="12" class="s-hole"/>
+<rect x="898" y="120" width="12" height="12" class="s-hole"/>
+<rect x="918" y="120" width="12" height="12" class="s-hole"/>
+<rect x="938" y="120" width="12" height="12" class="s-hole"/>
+<text x="748" y="150.0" class="t-lab k-c0" text-anchor="end">a 列0</text>
+<rect x="756" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="776" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="796" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="816" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="836" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="856" y="138" width="16" height="16" class="s-wht s-dim"/>
+<rect x="876" y="138" width="16" height="16" class="s-blk s-dim"/>
+<rect x="898" y="140" width="12" height="12" class="s-hole"/>
+<rect x="918" y="140" width="12" height="12" class="s-hole"/>
+<rect x="938" y="140" width="12" height="12" class="s-hole"/>
+<rect x="664" y="157" width="290" height="18" class="s-mark" rx="3"/>
+<text x="748" y="170.0" class="t-lab k-c3" text-anchor="end">g 列3</text>
+<rect x="756" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="776" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="796" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="816" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="836" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="856" y="158" width="16" height="16" class="s-blk s-dim"/>
+<rect x="876" y="158" width="16" height="16" class="s-wht s-dim"/>
+<rect x="896" y="158" width="16" height="16" class="s-blk"/>
+<rect x="894.5" y="156.5" width="19" height="19" class="s-vis"/>
+<rect x="916" y="158" width="16" height="16" class="s-blk"/>
+<rect x="914.5" y="156.5" width="19" height="19" class="s-vis"/>
+<rect x="936" y="158" width="16" height="16" class="s-blk"/>
+<rect x="934.5" y="156.5" width="19" height="19" class="s-vis"/>
+<text x="748" y="190.0" class="t-lab k-c1" text-anchor="end">c 列1</text>
+<rect x="756" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="776" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="796" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="816" y="178" width="16" height="16" class="s-blk s-dim"/>
+<rect x="836" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="856" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="876" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="896" y="178" width="16" height="16" class="s-wht s-dim"/>
+<rect x="918" y="180" width="12" height="12" class="s-hole"/>
+<rect x="938" y="180" width="12" height="12" class="s-hole"/>
+<text x="748" y="210.0" class="t-lab k-c1" text-anchor="end">c' 列1</text>
+<rect x="756" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="776" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="796" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="816" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="836" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="856" y="198" width="16" height="16" class="s-wht s-dim"/>
+<rect x="876" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="896" y="198" width="16" height="16" class="s-blk s-dim"/>
+<rect x="918" y="200" width="12" height="12" class="s-hole"/>
+<rect x="938" y="200" width="12" height="12" class="s-hole"/>
+<text x="748" y="230.0" class="t-lab k-c2" text-anchor="end">e 列2</text>
+<rect x="756" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="776" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="796" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="816" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="836" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="856" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="876" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="896" y="218" width="16" height="16" class="s-blk s-dim"/>
+<rect x="916" y="218" width="16" height="16" class="s-wht s-dim"/>
+<rect x="938" y="220" width="12" height="12" class="s-hole"/>
+<text x="748" y="250.0" class="t-lab k-c2" text-anchor="end">f 列2</text>
+<rect x="756" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="776" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="796" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="816" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="836" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="856" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="876" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="896" y="238" width="16" height="16" class="s-wht s-dim"/>
+<rect x="916" y="238" width="16" height="16" class="s-blk s-dim"/>
+<rect x="938" y="240" width="12" height="12" class="s-hole"/>
+<text x="748" y="270.0" class="t-lab k-c3" text-anchor="end">h 列3</text>
+<rect x="756" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="776" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="796" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="816" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="836" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="856" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="876" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="896" y="258" width="16" height="16" class="s-blk s-dim"/>
+<rect x="916" y="258" width="16" height="16" class="s-wht s-dim"/>
+<rect x="936" y="258" width="16" height="16" class="s-wht s-dim"/>
+<text x="748" y="290.0" class="t-lab k-c3" text-anchor="end">i 列3</text>
+<rect x="756" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="776" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="796" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="816" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="836" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="856" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="876" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="896" y="278" width="16" height="16" class="s-wht s-dim"/>
+<rect x="916" y="278" width="16" height="16" class="s-blk s-dim"/>
+<rect x="936" y="278" width="16" height="16" class="s-blk s-dim"/>
+<line x1="670" y1="301" x2="954" y2="301" class="s-sep"/>
+<text x="748" y="318.0" class="t-lab" text-anchor="end">表示</text>
+<rect x="756" y="306" width="16" height="16" class="s-wht"/>
+<rect x="776" y="306" width="16" height="16" class="s-blk"/>
+<rect x="796" y="306" width="16" height="16" class="s-blk"/>
+<rect x="816" y="306" width="16" height="16" class="s-wht"/>
+<rect x="836" y="306" width="16" height="16" class="s-blk"/>
+<rect x="856" y="306" width="16" height="16" class="s-blk"/>
+<rect x="876" y="306" width="16" height="16" class="s-wht"/>
+<rect x="896" y="306" width="16" height="16" class="s-blk"/>
+<rect x="916" y="306" width="16" height="16" class="s-blk"/>
+<rect x="936" y="306" width="16" height="16" class="s-blk"/>
+<text x="748" y="340.0" class="t-lab" text-anchor="end">目標 A_u</text>
+<rect x="756" y="328" width="16" height="16" class="s-wht"/>
+<rect x="776" y="328" width="16" height="16" class="s-blk"/>
+<rect x="796" y="328" width="16" height="16" class="s-blk"/>
+<rect x="816" y="328" width="16" height="16" class="s-wht"/>
+<rect x="836" y="328" width="16" height="16" class="s-blk"/>
+<rect x="856" y="328" width="16" height="16" class="s-blk"/>
+<rect x="876" y="328" width="16" height="16" class="s-wht"/>
+<rect x="896" y="328" width="16" height="16" class="s-blk"/>
+<rect x="916" y="328" width="16" height="16" class="s-blk"/>
+<rect x="936" y="328" width="16" height="16" class="s-blk"/>
+<text x="666" y="378" class="t-note">列 3 の上端 g を列 1 の上端の上へ 1 手。</text>
+<text x="666" y="395" class="t-note">g が h1–h3 を覆い、✗ 2 個を同時に直す。</text>
+</svg>
+</div>
+<p class="caption">図 2. 模型。(a) 待機中: 土台 F の上に反転紙 F₀ があるのでブロック B0 は ~Y（オン）、B1 は Y。h0 には列 0 の上端 a、h1 には列 1 の上端 c（列 0 の紙は h1 で穴）… が見える。(b) 目標 u の紙 D（列 0 の 2 枚目、対の紙なので g4 が穴）。F を F₁ の下へ動かして B1 をオンにし（g4 が目標の色になる）、列 0 を 1 回掘って D を列の上端にし、D を一番上へ。D は h1〜h3 で穴なので列 1〜3 の上端が見え、h1・h2 が目標と違う。(c) 列 3 の上端 g を列 1 の上端のすぐ上（段 1）へ動かすと、g は h1〜h3 に見えて 2 か所を 1 手で直す（掘りなら 2 手）。g は次の注文で列へ戻す（その分の費用を計画探索が数える）。</p>
+
+<h3 id="glossary">1.4 用語集</h3>
+<div class="tbl"><table>
+<tr><th>用語</th><th>意味</th><th>コード上の名前</th></tr>
+<tr><td>汎用窓 G</td><td>汎用層が覆う 30 窓。6 窓ずつ 5 ブロック</td><td><code>gmask</code>, <code>Block::mask</code></td></tr>
+<tr><td>ハンドル窓 h<sub>l</sub></td><td>列 l の上端の紙が見える窓（34 個、浅い順に h<sub>0</sub>…h<sub>33</sub>）</td><td><code>handle[l]</code>, <code>hidx</code>, <code>hmask</code>, <code>H</code> = 34。ハンドルの添字のビット集合への変換は <code>handle_bits()</code></td></tr>
+<tr><td>汎用層</td><td>土台 F + 反転紙 F<sub>0</sub>…F<sub>4</sub>。6 枚の順序（720 通り）で各ブロックの向きが決まる</td><td><code>blocks</code>, <code>base_paper</code>, <code>block_of</code>, <code>blk_*</code></td></tr>
+<tr><td>ブロックの色 Y<sub>b</sub>、向き</td><td>ブロック b は Y<sub>b</sub>（オフ）か ~Y<sub>b</sub>（オン）を見せる。注文が要求する向きは、D の穴がそのブロックにあるときだけ決まる</td><td><code>Block::y</code>, <code>wanted_blocks()</code>, <code>orientation()</code></td></tr>
+<tr><td>整合</td><td>対 (u, v) が違う窓のうちブロック b に入る部分で、A<sub>u</sub> が Y<sub>b</sub> か ~Y<sub>b</sub> に一致すること（A<sub>v</sub> は逆になる）。整合していれば向きで u も v も出せる。整合しない対は誤りになるので、設計で必ず整合させる</td><td><code>touch()</code> の <code>bad</code>, <code>pair_codes()</code></td></tr>
+<tr><td>向きの符号（want code）</td><td>対の目標が各ブロックに要求する向き（触れない / オフ / オン）の 3 進数（3<sup>5</sup> 通り）</td><td><code>pair_codes()</code>, <code>want_of()</code>, <code>blk_want_code()</code></td></tr>
+<tr><td>反転紙のリセット</td><td>反転紙 b はブロック c &lt; b も Y で覆う。F<sub>b</sub> を上へ動かすと b がオン、下位のブロックがオフになる（1 手で混ざった向きを作る）。常に使う（予備の分割をしたケースだけリセットなしに戻す）</td><td><code>flip_cov</code></td></tr>
+<tr><td>専用紙・単独・対</td><td>目標 1 個（単独）または 2 個（対）専用の紙。設計中は「単位」と呼ぶ</td><td><code>ded[u]</code>, <code>units</code></td></tr>
+<tr><td>列・三角形</td><td>列 l の紙は G と h<sub>0</sub>…h<sub>l</sub> で不透明、h<sub>l+1</sub> 以深は穴。列 0 から順に積む</td><td><code>col_of[k]</code>, <code>members[l][c]</code>（列 l のハンドルの色 c の単位）, <code>unit_columns()</code></td></tr>
+<tr><td>巡回順・前任</td><td>列は環として回すので、紙の並びは初期順の回転のまま保たれる（交互の色も保たれる）。列から出した紙は「巡回順で直前の紙（前任）」のすぐ下へ戻す</td><td><code>cyc</code>, <code>Filler::pred</code>, <code>top_pred</code></td></tr>
+<tr><td>在位</td><td>列の紙のうち、持ち上げた紙でも穴埋め紙でもないもの</td><td><code>in_column()</code>, <code>column_top()</code>, <code>column_tops()</code></td></tr>
+<tr><td>掘り</td><td>列の上端の紙を列の下端のすぐ下へ動かす（1 手）</td><td><code>dig()</code></td></tr>
+<tr><td>持ち上げ</td><td>D の列を D が上端になるまで掘り、D を山の一番上（位置 0）へ</td><td><code>lift()</code></td></tr>
+<tr><td>直し</td><td>D の穴になったハンドル h<sub>m</sub> で色が違うとき、列 m を掘って上端の色を変える</td><td><code>set_handle()</code>, <code>fix_handles()</code>。費用の見積りは <code>handle_fix_cost()</code>, <code>fix_costs()</code></td></tr>
+<tr><td>戻し</td><td>前の注文で列の外に出した紙（前の D、穴埋め紙）を列へ戻す。前任が在位ならそのすぐ下、なければ上端か下端（どちらも巡回順を保つ）</td><td><code>return_paper()</code></td></tr>
+<tr><td>穴埋め紙</td><td>列の紙 X を列から出し、汎用層より下の列の間に差し込んで、D の穴（ハンドル）をまとめて覆わせる</td><td><code>Filler</code>, <code>fillers</code>, <code>place_filler()</code></td></tr>
+<tr><td>段（段付き穴埋め紙）</td><td>列 c の紙 X を列 lv の上端のすぐ上に置くと（段 lv）、X は h<sub>lv</sub>…h<sub>c</sub> にだけ見える（X より上にある列 0…lv−1 の紙が h<sub>0</sub>…h<sub>lv−1</sub> を覆う）。X はその区間の D の穴で目標と同じ色ならよい。段 0 は汎用層のすぐ下</td><td><code>Filler::lvl</code>, <code>hi</code>, <code>level_for()</code>, <code>level_past()</code>, <code>move_to_level()</code>, <code>shown_by()</code></td></tr>
+<tr><td>重ね</td><td>同じ段に 2 枚（浅い列の U、深い列の L）を置く。L は U の穴と (c<sub>U</sub>, c<sub>L</sub>] に見える</td><td><code>choose_fillers_prelift()</code> の中の <code>Stack</code></td></tr>
+<tr><td>区間 DP</td><td>ハンドルの添字の上の区間 [lv, c] を候補にした重み付き区間スケジューリング。穴埋め紙の選択 3 か所で共通</td><td><code>Cand</code>, <code>best_intervals()</code></td></tr>
+<tr><td>プール（列の外の紙）</td><td>前の D と穴埋め紙は、次の注文で戻す・別の段へ移す・その場に残す・そこから直接持ち上げる、のどれか。計画の費用では 1 枚 0.8 手と数える</td><td><code>fillers</code>, <code>top_d</code>, <code>kFillerCharge</code></td></tr>
+<tr><td>据え置き</td><td>前の D を列へ戻さず、新しい D のすぐ下（汎用層より上）に段 0 の穴埋め紙として残す</td><td><code>PlanOpt::ret_mode</code> = 4</td></tr>
+<tr><td>色の持続</td><td>列 m の上端の色は、最後に h<sub>m</sub> を要した注文の色のまま残る。h<sub>m</sub> が穴の目標で色 1 の割合が p<sub>m</sub> なら、直しの確率は 1/2 でなく 2p<sub>m</sub>(1−p<sub>m</sub>)</td><td><code>bias_c</code>, <code>bias_g</code>, <code>wcol</code>（焼きなまし内）, <code>tops_penalty()</code></td></tr>
+<tr><td>proxy</td><td>深い列の紙が、目標 u の三角形の穴を穴埋め紙としてどれだけ覆えるかの見積り（設計の山登りの目的に入れ、焼きなましでは線形化して入れる）</td><td><code>filler_gain()</code>（自由関数、109 行）、<code>filler_climb()</code>、焼きなまし内の <code>ap_compute</code> / <code>ap_v</code></td></tr>
+<tr><td>計画</td><td>1 注文の手順の選択肢の組（戻し方・穴埋め紙の扱い・据え置きなど）。全部を状態のコピーで走らせて比べる</td><td><code>PlanOpt</code>, <code>run_plan()</code>, <code>run_joint()</code>, <code>State</code>, <code>save()</code> / <code>restore()</code></td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="design">2. 設計（最初の約 1.15 秒）</h2>
+
+<h3 id="design-flow">2.1 流れと時間</h3>
+<p>設計は <code>Solver::design()</code>（228〜311 行）が順に呼ぶ。時刻は解法の時計の読みで、手元の評価では <code>CLOCK_SCALE</code> = 1.1 倍されている（実時間はその 1/1.1）。ジャッジでは倍率 1.0 なので、読みがそのまま実時間になる。</p>
+<div class="tbl"><table>
+<tr><th>時刻（秒）</th><th>段階</th><th>関数・行</th></tr>
+<tr><td class="nw">0 〜 0.11</td><td>入力、汎用窓とブロック分けと Y<sub>b</sub> の山登り（3000 回）、列の大きさ、対の貪欲な初期化、列への初期割り当て。焼きなましの冒頭で汎用層の状態グラフと表を作り、向きの費用表を模擬で作る（約 30 ms）</td><td><code>choose_blocks()</code> 317〜387、<code>design()</code> 231〜306、<code>build_abstract()</code> 1182、<code>want_costs()</code> 1259</td></tr>
+<tr><td class="nw">0.11 〜 1.10</td><td>焼きなまし（対の組み方・列・ハンドルの順・Y）。run 010139 で平均 1338 万回（<code>anneal_iters</code>）</td><td><code>anneal_units()</code> 402〜815</td></tr>
+<tr><td class="nw">1.10 〜 1.15</td><td>山登り（穴埋め紙の proxy を足した目的で、同じ種類の 2 単位の列を入れ替える）。平均 5.9 万回（<code>climb_iters</code>）</td><td><code>filler_climb()</code> 825〜975</td></tr>
+<tr><td class="nw">1.15</td><td>整合しない対が残ったときの予備の分割（run 010139 の 500 件で 0 回）、紙の模様の生成、汎用層の先読みの表、巡回順の記録</td><td><code>split_inconsistent()</code> 983〜1077、<code>make_papers()</code> 1081〜1135（中で <code>build_block_tables()</code> 1325、<code>init_cycles()</code> 2335）</td></tr>
+</table></div>
+<p class="note">「0.11 秒」は audit4-flip の run 223907 の <code>anneal_start_sec</code>（clean-base はこの指標を出さない）。焼きなましと山登りの終わりは run 010139 の <code>anneal_end_sec</code> / <code>climb_end_sec</code> の平均（1.10 / 1.15、倍率込みの読み）。</p>
+
+<h3 id="design-blocks">2.2 窓・ブロック・Y の山登り（choose_blocks）</h3>
+<p>最初に、どの 30 窓を汎用窓にするか、それを 6 窓ずつの 5 ブロックにどう分けるか、各ブロックの色 Y<sub>b</sub> を決める（<code>choose_blocks()</code> 317〜387 行。ブロック数は <code>(G + 3) / 6</code> = 5）。</p>
+<ul>
+<li>対 (u, v) がブロック b と整合する ⇔ ブロック上の相対模様 x = A ⊕ Y<sub>b</sub> が入れ子（x<sub>u</sub> ⊆ x<sub>v</sub> か逆）。ラムダ <code>best_y</code> は、ブロックの局所模様ごとの目標数から部分和変換（zeta 変換）で入れ子の目標対を数え、整合する対の割合が最大の Y<sub>b</sub> を 2<sup>6</sup> 通りから選ぶ。</li>
+<li>目的は Σ<sub>b</sub> log（ブロック b と整合する目標対の割合）。対は触れる全ブロックで整合する必要があるので、使える対の割合はほぼその積になる。</li>
+<li>近傍は、2 ブロックの窓の交換と、汎用窓とハンドル窓の交換（30%）。3000 回。2 ブロックの交換の前に乱数を 1 回だけ空読みしている（使われなくなった近傍の名残。元と同じ乱数列を保つために残した）。目的値は audit4-flip で平均 −4.06（当時の stderr <code>block_log_consistency</code>。clean-base は出さない）。</li>
+</ul>
+<p class="note">(S, H) = (6 窓/ブロック, 34 列) は何度も測り直されて最良のまま（5.2 節）。clean-base ではどちらも定数で、<code>H</code> は 59 行、ブロックの窓数はこの関数の <code>(G + 3) / 6</code> に埋め込まれている。</p>
+
+<h3 id="design-pairs">2.3 対と列の初期化</h3>
+<ul>
+<li><b>列の大きさ</b>（<code>design()</code> 231〜243 行）: 列 l の大きさ ∝ 1 + l を偶数に丸める。焼きなましの近傍は大きさを 2 ずつしか変えない（奇数だと色の交互が崩れて直しが増える。hub5 の節）。</li>
+<li><b>対の数</b>: 186 枚で 256 目標を覆うので、対はちょうど 256 − 186 = 70 組。</li>
+<li><b>対の初期化</b>（244〜271 行）: 全目標対を（整合しないブロック数 × 1000 + ハミング距離）の昇順に貪欲にマッチング。残りは焼きなましが組み替える。</li>
+<li><b>列への割り当て</b>（272〜306 行）: 対は自分の列のハンドル h<sub>l</sub> で 2 目標が同じ色でなければならない（<code>color_at()</code> が −1 なら置けない）。各列に両方の色を最低 1 つずつ入れる。</li>
+</ul>
+
+<h3 id="design-anneal">2.4 焼きなまし（anneal_units）</h3>
+<p>1 目標あたりの手数の見積り（全目標の和 / 256）を最小化する。各項は単位（対か単独）ごとに足す（ラムダ <code>uc</code>, <code>col_cost</code>, <code>total_cost</code>）。定数は関数の先頭（403〜406 行）にまとまっている。</p>
+<div class="tbl"><table>
+<tr><th>項</th><th>中身</th><th>定数</th></tr>
+<tr><td>ハンドルの穴</td><td>三角形の穴（自分の列より深い全ハンドル）+ 対の違い（浅いハンドル h<sub>0</sub>…h<sub>l</sub> で 2 目標が違う窓）。1 個の重みは色の持続モデルの限界費用 w = 4(1 − p<sub>m</sub>(c))<sup>2</sup>（p<sub>m</sub>(c) = ハンドル h<sub>m</sub> が穴の目標のうち色 c の割合。<code>wcol</code>）。16384 回ごとに数え直して固定（ラムダ <code>refresh</code>）</td><td><code>kHandleHole</code> 0.51, <code>kMix</code> 1.0, <code>kRefresh</code> 2<sup>14</sup></td></tr>
+<tr><td>汎用層</td><td>対の 2 目標の向きの符号（3<sup>5</sup> 通り）ごとの手数。<code>want_costs()</code> が実際の先読み方策を合成の注文 8 組で模擬して作り、焼きなましの 1/3・2/3 で現在の対の符号で模擬し直す</td><td><code>kResim</code> 2（8 組は <code>want_costs()</code> 内の定数）</td></tr>
+<tr><td>整合しない対</td><td>整合しないブロック 1 個につき 30 × 目標数</td><td><code>kIncons</code> 30</td></tr>
+<tr><td>掘り</td><td>列 l の目標数 × (列の大きさ − 1) / 2</td><td>—</td></tr>
+<tr><td>列の色の釣り合い</td><td>max(0, |白の数 − 黒の数| − 1) × 50。片方の色がない列は 10<sup>6</sup></td><td><code>kImbalance</code> 50</td></tr>
+<tr><td>穴埋め紙の proxy</td><td>進捗 50% 以降、単位 x を列 l に置いたときの proxy を線形化した V[x][l]（<code>filler_gain()</code> を使う）を 4 回計算し直して固定し（ラムダ <code>ap_compute</code>）、−0.5 × V を足す</td><td><code>kApW</code> 0.5, <code>kApStart</code> 0.5, <code>kApRefresh</code> 4</td></tr>
+</table></div>
+<p>近傍（660〜783 行）。単位の近傍 3 種は等確率で、試行と取り消しはラムダ <code>attempt</code>（593 行）が共通に行う。番号は clean-base の <code>type</code>（audit4-flip とは番号がずれている）。</p>
+<ul>
+<li><code>type</code> 0: 2 単位の列の入れ替え。<code>type</code> 1: 対の組み替え（2 単位の間で目標を 1 つ交換。進捗 10% 以降は 90% の確率で整合する相方の表 <code>partners</code> から選ぶ）。<code>type</code> 2: 色の違う 2 単位をまとめて別の列へ。audit4-flip で既定で無効だった「1 単位を別の列へ移す」近傍は clean-base にはない。</li>
+<li>2 列のハンドル窓の入れ替え（5%。列 a..b の単位だけで差分評価、<code>swap_tables</code>）。</li>
+<li>Y<sub>b</sub> の 1 色反転（5%、進捗 10% までで以後 Y は固定）、ブロック全体の Y 反転（0.1%。整合を変えずに向きだけ入れ替える。ラムダ <code>try_y</code>）。</li>
+</ul>
+<p>温度は 3.0 → 0.05 の等比（256 回ごとに更新）、受理判定は −log u の表、乱数は xoshiro256**（<code>Xoshiro256</code>、79 行）。時間制（打ち切り 1.1 秒、589 行の <code>t_end</code>）で、環境変数 <code>ANNEAL_ITERS</code> &gt; 0 なら回数固定（比較実験用）。焼きなまし後に、整合しない対を交換で直す修復（784 行〜）。見積りは audit4-flip で焼きなまし前 12.82 → 後 11.25 手/注文（当時の stderr <code>model_cost_before/after</code>。clean-base は出さない）、実測 11.46。</p>
+
+<h3 id="design-climb">2.5 山登り（filler_climb の proxy）</h3>
+<p>焼きなましの後、1.15 秒まで（828 行の <code>t_end</code>。<code>CLIMB_ITERS</code> &gt; 0 なら回数固定）、同じ種類（対どうし・単独どうし）で両方のハンドルで色が同じ 2 単位の列を入れ替える（列の釣り合いと掘りは変わらない）。目的は「ハンドルの穴の正確な持続費用 − 0.3 × Σ<sub>u</sub> proxy(u)」（<code>kW</code> 0.3、<code>kH</code> 0.51）。</p>
+<ul>
+<li>proxy(u) = u より深い各列 c について、c の単位 y の紙を段付き（u との最も深い不一致の次の段）で置いたときに覆える u の三角形の穴の重み g から max(0, g − 3) を作り（<code>filler_gain()</code> の <code>kT</code> = 3）、列内で平均して足したもの。穴の重みは持続モデルで省ける直しの期待値 2(1 − p<sub>m</sub>(A<sub>u</sub>[m]))。</li>
+<li>注文ごとの回帰で proxy 1 単位は約 0.7 手（pool-climb の節）。入れ替えで変わるのは 2 列だけなので差分で評価する。終わったら、計画探索が使う多数派の色 <code>bias_c</code> と利得 <code>bias_g</code> を数え直す（967〜972 行）。</li>
+<li>clean-base では、<code>CLIMB_ITERS</code> が 0 以下なら時間制になる（audit4-flip の「負なら山登りなし」の切り替えはない）。</li>
+</ul>
+
+<h3 id="design-emit">2.6 予備の分割と紙の生成</h3>
+<ul>
+<li><b><code>split_inconsistent()</code></b>（983〜1077 行）: 整合しない対が残ったら（コメントでは 2000 件中 0〜5 件）、そのブロックを分割して反転紙を 1 枚足し、紙は単独 2 つを対にする（無理なら増大路）ことで捻出する。分割したケースは反転紙をリセットなしの形に戻し（<code>flip_cov</code> を 0 に）、汎用層は先読みでなく素朴な手順 <code>set_blocks_plain()</code> で動かす。</li>
+<li><b><code>make_papers()</code></b>（1081〜1135 行）: 紙番号 = 初期位置として直接作る（ジャッジは紙 0, 1, … の順で始める）。土台（紙 0）、反転紙（紙 1 + b。<code>flip_cov</code> のブロックは Y で不透明）、列ごとの専用紙（ハンドル h<sub>l</sub> の色が交互になるよう、多い方の色を先に使いつつ交互に）。続けて各紙のハンドル上の模様 <code>h_opq</code> / <code>h_blk</code>、汎用層の先読みの表、巡回順を作る。audit4-flip にあった「紙番号を初期位置にそろえる付け替え」は恒等写像だったので、clean-base にはない。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="request">3. 注文処理</h2>
+
+<h3 id="req-flow">3.1 1 注文の手順</h3>
+<p>1 つの計画は <code>run_plan()</code>（2114〜2204 行）が次の順で実行する（同時計画 <code>fret_mode</code> = 5 だけは <code>run_joint()</code> に任せる）。</p>
+<ol class="steps">
+<li><b>後片付け</b>: 前の D と前の穴埋め紙を、計画の選択肢に従って列へ戻す・新しい段へ移す・その場に残す（<code>return_paper</code>, <code>refill_or_return</code>）。前の D を据え置く計画（<code>ret_mode</code> 4）や、前の D を新しい D の穴埋め紙にする計画（<code>ret_mode</code> 3。<code>level_for</code> で段を決めて <code>move_to_level</code>）もある。</li>
+<li><b>汎用層</b>: D の汎用窓の穴が要求するブロックの向きに合わせる（<code>set_blocks(wanted_blocks(u, holes))</code>）。</li>
+<li><b>持ち上げ前の穴埋め紙</b>: 区間 DP で選んだ紙のうち、D の列の上端を隠さないものを置く（<code>choose_fillers_prelift</code>, <code>place_filler</code>）。</li>
+<li><b>掘りと持ち上げ</b>: D の列を D が上端になるまで回し（<code>dig</code>、平均 2.91 手）、D を位置 0 へ（<code>lift</code> がこの 2 つをまとめて行う）。</li>
+<li><b>持ち上げ後の穴埋め紙</b>: 区間が D の列のハンドルに届く紙（<code>FillerPick::post</code>）を置く。</li>
+<li><b>直し</b>: まだ色が違うハンドルの穴ごとに、その列を掘る（<code>fix_handles</code> → <code>set_handle</code>）。</li>
+</ol>
+<p>D が前の注文の穴埋め紙として列の外にいるときは、掘りも戻しもせずそこから直接持ち上げる（<code>run_joint</code> の中。audit4-flip で 1 ケース約 5 回）。対の相方が続いて同じ紙が既に一番上なら、そのまま使う（<code>keep</code>。このときの穴埋め紙は <code>choose_fillers_dp</code> で選び、列の外の穴埋め紙が <code>kMaxFillers</code> = 8 枚に達したらそれ以上置かない）。</p>
+
+<h3 id="req-example">3.2 実例（seed 0、注文 104）</h3>
+<p>audit4-flip の run 223907 の seed 0、注文 104（目標 165）。<code>scripts/observe.py queries / state</code> で読んだもの。clean-base は同じ手を打つ解法だが、評価では時計の倍率で焼きなましの量が違い設計が変わるので、clean-base の run（010139）の同じ注文の手はこれと一致しない。手の役割は紙の位置と列の大きさ（seed 0: 紙 6〜29 が 2 枚の列 0〜11、30〜57 が 4 枚の列 12〜18、…）から読み取った（計測用の probe 版で確かめたものではない）。</p>
+<pre><code>r= 104 a=165 m= 13
+  165@0>165   32@0>33   13@12>13   12@12>0   25@24>7   42@42>8
+  57@54>57  90@88>95  120@112>121  138@132>141  153@142>153  175@166>177  181@178>191
+（k@pos>d = 位置 pos にあった紙 k を深さ d へ）</code></pre>
+<div class="tbl"><table>
+<tr><th>手</th><th>役割</th></tr>
+<tr><td class="nw"><code>165@0&gt;165</code></td><td>前の注文で持ち上げた紙 165 を自分の列へ戻す（戻し 1 手）</td></tr>
+<tr><td class="nw"><code>32@0&gt;33</code></td><td>注文 100 で持ち上げ、注文 101 から据え置きで汎用層の上に残っていた紙 32 を列へ戻す（古い穴埋め紙の戻し）</td></tr>
+<tr><td class="nw"><code>13@12&gt;13</code></td><td>D = 紙 12 の列（列 3、2 枚）を 1 回掘る</td></tr>
+<tr><td class="nw"><code>12@12&gt;0</code></td><td>D を一番上へ持ち上げ。D は対の紙で、h<sub>4</sub>…h<sub>33</sub> の 30 ハンドルと、2 目標の違う汎用窓 11 個で穴（注文後に D が見えている窓は 23 = 19 + h<sub>0</sub>…h<sub>3</sub>）。汎用層はすでに要求の向きだったので 0 手</td></tr>
+<tr><td class="nw"><code>25@24&gt;7</code>, <code>42@42&gt;8</code></td><td>穴埋め紙 2 枚。列 9 の上端 25 と列 15 の上端 42 を、汎用層のすぐ下（段 0）に重ねる。注文後、25 は 4 窓、42 は 8 窓で見えている（2 手で 12 窓）</td></tr>
+<tr><td class="nw">残り 7 手</td><td>直し。深い列（列 18, 24, 27, 29, 30, 32, 33 と読める）を 1 回ずつ掘る。深いハンドルは覆える穴埋め紙がない</td></tr>
+</table></div>
+<p>合計 13 手 = 戻し 2 + 掘り 1 + 持ち上げ 1 + 穴埋め紙 2 + 直し 7。注文後の表示の不一致は 0。</p>
+
+<h3 id="req-search">3.3 計画探索（process）</h3>
+<p><code>process()</code>（2434〜2481 行）は、選択肢の組み合わせ <code>PlanOpt</code>（1712 行）を列挙し、状態を保存（<code>save/restore</code>）して 1 つずつ <code>run_plan</code> で走らせ、最も安い計画を採る。</p>
+<div class="tbl"><table>
+<tr><th>選択肢</th><th>値</th></tr>
+<tr><td><code>ret_mode</code>（前の D）</td><td>1 列の下端へ / 2 上端へ（どちらも前任が在位なら前任の下）/ 3 新しい D の穴埋め紙にする / 4 据え置き（新しい D の下に段 0 で残す）。0（hub7 規則）は素朴な手順だけが使う</td></tr>
+<tr><td><code>fret_mode</code>（前の穴埋め紙）</td><td>1 下端へ（前任が在位なら前任の下）/ 2 上端へ / 3 新しい段へ移せるものは移す（<code>refill_or_return</code>）/ 4 3 + 害のないものはその場に残す / 5 同時計画（<code>run_joint</code>: 前の D・古い穴埋め紙・新しい穴埋め紙を 1 つの区間 DP で選ぶ）</td></tr>
+<tr><td><code>keep</code></td><td>前の D が今回の目標の紙でもある（対の相方）ならそのまま使う</td></tr>
+<tr><td><code>fret_ret</code></td><td>移さない古い穴埋め紙を下端へ（1）か hub7 規則（0: 新しい D がその列のハンドルで穴で、上端の色が違い戻す紙の色が合うなら上端へ）。0 は前任のない穴埋め紙があるときだけ試す</td></tr>
+</table></div>
+<ul>
+<li>計画の数はコードの列挙から数えると、前の D が今回と別の紙で、前任のない穴埋め紙があるとき最大 28 通り。前の D が別の紙で穴埋め紙がなければ 6 通り。</li>
+<li>捨てる計画: 見えない紙を動かす手がある（<code>check_vis</code> の間に <code>move</code> が <code>invalid</code> を立てる）、終わりの表示が A<sub>u</sub> でない、列の外の紙が D を除いて見えない（次に戻せなくなる。<code>fillers_reachable</code>）。</li>
+<li>費用 = 手数 + 0.8 × 列の外に残す紙の数（<code>kFillerCharge</code>）+ 0.55 × <code>tops_penalty()</code>（多数派でない色を上端に残した列ごとに 2p<sub>m</sub> − 1、<code>kTopValue</code>）。費用を比べる前に <code>merge_double_moves</code> をかける。</li>
+<li>有効な計画がなければ素朴な手順（<code>PlanOpt{}</code>）。2000 件の追加ケースでも起きていない（safe2-、audit4-flip）。1024 注文の計画探索は run 010139 で合計平均 0.244 秒（<code>req_sec</code>、倍率込み）。</li>
+</ul>
+
+<h3 id="req-generic">3.4 汎用層の先読み</h3>
+<p>汎用層の 6 枚の順序は 720 通り。<code>build_abstract()</code>（1182 行。焼きなましの冒頭で一度だけ呼ぶ）が、見えている紙の合法な手だけで状態のグラフを作り、全点対の最短路（<code>blk_dist</code>, <code>blk_nxt</code>）、各状態の向き（<code>blk_disp</code>）、向きの符号ごとの充足状態（<code>blk_sat</code>）とそこまでの距離（<code>blk_dsat</code>）を作る。<code>want_costs()</code>（焼きなましの費用表）も <code>build_block_tables()</code>（1325 行、紙の生成の後）もこの表を使う。後者は各状態から「設計の対の目標全部」へ行く手数の平均 <code>blk_v</code> を作る。<code>set_blocks()</code>（1360 行）は、要求の向きを満たす状態のうち最短のもの、同点なら <code>blk_v</code> が最小のものへ進む（1 段先読み。厳密な MDP と比べても差なし: audit3-mdp +0.002 ± 0.010%）。汎用層の上に紙が残っているとき（据え置き）は、その紙が覆う窓を除いた BFS（<code>set_blocks_blocked</code>, 1403 行）。予備の分割をしたケースは <code>set_blocks_plain</code>（1476 行）。1 注文の汎用層の手は run 010139 で 0.997 手（<code>generic_moves</code> / 1024。audit4-flip の計測では対の注文で約 1.8 手）。</p>
+
+<h3 id="req-fillers">3.5 穴埋め紙の区間 DP</h3>
+<p>ハンドルの添字 0…33 の上の区間 [lv, c] を候補（<code>Cand</code>）にした重み付き区間スケジューリング。DP 本体は <code>best_intervals()</code>（1737 行）にまとめられ、次の 3 か所が候補の作り方だけを変えて呼ぶ。</p>
+<ul>
+<li><b><code>choose_fillers_prelift()</code></b>（1798 行）: D を持ち上げる前に選ぶ（すべての列の上端が見えている）。候補は、D の列以外の各列 c の深さ p ≤ 3（<code>kFillerDepth</code>）の紙を、覆える穴がある各段 lv で置くもの（狭い段も含む）。利得 = 省ける掘り − 1 − p で、利得が 1（<code>kFillerCost</code>）以上のものだけ採る。さらに同じ段に 2 枚を重ねる候補（<code>Stack</code>）。区間が D の列のハンドルに届くものは持ち上げの後に置く（<code>post</code>）。</li>
+<li><b><code>choose_fillers_dp()</code></b>（1765 行）: D がすでに一番上の計画（<code>keep</code>）用。</li>
+<li><b><code>run_joint()</code></b>（1992 行、<code>fret_mode</code> 5）: 前の D と古い穴埋め紙（置き直しの利得 = 省く掘り − 0.5（<code>kRelevel</code>）、その場に残す利得 = 省く掘り + 1 − 0.8（<code>kStay</code>））と新しい穴埋め紙を 1 つの DP で選ぶ。</li>
+<li><b><code>refill_or_return()</code></b>（1930 行。DP ではない）: 古い穴埋め紙を新しい段へ（<code>level_for</code>、1907 行）。省く掘りが 2 以上なら移す。<code>gen_harm()</code>（1921 行）は、土台より上に残った紙が新しい D の汎用窓の穴で違う色を見せるなら残さない。</li>
+</ul>
+<p class="note">穴埋め紙を戻すときは前任のすぐ下へ戻して巡回順を保つ（上端・下端へ雑に戻すと +0.5〜8.6% 悪化した記録がある）。audit4-flip の <code>free_return</code> は <code>return_paper</code> に吸収された。その中の「前任が列の底のときの分岐」は、<code>canonicalize</code> が前任を −1 にするので発火せず（run 20261031-235016 の 500 件で 0 回）、clean-base では削られている。</p>
+
+<h3 id="req-post">3.6 二重の手の併合と記録の作り直し</h3>
+<ul>
+<li><b><code>merge_double_moves()</code></b>（2246 行）: 計画の中で同じ紙を 2 回動かしていたら、1 回目で 2 回目の行き先へ直接動かすか 1 回目を省く。全手が合法で最終の重なりが同じものだけ採る（1 ケース約 20 手の節約、audit4-flip の計測）。</li>
+<li><b><code>canonicalize()</code></b>（2349 行）: 注文の後、列の外の紙の記録（持ち上げた紙、穴埋め紙の段と前任）を、紙の順序と巡回順 <code>cyc</code>（<code>init_cycles()</code>、2335 行）だけから作り直す。各列の在位の紙は初期順の回転なので一意に決まる。記録の取りこぼしで捨てていた計画を拾えるようになった（audit4-）。clean-base では常に呼ぶ（切り替えはない）。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="numbers">4. 数字</h2>
+
+<h3 id="num-breakdown">4.1 1 注文の手数の内訳と下限</h3>
+<p>出典: trial_log.md の brk- の節（solutions/brk-probe = audit4-flip の計測版、seed 0〜95、焼きなまし 1200 万回・山登り 6 万回に固定）。clean-base は同じ手を打つので、同じ回数に固定すれば同じ内訳になるはずだが、clean-base 自身では測っていない（clean-base には注文ごとの役割別の出力がない。6.4 節）。合計 11.45 手/注文（時間制の 500 件では 11.46、run 010139 の clean-base でも 11.46）。</p>
+<div class="tbl"><table>
+<tr><th>項目</th><th class="n">手/注文</th><th>下限・モデルとの比較</th></tr>
+<tr><td>持ち上げ</td><td class="n">1.00</td><td>下限（1）</td></tr>
+<tr><td>前の専用紙の戻し</td><td class="n">0.72</td><td>据え置き・直接持ち上げで 1 を下回る。計画探索がすでに選択肢を持つ部分</td></tr>
+<tr><td>掘り（D の列）</td><td class="n">2.91</td><td>モデル (n−1)/2 = 2.96 と一致。D の深さは列内で一様で、環の構造の下限</td></tr>
+<tr><td>汎用層</td><td class="n">0.99</td><td>方策は MDP 最適（audit3-mdp）。模擬の費用と実測は ±0.04 以内</td></tr>
+<tr><td>ハンドルの直し</td><td class="n">3.33</td><td>深いハンドル m ≥ 20 の 2.5 手は「不一致 1 個 1 手」の下限（覆える穴埋め紙がない）。不一致のうち掘る割合は m = 31/32/33 で 0.51/0.65/0.80、m ≤ 28 で 0.37〜0.42</td></tr>
+<tr><td>穴埋め紙（新規 1.22 + 戻し 1.14 + 移し替え 0.27）</td><td class="n">2.63</td><td>覆った穴 1 個あたり 0.54 手</td></tr>
+<tr><td>二重の手の併合</td><td class="n">−0.12</td><td></td></tr>
+<tr><td><b>計</b></td><td class="n"><b>11.45</b></td><td>下限との差が 0.3 手を超える項目は見つからなかった（brk-）</td></tr>
+</table></div>
+<ul>
+<li><b>ハンドルの穴</b> 14.73 個/注文（三角形 12.5 + 対の違い 2.2）。注文開始時の不一致 7.33（不一致率 0.474、持続モデルどおり）→ 掘りで直す 2.50、穴埋め紙や戻しで覆う 4.83、開始時は合っていたが古い穴埋め紙が戻って露出し掘る 0.83。<b>穴 1 個 0.404 手</b>（目標と独立な 1 ビットの素朴な下限は 0.5）。</li>
+<li>対の注文（55%）は 14.06 手、単独の注文は 8.32 手。単独は深い列に、対は浅い〜中ほどの列に集まる。手数の多い注文（18 手以上、5.9%）は全部が浅い列の対（tail-）。</li>
+<li>列の大きさの形（浅い 12 列が 2 枚、1 列あたり約 0.4 枚ずつ増え、最深 12 枚前後）は、穴 1 個 0.48 手・掘り (n−1)/2 のモデルの最適形にほぼ一致。</li>
+</ul>
+
+<h3 id="num-time">4.2 時間の内訳</h3>
+<p>run 010139_clean-base（500 件、手元 24 並列、<code>-DCLOCK_SCALE=1.1</code>）。解法の時刻はすべて倍率込みの読みで、実時間はその 1/1.1。</p>
+<div class="tbl"><table>
+<tr><th>段階</th><th class="n">解法の読み</th><th>根拠</th></tr>
+<tr><td>前処理（焼きなましの開始まで）</td><td class="n">約 0.11 秒</td><td>audit4-flip の run 223907 の <code>anneal_start_sec</code>（clean-base は出さない）</td></tr>
+<tr><td>焼きなまし</td><td class="n">〜1.10 秒</td><td><code>anneal_end_sec</code> 平均 1.10、最大 1.113</td></tr>
+<tr><td>山登り</td><td class="n">〜1.15 秒</td><td><code>climb_end_sec</code> 平均 1.15、最大 1.152</td></tr>
+<tr><td>1024 注文の計画探索</td><td class="n">0.244 秒</td><td><code>req_sec</code> 平均（最大 0.282）。audit4-flip-clk の 0.248 と同じ</td></tr>
+<tr><td>終了（解法の読み）</td><td class="n">1.408 秒</td><td><code>end_sec</code> 平均（最大 1.484）。テスターの実時間は平均 1.312 秒、最大 1.371 秒</td></tr>
+</table></div>
+<ul>
+<li><b>ジャッジ</b>: audit4-flip の実測の最大 1.464 秒（clock-probe の節）。ジャッジは空いた手元の約 1.35 倍、24 並列の評価の約 1.1 倍遅い（これが <code>CLOCK_SCALE</code> = 1.1 の根拠）。safe2- の見積りは 1.15 + 1.5 × (0.27 + 0.05) ≈ 1.63 秒（システムテストで +5% として約 1.71 秒）。</li>
+<li>手元の評価の最大時間は負荷で 0.3〜0.5 秒ぶれる。解法の最悪ケースは CPU 時間で判断する（safe2-）。</li>
+<li>clean-base は同じ時間で焼きなましの反復が audit4-flip-clk より約 6% 多い（1.27e7 → 1.34e7、clean- の節）。手は回数を固定すれば同じなので、時間制の評価で違うのはこの量だけ。</li>
+</ul>
+
+<h3 id="num-history">4.3 スコアの推移</h3>
+<p>500 件の平均スコア（E = 0 なので手数の合計）。比較は trial_log の同時比較（ケースごとの log 比の平均）。</p>
+<div class="tbl"><table>
+<tr><th>解法</th><th class="n">平均</th><th>主な変更</th><th class="n">直前比</th></tr>
+<tr><td>bit-pair</td><td class="n">32761.1</td><td>窓ごとに白黒の紙 1 枚ずつ（汎用構造だけ、32 手/注文）</td><td class="n"></td></tr>
+<tr><td>hub2</td><td class="n">18715.4</td><td>専用紙をハンドル窓から掘り出す三角形の列</td><td class="n">−56.0%</td></tr>
+<tr><td>hub4</td><td class="n">16813.6</td><td>近い 2 目標で 1 枚を共有する対</td><td class="n">−10.7%</td></tr>
+<tr><td>hub5 → hub8</td><td class="n">15465.7</td><td>焼きなまし、戻し先の選択（hub7）、時間制</td><td class="n">約 −8%</td></tr>
+<tr><td>gen-bf2</td><td class="n">14139.9</td><td>汎用層を土台 + 反転紙に（整合の制約）</td><td class="n">約 −9%</td></tr>
+<tr><td>search-bf2</td><td class="n">14031.7</td><td>注文ごとの計画探索、穴埋め紙</td><td class="n">−0.8%</td></tr>
+<tr><td>gen-relax</td><td class="n">13414.7</td><td>整合する対を増やすブロック分けと Y の山登り</td><td class="n">−4.5%</td></tr>
+<tr><td>hole-relax</td><td class="n">12533.1</td><td>段付き穴埋め紙、持ち上げ前の区間 DP、プール</td><td class="n">−6.7%</td></tr>
+<tr><td>mix-pt</td><td class="n">12189.1</td><td>色の持続（tiny-bias）+ proxy の山登り（pool-climb）</td><td class="n">約 −3.0%</td></tr>
+<tr><td>audit-mix</td><td class="n">12110.5</td><td>二重の手の併合、据え置き</td><td class="n">−0.59%</td></tr>
+<tr><td>audit2-blk</td><td class="n">12019.1</td><td>古い穴埋め紙の戻し先、汎用層の先読み</td><td class="n">−0.82%</td></tr>
+<tr><td>left-ap</td><td class="n">11982.8</td><td>焼きなましの高速化（反復 2 倍）+ 焼きなまし内の proxy</td><td class="n">−0.38%</td></tr>
+<tr><td>audit3-stack</td><td class="n">11937.1</td><td>区間 DP の狭い段、同じ段の重ね</td><td class="n">−0.46%</td></tr>
+<tr><td>cons-stack</td><td class="n">11843.9</td><td>焼きなましの汎用層の費用を向きの表に</td><td class="n">−0.86%</td></tr>
+<tr><td>cons-flip</td><td class="n">11770.3</td><td>反転紙のリセット（下位ブロックを Y で覆う）</td><td class="n">−0.65%</td></tr>
+<tr><td>audit4-flip</td><td class="n">11736.4</td><td>列の外の紙の記録の修正（gen_harm, free_return, canonicalize）</td><td class="n">−0.15%</td></tr>
+<tr><td>audit4-flip-clk</td><td class="n">11741.4</td><td>時計の倍率 <code>CLOCK_SCALE</code>（手元の評価で探索量を 1/1.1 に）</td><td class="n">+0.046%（差なし）</td></tr>
+<tr><td><b>clean-base</b></td><td class="n"><b>11739.6</b></td><td>同じ手のまま書き直し（3753 → 2522 行）</td><td class="n">−0.016%（差なし）</td></tr>
+</table></div>
+<p class="note">「直前比」は trial_log に書かれた同時比較の値（基準が直前の行と違う箇所は「約」を付けた）。audit4-flip-clk と clean-base の平均は同じ run 010139 の値で、audit4-flip の 11736.4 は倍率なしの別の run（223907）。外部の agent 6 体の独立な解法の最良（astra-03-09）は 13276.2 で、どれも同じ「持ち手の窓で掘り出す紙 + 下地」に行き着いた。</p>
+
+<!-- ============================================================ -->
+<h2 id="lessons">5. 効いたもの・効かなかったもの</h2>
+<p>trial_log.md の記録の要約。名前は実験したときの解法（どれも clean-base の祖先）。パラメータは、実験当時の環境変数名に clean-base の定数名を添えた（対応は 6.2 節）。</p>
+
+<h3>5.1 効いたもの（大きい順の目安）</h3>
+<div class="tbl"><table>
+<tr><th>方向</th><th>効果</th><th>要点</th></tr>
+<tr><td>専用紙 + 三角形の列（hub）</td><td class="nw">−56%</td><td>汎用構造だけでは 1 窓 0.4 手（26 手/注文）が限界。目標を事前に知っていることを使う</td></tr>
+<tr><td>対の紙（hub4）</td><td class="nw">−10.7%</td><td>紙 192 枚 &lt; 目標 256 個。近い 2 目標で 1 枚を共有</td></tr>
+<tr><td>土台 + 反転紙（gen-cb → gen-bf2）</td><td class="nw">約 −9%</td><td>対の違いの汎用窓を、ブロックの向き（触れたブロック 1 つ約 0.5 手）でまとめて直す。紙は 6 枚</td></tr>
+<tr><td>段付き穴埋め紙・区間 DP・プール（hole-, pool-, audit3-）</td><td class="nw">約 −7.5%</td><td>深い列の紙と目標の偶然の一致で、1 手で複数のハンドルの穴を覆う</td></tr>
+<tr><td>整合する対を増やす山登り（gen-relax）</td><td class="nw">−4.5%</td><td>ブロック 6 窓・H = 34 を誤りなく使えるようになった</td></tr>
+<tr><td>色の持続（tiny-bias）、proxy（pool-climb）</td><td class="nw">約 −3%</td><td>浅い列の目標を深いハンドルで多数派の色に寄せる。深い列の紙を穴埋め紙として使いやすく</td></tr>
+<tr><td>汎用層の費用を実際の方策の手数に（cons-tab, cons-flip）</td><td class="nw">約 −1.5%</td><td>手数は触れたブロック数でなく向き（全部オン / 全部オフ / 混在）で決まる</td></tr>
+<tr><td>監査（audit-〜audit4-）</td><td class="nw">合計約 −2%</td><td>二重の手、据え置き、戻し先、汎用層の先読み、狭い段・重ね、記録の作り直し。どれも「常にこうする」部分の取りこぼし</td></tr>
+</table></div>
+
+<h3>5.2 やらなくてよいこと（試して効かなかった・損だった）</h3>
+<div class="tbl"><table>
+<tr><th>方向</th><th>結果</th><th>出典</th></tr>
+<tr><td>(S, H) を (6, 34) から変える</td><td>(5,30) +1.45%、(6,32) +1.9%、(6,36) +0.8%、(7,36) ±0、(4,34) +3.2%、H = 33 / 35 +0.20 / +0.37% など。どの版でも 34 が最良</td><td>left-, cons-, hub-, tiny-, retune-</td></tr>
+<tr><td>汎用層を 6 ブロックに</td><td>先読みの表を作っても 500 件 +0.227 ± 0.075%（整合の得 −0.19 手を、触れるブロックが増える +0.12 手と紙 1 枚で使い切る）</td><td>blk6-</td></tr>
+<tr><td>反転紙が他のブロックを Y 以外の模様 Z で覆う</td><td>素の向きの組み合わせを失い、整合する相方が増えない</td><td>flipz-</td></tr>
+<tr><td>紙を浮かせる（土台を 1 目標の紙と兼ねる）</td><td>+0.086 ± 0.074%。紙 1 枚の価値は非対称で、減らすと 0.5〜0.9% 損、増やしても ≈ 0</td><td>paper-</td></tr>
+<tr><td>3 目標以上で 1 枚を共有、親 + 差分の紙</td><td>穴が増えて浮いた紙と相殺。焼きなましがほぼ選ばない</td><td>share-</td></tr>
+<tr><td>次の注文の期待値で計画や終わりの状態を選ぶ</td><td>一様な次の注文 8〜255 通りの平均で −0.1% 前後（有意でない）。次の注文を知る oracle なら −1.5% だが使えない</td><td>pool-, audit3-</td></tr>
+<tr><td>設計・注文処理の重みの微調整</td><td>穴の重み HUB_KH（<code>kHandleHole</code>）、列の大きさの傾き・形、BIAS_MIX（<code>kMix</code>）、proxy の重み・閾値、温度、計画の上端の罰 BIAS_TOPV（<code>kTopValue</code>）、FILL_W（<code>kFillerCharge</code>）など: どれも平らな最適点にあり、192 件で小さく良く見えた組み合わせも 480 件で消えた（+0.043 ± 0.062%）。悪くなる側ははっきりしている（FILL_W ≥ 0.9、CLIMB_T 2、HUB_IMB &lt; 1 など）</td><td>mix-, tiny-, hole-, retune-</td></tr>
+<tr><td>穴の重みを実測の穴 1 個の手数（約 0.37〜0.40）に合わせる</td><td>HUB_KH 0.45 / 0.40 / 0.35 で −0.02 / +0.22 / +0.49%（96 件、±0.14）。平均の値段と限界の値段は違い、0.51 が最良</td><td>tail-, retune-</td></tr>
+<tr><td>最深のハンドルの穴の重みを上げる</td><td>最深 3 ハンドル ×1.3 で +2.2%（焼きなましの結果そのものが悪くなる）</td><td>retune-</td></tr>
+<tr><td>焼きなましを長く</td><td>1.10 → 1.45 秒 −0.058 ± 0.064%（有意でない）、回数 3 倍 +0.18%（48 件、収束）。遅いジャッジを模した条件でのみ −0.09%</td><td>audit-, cons-, safe-</td></tr>
+<tr><td>同じ設計を乱数違いで作り直して選ぶ</td><td>設計間のスコア差は設計 × 注文列の雑音（列間相関 ≈ 0.1）。真の差 ≤ 0.3%</td><td>audit2-</td></tr>
+<tr><td>列の大きさを動かす近傍（1 単位を別の列へ）</td><td>奇数の列は色の交互が崩れて悪化（clean-base ではこの近傍ごと削除）</td><td>hub5</td></tr>
+<tr><td>ハンドルの順の山登り、ハンドルと汎用窓の交換を焼きなましに</td><td>受理 0 / 差なし</td><td>left-, hub9</td></tr>
+<tr><td>古い穴埋め紙を上端へも戻す（brk-bret）、run_joint に重ねる候補、深さ 4 までの穴埋め紙（FILLER_DEPTH = <code>kFillerDepth</code> 4）</td><td>−0.011%、+0.063%、−0.007%（差なし）</td><td>brk-, audit3-, audit4-</td></tr>
+<tr><td>据え置きの計画（keep）で新しい穴埋め紙を使わない（<code>choose_fillers_dp</code> を外す）</td><td>192 件固定で +0.042 ± 0.014%（悪化）。計画の種類はどれも 1 ケース数回以上選ばれ、外せる候補はなかった</td><td>clean-</td></tr>
+<tr><td>手数の多い注文（裾）だけを狙う</td><td>裾は全部「穴の多い浅い列の対」という構造そのもの。1 手挿入の総当たりで見えた分（全体で 0.02 手/注文）以上は見込めない</td><td>tail-</td></tr>
+<tr><td>署名列（列内の紙の深いハンドルの模様をそろえる）、深い列を隠す形、土台 + 塗り紙、待機状態のリセット</td><td>見積りや toy で損</td><td>fable-, arch-</td></tr>
+<tr><td>誤りを許す（E &gt; 0）</td><td>1 誤り = 384 手で論外</td><td></td></tr>
+</table></div>
+
+<!-- ============================================================ -->
+<h2 id="guide">6. 改善に着手するためのガイド</h2>
+
+<h3 id="guide-map">6.1 コードの地図</h3>
+<p>行番号は commit 75cf73f の <code>solutions/clean-base/main.cpp</code>。<code>Solver</code> の外にあるのは、定数・時計・乱数・<code>filler_gain</code> と <code>main()</code> だけ。</p>
+<div class="tbl"><table>
+<tr><th class="n">行</th><th>名前</th><th>役割</th></tr>
+<tr><td class="n">1〜42</td><td>冒頭のコメント</td><td>窓と紙の構造、注文の流れ、設計と注文処理の主要な関数の一覧（英語）</td></tr>
+<tr><td class="n">59</td><td><code>N, K, P, H, G</code></td><td>問題の定数と列の数 <code>H</code> = 34</td></tr>
+<tr><td class="n">61〜76</td><td><code>CLOCK_SCALE</code>, <code>elapsed_sec()</code>, <code>env_int()</code></td><td>時計の倍率（未定義なら 1.0）、<code>ANNEAL_ITERS</code> / <code>CLIMB_ITERS</code> の読み取り</td></tr>
+<tr><td class="n">79〜102</td><td><code>Xoshiro256</code>, <code>low_bits()</code></td><td>焼きなましの乱数、ビット列の補助</td></tr>
+<tr><td class="n">109</td><td><code>filler_gain()</code></td><td>穴埋め紙の利得（焼きなましの線形化した proxy と <code>filler_climb</code> で共通）</td></tr>
+<tr><td class="n">126〜134</td><td><code>Paper</code>, <code>Block</code></td><td>紙（<code>opaque</code>, <code>black</code>）、ブロック（<code>mask</code>, <code>y</code>, <code>pf</code>）</td></tr>
+<tr><td class="n">136〜169</td><td><code>Solver</code> の状態</td><td>窓（<code>handle</code>, <code>hidx</code>, <code>gmask</code>, <code>hmask</code>）、紙（<code>paper</code>, <code>h_opq</code>, <code>h_blk</code>, <code>col_of</code>, <code>block_of</code>, <code>ded</code>）、<code>bias_c/bias_g</code>、設計（<code>units</code>, <code>members</code>）、山（<code>order</code>, <code>top_d</code>, <code>top_pred</code>, <code>fillers</code>, <code>ops</code>）</td></tr>
+<tr><td class="n">176〜226</td><td><code>touch, pair_codes, color_at, unit_columns, handle_bits, set_members</code></td><td>設計の補助（整合、向きの符号、ハンドルの色、単位の列）</td></tr>
+<tr><td class="n">228〜311</td><td><code>design()</code></td><td>設計全体（列の大きさ 231、対 244、列の割り当て 272、各段階の呼び出し 307〜310）</td></tr>
+<tr><td class="n">317〜387</td><td><code>choose_blocks()</code></td><td>汎用窓・ブロック・Y の山登り</td></tr>
+<tr><td class="n">402〜815</td><td><code>anneal_units()</code></td><td>焼きなまし（定数 403、持続の重み 417〜516、汎用層の表 452、費用 462〜574、<code>attempt</code> 593、ループ 616〜、近傍 660〜783、修復 784）</td></tr>
+<tr><td class="n">825〜975</td><td><code>filler_climb()</code></td><td>proxy の山登り、<code>bias_c/bias_g</code> の設定</td></tr>
+<tr><td class="n">983〜1077</td><td><code>split_inconsistent()</code></td><td>予備の分割</td></tr>
+<tr><td class="n">1081〜1135</td><td><code>make_papers()</code></td><td>紙の模様、表と巡回順の構築、stderr の <code>blocks</code> / <code>inconsistent_pairs</code></td></tr>
+<tr><td class="n">1137〜1502</td><td>汎用層</td><td><code>blk_*</code> の表 1140、<code>build_abstract</code> 1182、<code>want_costs</code> 1259、<code>build_block_tables</code> 1325、<code>wanted_blocks</code> 1347、<code>set_blocks</code> 1360、<code>set_blocks_blocked</code> 1403、<code>orientation</code> 1469、<code>set_blocks_plain</code> 1476</td></tr>
+<tr><td class="n">1503〜1660</td><td>基本操作</td><td><code>visible</code> 1509、<code>display</code> 1517、<code>check_vis/invalid</code> 1527、<code>move</code> 1528、<code>move_after</code> 1536、<code>is_filler</code> 1546、<code>in_column</code> 1554、<code>column_tops</code> 1556、<code>dig</code> 1568、<code>lift</code> 1573、<code>set_handle</code> 1580、<code>fix_handles</code> 1589、<code>handle_fix_cost</code> 1594、<code>level_past</code> 1609、<code>shown_by</code> 1614、<code>move_to_level</code> 1629、<code>place_filler</code> 1644</td></tr>
+<tr><td class="n">1662〜1709</td><td><code>return_paper()</code></td><td>戻し（前任の下 / 上端 / 下端 / hub7 規則）</td></tr>
+<tr><td class="n">1712〜1761</td><td><code>PlanOpt, FillerPick, Cand, best_intervals</code></td><td>計画の選択肢、穴埋め紙の候補、区間 DP</td></tr>
+<tr><td class="n">1762〜1928</td><td>穴埋め紙</td><td>定数 1762、<code>choose_fillers_dp</code> 1765、<code>choose_fillers_prelift</code> 1798（重ね 1795〜）、<code>level_for</code> 1907、<code>gen_harm</code> 1921</td></tr>
+<tr><td class="n">1930</td><td><code>refill_or_return()</code></td><td>古い穴埋め紙の置き直し・戻し</td></tr>
+<tr><td class="n">1983〜2112</td><td><code>run_joint()</code></td><td>同時計画（<code>fret_mode</code> 5）。定数 <code>kRelevel</code> / <code>kStay</code> 1983</td></tr>
+<tr><td class="n">2114〜2204</td><td><code>run_plan()</code></td><td>1 計画の実行（3.1 節の手順）</td></tr>
+<tr><td class="n">2206〜2245</td><td><code>fillers_reachable, tops_penalty</code></td><td>計画の検査と費用</td></tr>
+<tr><td class="n">2246</td><td><code>merge_double_moves()</code></td><td>二重の手の併合</td></tr>
+<tr><td class="n">2333〜2418</td><td><code>cyc, init_cycles, canonicalize</code></td><td>巡回順と記録の作り直し</td></tr>
+<tr><td class="n">2419〜2481</td><td><code>State, save, restore, process</code></td><td>計画探索（定数 <code>kFillerCharge</code> / <code>kTopValue</code> 2433）</td></tr>
+<tr><td class="n">2485〜2522</td><td><code>main()</code></td><td>入出力（毎回 flush）、stderr の最後の 5 指標</td></tr>
+</table></div>
+
+<h3 id="guide-params">6.2 主な定数の一覧</h3>
+<p>clean-base では、audit4-flip の実験用の環境変数（約 75 個）を既定値の定数にした。残る環境変数は <code>ANNEAL_ITERS</code> と <code>CLIMB_ITERS</code> の 2 つだけ。値はどれも調整済みで、周辺はほぼ平ら（5.2 節）。右端の列は、trial_log や古い道具に出てくる audit4-flip の環境変数名（同じ値の既定値）。部品のオン・オフの切り替え（<code>SEARCH</code>, <code>JOINT</code>, <code>STACK</code>, <code>CANON</code> など）と診断の出力（<code>CB_DIAG</code>, <code>BIAS_PROBE</code> など）は、オンの経路だけを残して削られた。</p>
+<div class="tbl"><table>
+<tr><th>定数（場所）</th><th class="n">値</th><th>意味</th><th>旧環境変数</th></tr>
+<tr><td><code>ANNEAL_ITERS</code>, <code>CLIMB_ITERS</code>（環境変数）</td><td class="n">0 / 0</td><td>&gt; 0 で焼きなまし / 山登りを回数固定（比較実験で設計を決定的にする）。0 以下か未設定なら時間制</td><td><code>HUB_ANNEAL</code>, <code>CLIMB_ITERS</code></td></tr>
+<tr><td><code>CLOCK_SCALE</code>（マクロ）</td><td class="n">1.0</td><td>時計の読みの倍率。<code>scripts/pahcer_run.py</code> は <code>-DCLOCK_SCALE=1.1</code> でコンパイル</td><td>—</td></tr>
+<tr><td><code>H</code>（59 行）</td><td class="n">34</td><td>列（ハンドル窓）の数</td><td><code>HUB_H</code></td></tr>
+<tr><td><code>(G + 3) / 6</code>（<code>choose_blocks</code> 318 行）</td><td class="n">5</td><td>ブロック数（6 窓ずつ）</td><td><code>CB_S</code> = 6</td></tr>
+<tr><td><code>choose_blocks</code> の 3000 回、0.3</td><td class="n">3000, 0.3</td><td>ブロックの山登りの回数、汎用窓とハンドル窓の交換の率</td><td><code>CB_PSWAPS</code>, <code>CB_PGH</code></td></tr>
+<tr><td><code>w[l] = 1.0 + l</code>（<code>design</code> 234 行）</td><td class="n">1 + l</td><td>列の大きさの重み</td><td><code>HUB_SLOPE</code> = 1</td></tr>
+<tr><td><code>t_end</code>（<code>anneal_units</code> 589 行 / <code>filler_climb</code> 828 行）</td><td class="n">1.1 / 1.15</td><td>焼きなまし / 山登りの打ち切り時刻（秒、倍率込みの読み）</td><td><code>HUB_TL</code> / <code>CLIMB_TL</code></td></tr>
+<tr><td><code>kHandleHole</code>, <code>kImbalance</code>, <code>kIncons</code></td><td class="n">0.51, 50, 30</td><td>ハンドルの穴の重み、列の色の釣り合いの罰、整合しないブロックの罰</td><td><code>HUB_KH</code>, <code>HUB_IMB</code>, <code>CB_KI</code></td></tr>
+<tr><td><code>kMix</code>, <code>kRefresh</code></td><td class="n">1.0, 16384</td><td>持続モデルの混合率、重みの更新間隔</td><td><code>BIAS_MIX</code>, <code>BIAS_REFRESH</code></td></tr>
+<tr><td><code>kApW</code>, <code>kApStart</code>, <code>kApRefresh</code></td><td class="n">0.5, 0.5, 4</td><td>焼きなまし内の proxy の重み・開始・更新回数</td><td><code>AP_W</code>, <code>AP_START</code>, <code>AP_REFRESH</code></td></tr>
+<tr><td><code>kTgtStart</code>, <code>kTgtRate</code></td><td class="n">0.1, 0.9</td><td>Y を固定して相方を整合する相方から選ぶ開始と率</td><td><code>CB_TGT_START</code>, <code>CB_TGT_RATE</code></td></tr>
+<tr><td><code>kHandleSwap</code>, <code>kYFlip</code>, <code>kBlkCmp</code></td><td class="n">0.05, 0.05, 0.001</td><td>焼きなましの近傍の率（ハンドルの入れ替え、Y の 1 色反転、ブロック全体の Y 反転）</td><td><code>HUB_HSWAP</code>, <code>CB_YFLIP</code>, <code>BLK_CMP</code></td></tr>
+<tr><td><code>t0</code>, <code>t1</code></td><td class="n">3.0, 0.05</td><td>焼きなましの初期・最終温度</td><td><code>HUB_T0</code>（最終は元から固定）</td></tr>
+<tr><td><code>kResim</code>、<code>want_costs</code> の 8 組</td><td class="n">2, 8</td><td>汎用層の向きの費用の模擬し直しの回数、合成の注文の組数</td><td><code>WANT_RESIM</code>, <code>WANT_SETS</code>（<code>WANT_SIM</code> = 1 の経路だけ残り、固定表 kBlkTab は削除）</td></tr>
+<tr><td><code>kW</code>, <code>kH</code>, <code>kMix</code>（<code>filler_climb</code>）</td><td class="n">0.3, 0.51, 1.0</td><td>山登りの proxy の重み、穴の重み、持続の混合率</td><td><code>CLIMB_W</code>, <code>HUB_KH</code>, <code>BIAS_MIX</code></td></tr>
+<tr><td><code>kT</code>（<code>filler_gain</code>）</td><td class="n">3</td><td>proxy の閾値（覆える穴の重み g から引く）</td><td><code>CLIMB_T</code></td></tr>
+<tr><td><code>kFillerDepth</code>, <code>kFillerCost</code>, <code>kMaxFillers</code></td><td class="n">3, 1, 8</td><td>穴埋め紙を取る列の深さ、採る閾値（2 + 深さ以上省く）、<code>choose_fillers_dp</code> の上限</td><td><code>FILLER_DEPTH</code>, <code>FILL_COST</code>, <code>MAX_FILLERS</code></td></tr>
+<tr><td><code>kRelevel</code>, <code>kStay</code></td><td class="n">0.5, 0.8</td><td>同時計画で古い紙・前の D を置き直す費用、その場に残す費用</td><td><code>JOINT_RELEVEL</code> と <code>JOINT_PREV</code>（どちらも 0.5 で 1 つに）、<code>JOINT_STAY</code></td></tr>
+<tr><td><code>kFillerCharge</code>, <code>kTopValue</code></td><td class="n">0.8, 0.55</td><td>計画の費用: 列の外の紙 1 枚、上端の罰の重み</td><td><code>FILL_W</code>, <code>BIAS_TOPV</code></td></tr>
+</table></div>
+<p class="note">定数を変える実験は、環境変数で切り替えられないので、解法をコピーして定数を書き換えたものどうしを比べる（6.4 節の <code>runner.py</code> はバイナリを並べて比べられる）。</p>
+
+<h3 id="guide-stderr">6.3 stderr の指標</h3>
+<p>clean-base が出す <code>名前 = 数値</code> は 13 個（<code>scripts/observe.py stats</code> が全ケースで集計する）。平均は run 010139_clean-base の 500 件。時刻は倍率込みの読み。</p>
+<div class="tbl"><table>
+<tr><th>名前</th><th>意味（出す場所）</th><th class="n">平均</th></tr>
+<tr><td><code>anneal_iters</code></td><td>焼きなましの反復数（813 行）</td><td class="n">1.34e7</td></tr>
+<tr><td><code>anneal_end_sec</code></td><td>焼きなましの終了時刻</td><td class="n">1.10</td></tr>
+<tr><td><code>climb_iters</code></td><td>山登りの反復数（966 行）</td><td class="n">5.88e4</td></tr>
+<tr><td><code>climb_end_sec</code></td><td>山登りの終了時刻</td><td class="n">1.15</td></tr>
+<tr><td><code>split_fallback</code></td><td>予備の分割の回数（1075 行）</td><td class="n">0</td></tr>
+<tr><td><code>split_failed</code></td><td>分割の紙を捻出できなかった回数</td><td class="n">0</td></tr>
+<tr><td><code>blocks</code></td><td>ブロック数（分割すると 6 以上。1128 行）</td><td class="n">5</td></tr>
+<tr><td><code>inconsistent_pairs</code></td><td>整合しない対の数（0 でないと誤りが出る）</td><td class="n">0</td></tr>
+<tr><td><code>self_wrong</code></td><td>解法自身が数えた誤り（表示 ≠ 目標の注文。2519 行）</td><td class="n">0</td></tr>
+<tr><td><code>generic_moves</code></td><td>汎用層の紙を動かした手の数</td><td class="n">1021</td></tr>
+<tr><td><code>total_moves</code></td><td>総手数（E = 0 ならスコアと同じ）</td><td class="n">11739.6</td></tr>
+<tr><td><code>req_sec</code></td><td>注文処理の時間の合計（注文待ちを除く）</td><td class="n">0.244</td></tr>
+<tr><td><code>end_sec</code></td><td>終了時刻</td><td class="n">1.408</td></tr>
+</table></div>
+<p class="note">audit4-flip が出していた計測用の指標（<code>anneal_start_sec</code>, <code>model_cost_before/after</code>, <code>block_log_consistency</code>, <code>dedicated</code> など）は clean-base にはない。必要なら自分の解法のコピーに足す（<code>Score = ...</code> の形の行は出さない）。</p>
+
+<h3 id="guide-eval">6.4 評価のしかたと道具</h3>
+<ol class="steps">
+<li><b>新しい解法は <code>solutions/clean-base</code> をコピーして作る</b>。<code>elapsed_sec()</code> が <code>CLOCK_SCALE</code> 倍され、<code>scripts/pahcer_run.py</code> は <code>-DCLOCK_SCALE=1.1</code> でコンパイルするので、手元の評価がジャッジと同じだけ探索する。ジャッジでは未定義で 1.0。CLAUDE.md は現時点で <code>solutions/audit4-flip-clk</code> をベースとしているが、clean-base はそれと出力が同じ（回数固定で stdout が一致）で、どちらを基準にしてもよい。倍率の入っていない audit4-flip とは探索量が 1.1 倍違うので、基準にしない。</li>
+<li><b>本番の比較</b>: <code>scripts/pahcer_run.py --compare solutions/clean-base solutions/&lt;new&gt; -c "..."</code>（500 件。ケースごとの log 比の平均 ± 標準誤差と勝/分/敗）。500 件の標準誤差は約 0.06%。差が標準誤差の 2 倍未満なら判断しない。</li>
+<li><b>出力の一致の確認（<code>solutions/clean-base/eqcheck.py</code>）</b>: 書き直しや高速化で「手が変わっていない」ことを確かめる道具。評価の記録には残らない。
+<pre><code>g++ -std=c++23 -O2 -o &lt;dir&gt;/base solutions/clean-base/main.cpp
+g++ -std=c++23 -O2 -o &lt;dir&gt;/cand solutions/&lt;new&gt;/main.cpp
+JOBS=8 python3 solutions/clean-base/eqcheck.py 0 96 2000000 20000 &lt;dir&gt;/base &lt;dir&gt;/cand</code></pre>
+  引数は seed の範囲 [lo, hi)、焼きなましと山登りの回数、バイナリ（最初が基準）。テスター（<code>tools/target/release/tester</code>）経由で回し、回数は <code>ANNEAL_ITERS</code> と旧名の <code>HUB_ANNEAL</code>、<code>CLIMB_ITERS</code> の両方で渡すので audit4-flip 系のバイナリとも比べられる。runs/.lock を取る。基準以外の各バイナリについて、stdout が違う seed の数、スコアが違う seed の数、平均スコア、手が変わる版なら基準に対する log 比 ± 標準誤差と勝/分/敗を出す。clean- の確認は 200 万回・2 万回の seed 0〜95 と 600 万回・5 万回の seed 96〜191 で行った。リポジトリの場所（<code>/home/sato/ahc074</code>）はスクリプトに直接書かれている。</li>
+<li><b>焼きなまし固定の比較（速く、雑音が小さい）</b>: 時間制の焼きなましは同じソースでも結果がぶれるので、小さな変更は設計を回数固定にして比べる。
+  <ul>
+  <li><code>solutions/audit3-tools/runner.py &lt;lo&gt; &lt;hi&gt; base=&lt;bin&gt; cand=&lt;bin&gt;,ENV=VAL</code>: テスターなしで直接実行し、スコアは解法自身の <code>total_moves + 384 × self_wrong</code>（clean-base も出すので使える）。runs/.lock を取る。<b>注意</b>: 既定で設定するのは旧名の <code>HUB_ANNEAL=9000000</code> と <code>CLIMB_ITERS=60000</code> だけなので、clean-base 系では <code>ANNEAL_ITERS=9000000 python3 solutions/audit3-tools/runner.py ...</code> のように <code>ANNEAL_ITERS</code> を自分で渡さないと焼きなましが時間制のまま走る（コードで確認、実行はしていない）。96〜480 件で標準誤差 0.02〜0.05% まで下がる。</li>
+  <li><code>solutions/brk-probe/runm.py</code> + <code>cmpm.py</code>: テスター経由で回し、stderr の <code>名前 = 数値</code> も集めて比べる。任意のバイナリと <code>ENV=VAL</code> を受け取るので clean-base にも使える（同じく <code>ANNEAL_ITERS</code> を渡す）。</li>
+  </ul></li>
+<li><b>計測用の probe 版（clean-base には使えない）</b>: <code>solutions/brk-probe/main.cpp</code>（audit4-flip に <code>REQ_PROBE=1</code> で注文ごとの役割別の手数を出す版）と <code>breakdown.py</code>、それを読む <code>solutions/tail-probe</code>、<code>solutions/cons-probe</code>、<code>solutions/audit2-probe</code>、<code>solutions/safe2-check/main.cpp</code> は、どれも audit4-flip 以前のコードに計測を足した<b>別の解法</b>で、clean-base のコードの変更は反映されない。clean-base を変えた解法の内訳を取るには、計測の出力を自分のコピーに足す必要がある。<code>safe2-check/safe_run.py</code>（任意のバイナリをテスター経由で回す）は使えるが、<code>safe_analyze.py</code> が読む <code>safe_*</code> の時間・最大手数の指標は clean-base が出さない。</li>
+<li><b>総当たりの道具（そのままでは使えない）</b>: <code>solutions/audit3-tools/mk_probe.py</code> と <code>solutions/audit4-tools/mk_probe4.py</code>（<code>process()</code> を分解した解析版を作り、<code>LA_MARGIN</code> の 1 段先読み、<code>FM=n</code> の最初の 1 手の総当たり、<code>INS=n</code> の 1 手挿入などを行う。<code>par.py</code> / <code>cls.py</code> / <code>show.py</code> が出力を読む）を clean-base/main.cpp に掛けると、stderr の行 <code>std::cerr &lt;&lt; "total_moves = " &lt;&lt; total &lt;&lt; '\n';</code> を探す置換の assert で止まる（実行して確認）。さらに差し込む <code>la_process.inc</code> / <code>fm.inc</code> / <code>fm2.inc</code> は、clean-base にない <code>env_double</code>、2 引数の <code>env_int</code>、<code>kPrevStay</code>, <code>kGenFix</code>, <code>kPredBottom</code>, <code>kMergeDouble</code>, <code>kFretRule</code> などを使い、計画の選択肢のループは audit3〜audit4 の <code>process()</code> の写しなので、使うにはこれらを clean-base に合わせて書き直す必要がある。</li>
+<li><b>出力の観察</b>: <code>scripts/observe.py stats / cases / queries / state / design</code>（runs/ の出力を再生。再実行不要）。解法に依らないので clean-base にもそのまま使える。</li>
+<li><b>安全確認</b>: 注文処理を重くする変更は、<code>req_sec</code>（今 0.24 秒、最大 0.28 秒。倍率込み）と <code>end_sec</code> の最大を確かめる。ジャッジの見積りは 4.2 節。</li>
+</ol>
+
+<h3 id="guide-speed">6.5 書き換えるときの速さの注意</h3>
+<p>clean- の作業で測られた、注文処理の最内の書き方による速さの差（trial_log「最良解の整理（clean-）」）。注文処理は計画ごとに状態をコピーして全部を走らせるので、最内の小さな書き方が全体の時間に効く。</p>
+<ul>
+<li><code>in_column()</code> から呼ぶ <code>is_filler()</code>（1546 行）を <code>std::any_of</code> で書くと、注文処理が約 4% 遅くなった。今の素朴な for ループのままにする。</li>
+<li>列の上の紙を返す <code>column_tops()</code>（1556 行）を、毎回新しい <code>std::vector</code> を返す形にすると約 8% 遅くなった。今は呼び出し側の vector に書き込む形（<code>column_tops(l, n, top)</code>）。</li>
+<li><code>canonicalize()</code> の作業用の配列も <code>static</code> で使い回している（2350〜2352 行。この形の速さの差の記録はない）。</li>
+<li>clean-base は同じ時間で焼きなましの反復が audit4-flip-clk より約 6% 多い。焼きなましの近傍や費用を変えるときは、<code>anneal_iters</code> の平均が下がっていないかを見る。</li>
+</ul>
+
+<h3 id="guide-next">6.6 まだ試されていない・余地がありそうな方向</h3>
+<p>trial_log.md の結論は「1 注文の手数は、紙の予算（対 70 組）と三角形の下限（掘り + 三角形の穴 ≈ 7.8 手）の内側で飽和に近く、残る取りこぼしは 1 つ 0.1〜0.4%」。そのうえで、数値の根拠がある差を大きい順に並べる。<span class="tag">未検証</span> はこの repo で実装されていないもの。</p>
+
+<h4>A. 大きいが、まだ回収の手段がない差（上限）</h4>
+<div class="tbl"><table>
+<tr><th>差</th><th>大きさ</th><th>現状と、試すなら</th></tr>
+<tr><td><b>整合の制約</b></td><td class="nw">T −5.3%（上限）</td><td>整合を無視すると（誤りは数えない）ハンドルの穴 14.76 → 13.19 個、直し 7.18 → 6.13 手（cons-probe、48 件）。対の目標の浅いハンドルの違いは整合下で 4.07、無視すれば 2.77。整合を緩める構造（ブロックの分割、6 ブロック、Z の模様、反転紙の形）はどれも紙 1 枚（0.5〜0.9%）か汎用層の手数で負けた。<b>紙を増やさず、汎用層の 1 注文 1.8 手（対の注文）を増やさずに整合する相方を増やす</b>形が見つかれば最大の改善になる。整合する相方は 1 目標 4.35 人。対の質の代理（ハンドル窓の違いが少ない順に貪欲に 70 対を選んだときの違いの平均）は 13.59 で、制約がなければ 8.3（flipz- の見積り、seed 0〜7）。</td></tr>
+<tr><td><b>穴 1 個の手数</b></td><td class="nw">0.40 手/個</td><td>素朴な下限 0.5 を穴埋め紙ですでに下回っている。arch- の感度では 0.48 → 0.35 で −1.2 手/注文（約 −10%）。偶然の一致の候補が増えると下がる（toy: 無料の候補 2 / 4 / 8 枚で 0.424 / 0.373 / 0.324 手）。<b>列の外に置ける「無料の候補」を増やす</b>方向（例: プールに残す紙を選ぶ基準に、深い列の多様性を入れる）は、<code>kFillerCharge</code>（旧 FILL_W）の値付け（元の解説では 0.2〜0.9 で平ら。retune- では 0.6〜0.8 で平ら、0.9 で +0.17%、1.0 で +1.87%）以外は試されていない <span class="tag">未検証</span>。触る場所は <code>process()</code> の費用と <code>run_joint()</code> / <code>refill_or_return()</code> の利得。</td></tr>
+<tr><td><b>持続の偏り</b></td><td class="nw">見積り −6.3%</td><td>偏りだけを最適化する粗い見積り（solutions/tiny-model/bias_est.py）では直し −8.6%、掘り込みで −6.3% だが、実現したのは −2〜4%。焼きなまし後の配置は正確な費用での列の入れ替えに対して局所最適（300 万回で改善 9 回）で、差は対・ブロック・掘りとの兼ね合い。<b>対の組み替えと列の入れ替えを同時に動かす大きな近傍</b>（例: 2 対の 4 目標の組み直し + 列の交換）は試されていない <span class="tag">未検証</span>。clean-base では、焼きなましの近傍に 1 つ足すなら <code>anneal_units()</code> の近傍の分岐（726 行の <code>type</code>）に分岐を足し、ラムダ <code>attempt</code> で試行と取り消しを書くのが最短。</td></tr>
+</table></div>
+
+<h4>B. 小さく、手堅い候補</h4>
+<ul>
+<li><b>打ち切りを延ばす</b>: ジャッジの実測最大は 1.464 秒（audit4-flip）で、CLAUDE.md の上限 1.8 秒まで約 0.3 秒ある。audit-mix で打ち切りを 1.25/1.30 秒にした safe-tl125 は、遅いマシンを模した条件で −0.093 ± 0.032%（2000 件）、手元 500 件では −0.041 ± 0.061%（差なし）。clean-base の <code>t_end</code>（焼きなまし 1.1、山登り 1.15）を +0.15〜0.2 秒にするのは試されていない <span class="tag">未検証</span>。期待は 0.1% 程度。注文処理の候補が増えたため、ジャッジの時間の見積りは audit-mix の 1.46 秒から audit4-flip で 1.63 秒（システムテストで約 1.71 秒）に増えていて、延ばせる幅は safe- の頃より小さい（safe2-）。</li>
+<li><b>前の専用紙の戻し 0.72 手 + 穴埋め紙の戻し 1.14 手/注文</b>: 合わせて 1.86 手で、持ち上げ 1 手と穴埋め紙の新規 1.22 手に見合う後片付け。計画探索がすでに選択肢を持つ部分で、1 手の挿入の総当たり（audit4- の INS）の残りは 0.034 計画費用/注文（約 0.3%）、多くは列の外に残す紙の数の差。総当たりで見つかる種類（計画の途中の掘り、深さ 4 の紙、汎用層の動きで据え置き紙を土台の下に埋める: audit4- の seed 14 注文 162）を 1 つずつ拾う作業になる。clean-base で総当たりをやり直すには、6.4 節のとおり mk_probe 系を書き直す必要がある。</li>
+<li><b>最深 3 ハンドルの直し</b>: 直しの掘りの約 1/4（0.9 手/注文、audit2-）は最深 3 ハンドルで、ほぼ全注文に穴があり、覆える深い紙がない。持続の偏りも最深付近で小さい（多数派 55〜64%）。偏りの大きい窓を最深に置く案は見積りで 0.1% 未満（left-hclimb）、最深の穴の重みを上げる案は悪化（retune-、5.2 節）。</li>
+</ul>
+
+<h4>C. 外部 agent の部品で、効くか未検証のもの</h4>
+<ul>
+<li>astra-03: 補助紙を基底層の下へ差し込んで制御窓だけに使う形、バンク内の紙を使用頻度順に保つ形（trial_log「効くかは未検証」）。前者は段付き穴埋め紙に近い。後者は、注文が一様乱数なのでこの問題では効かない見込み（元の解説の推測）。</li>
+<li>gpt6pro-02-03: 基礎紙 8 枚の相対順（8C2 = 28 bit）で下位 28 窓を表示する汎用層。今の汎用層は 6 枚で 5 ブロックの向き（2<sup>5</sup>）を出す。紙の枚数と 1 注文の手数で比べる必要がある <span class="tag">未検証</span>。</li>
+</ul>
+
+<h4>D. 着手の手順（推奨）</h4>
+<ol class="steps">
+<li><code>solutions/clean-base</code> を <code>solutions/&lt;name&gt;</code> にコピー（README.md の「改良元」を書き換え、eqcheck.py は要らなければ消してよい）。</li>
+<li>リファクタや高速化など手を変えないつもりの変更は、<code>eqcheck.py</code> で stdout の一致を確かめる。</li>
+<li>変更が注文処理だけなら、<code>runner.py</code> の焼きなまし固定（<code>ANNEAL_ITERS</code> を渡す）で 96 件 → 480 件。設計の変更なら、まず内訳がどう動くかを見る。内訳の計測（brk-probe の役割別の手数）は clean-base にないので、必要なら自分のコピーに足す。見積りと実測のずれ（例: 6 ブロックは整合の得を汎用層で失う）は内訳で分かる。</li>
+<li>有望なら <code>pahcer_run.py --compare solutions/clean-base solutions/&lt;name&gt;</code> で 500 件。<code>req_sec</code> と <code>end_sec</code> の最大を確認。</li>
+<li>trial_log.md の末尾に、変更点・件数・差と標準誤差・勝/分/敗・run-id を数行で追記。</li>
+</ol>
+
+<h3 id="guide-unverified">6.7 この文書で確かめられなかったこと</h3>
+<ul>
+<li>数字の多くは trial_log.md と audit4-flip の run 223907 の記録の引用で、clean-base について再計測していない。clean-base は回数固定で audit4-flip-clk と stdout が一致する（eqcheck.py の確認、seed 0〜191）ので同じ値になるはずだが、4.1 節の内訳（brk-、焼きなまし固定の自前計測 seed 0〜95）、汎用層の対の注文 1.8 手、直接持ち上げ 1 ケース約 5 回、二重の手の併合 1 ケース約 20 手などは clean-base 自身では測っていない。</li>
+<li>3.2 節の実例は audit4-flip の run 223907 のもので、clean-base の run（010139）の同じ注文の手は見ていない。各手の役割は紙の位置と列の大きさから読んだもので、probe 版の役割別の出力では確かめていない（とくに 2 枚の穴埋め紙が同じ段 0 に重ねたものかどうか）。</li>
+<li>計画の数（最大 28 通り、穴埋め紙がなければ 6 通り）は <code>process()</code> の列挙のコードから数えたもので、注文ごとの実数の分布は数えていない。</li>
+<li>6.4 節の道具のうち、mk_probe.py / mk_probe4.py が clean-base で止まることは実行して確かめた。<code>runner.py</code> と <code>runm.py</code> が <code>ANNEAL_ITERS</code> を渡せば clean-base で正しく動くこと、<code>safe_analyze.py</code> が clean-base の出力（<code>safe_*</code> の指標がない）を最後まで読めるかは、コードを読んだだけで実行していない。</li>
+<li>6.5 節の速さの差（約 4%、約 8%）は trial_log の記録の引用で、この文書のために測っていない。</li>
+<li>6.6 節 C の外部 agent の部品の中身は trial_log の要約だけで読み、元のコードは読んでいない。</li>
+</ul>
+</main>
