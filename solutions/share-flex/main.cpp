@@ -838,7 +838,7 @@ struct Solver {
             // units, 3: move two units of opposite colors, 4: transfer a target to another unit.
             int mask = env_int("HUB_MOVES", 2 + 4 + 8 + 16);
             for (int t = 0; t < 5; t++) if (mask >> t & 1) env_types.push_back(t);
-            if (max_unit <= 2) std::erase(env_types, 4);
+            if (max_unit <= 1) std::erase(env_types, 4);
         }
         const double handle_swap_rate = env_double("HUB_HSWAP", 0.05);
         const double t0 = 3.0, t1 = 0.05;
