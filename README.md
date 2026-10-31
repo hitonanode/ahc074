@@ -4,6 +4,8 @@ https://atcoder.jp/contests/ahc074/tasks/ahc074_a
 
 agent 向けの説明は [AGENTS.md](AGENTS.md)（CLAUDE.md はそのシンボリックリンク）。
 
+解法は solutions/<name>/ に置き、main.cpp（提出するソース）と README.md（その解法の内容、または改良元の解法との差分の説明）を必ず含める。
+
 ## よく使うコマンド
 
 ```sh
