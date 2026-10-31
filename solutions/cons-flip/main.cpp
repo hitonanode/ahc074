@@ -1,3 +1,17 @@
+// cons-flip: solutions/cons-stack whose flip papers also cover other blocks: the flip of block b is
+// opaque on the blocks c < b too, in the base colors Y (FLIP_RESET). A block shows ~Y_b iff its own
+// flip is its topmost paper; moving the flip of b up turns on b and turns off the blocks below b in
+// one move, so a mixed request costs fewer moves (simulation of the lookahead policy on the request
+// mix of cons-tab, solutions/cons-probe/flipsim.cpp: 1.92 -> 1.79 moves per pair request; uniform
+// requests cost more, 1.0 -> 1.4-1.5, mixed ones less, 2.0-2.8 -> 1.9-2.15). Every orientation stays
+// reachable (the flips of the blocks on in decreasing index above the base), so the consistency of
+// the pairs is unchanged. The lookahead tables use the general rule (a paper can move iff a block it
+// covers is not covered above it; a block shows the value of its topmost covering paper); when a
+// dedicated paper lies above the generic layer, a BFS with the windows it covers blocked replaces
+// the former procedure (set_blocks_blocked). The annealing prices each pair by the costs of the
+// two want codes (which blocks on / off) from a simulation of the policy (want_costs, 8 synthetic
+// request sets, re-simulated twice with the current pairs), since the cost now depends on which
+// blocks are on. After a split of a block (more than 5 blocks) the flips stay plain.
 // cons-stack: solutions/audit3-stack with the design change of solutions/cons-tab (500 cases against
 // left-ap: -0.755 +- 0.064%): the annealing prices the generic layer of a pair by the orientations its
 // two targets want (kBlkTab: a request wanting every touched block on, or every one off, costs about
@@ -1942,7 +1956,12 @@ struct Solver {
                 }
             }
         }
-        std::mt19937_64 rng(4242);
+        // Several synthetic pair sets (WANT_SETS), averaged: one set has its own asymmetries between
+        // the blocks, which are not those of the real pairs.
+        const int sets = given.empty() ? env_int("WANT_SETS", 8) : 1;
+        std::vector<double> wsum(W3, 0.0);
+        for (int set = 0; set < sets; set++) {
+        std::mt19937_64 rng(4242 + set);
         auto unif = [&]() { return (rng() >> 11) * 0x1.0p-53; };
         std::vector<int> wl = given;  // want codes of the (synthetic) pair targets
         for (int i = 0; i < 70 && given.empty(); i++) {
@@ -1970,27 +1989,34 @@ struct Solver {
             for (int s = 0; s < S; s++) V[s] += (double)dsat[c][s] / wl.size();
         std::vector<double> hist(S, 0.0);
         int cur = 0;
+        const bool rand_tie = env_int("WANT_RANDTIE", 1) != 0;
         for (int r = 0; r < 30000; r++) {
             if (unif() < 0.46) continue;  // a single: the generic layer stays
             int c = wl[rng() % wl.size()];
             hist[cur] += 1;
-            int best = -1;
+            int best = -1, ties = 0;
             for (int t : sat[c]) {
-                if (best < 0) { best = t; continue; }
+                if (best < 0) { best = t, ties = 1; continue; }
                 int16_t dt = blk_dist[(size_t)cur * S + t], db = blk_dist[(size_t)cur * S + best];
-                if (dt < db || (dt == db && V[t] < V[best] - 1e-12)) best = t;
+                if (dt < db || (dt == db && V[t] < V[best] - 1e-12)) {
+                    best = t, ties = 1;
+                } else if (rand_tie && dt == db && V[t] < V[best] + 1e-12 && rng() % ++ties == 0) {
+                    // equal end states: uniformly at random, so that the costs do not depend on the
+                    // order of the states (the real policy's ties follow the real pairs' V)
+                    best = t;
+                }
             }
             cur = best;
         }
         double tot = 0;
         for (double h : hist) tot += h;
-        std::vector<double> wc(W3, 0.0);
         for (int c = 0; c < W3; c++) {
             double e = 0;
             for (int s = 0; s < S; s++) if (hist[s] > 0) e += hist[s] * dsat[c][s];
-            wc[c] = e / tot;
+            wsum[c] += e / tot / sets;
         }
-        return wc;
+        }  // sets
+        return wsum;
     }
     void build_block_tables() {
         int nb = blocks.size(), n = nb + 1;
