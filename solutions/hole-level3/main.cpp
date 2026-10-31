@@ -428,7 +428,7 @@ struct Solver {
             for (int x = 0; x < U; x++) if (col[x] >= 0) add_unit(x);
         };
         double cur_total = total_cost() * P;
-        const double t_begin = elapsed_sec(), t_end = env_double("HUB_TL", 1.15);
+        const double t_begin = elapsed_sec(), t_end = env_double("HUB_TL", 1.1);
         double progress = 0, temp = t0;
         for (int it = 0;; it++) {
             if (iters > 0) {
