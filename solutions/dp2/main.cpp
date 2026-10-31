@@ -771,8 +771,9 @@ struct Solver {
     // Simulated annealing over the pairing of targets and the column of every unit, minimizing an
     // estimate of the total moves over all targets (each target requested equally often):
     //   holes at handles (deeper handles of the column, and for a pair the shallower handles where
-    //   its two targets differ) cost kHandleHole each, holes in G (a pair's differences) kGHole each,
-    //   and reaching a unit costs (column size - 1) / 2 digs on average.
+    //   its two targets differ) cost kHandleHole each, holes in G (a pair's differences) cost
+    //   kGroupCost per generic group by their count in the group, and reaching a unit costs
+    //   (column size - 1) / 2 digs on average.
     // A pair must agree at the handle of its column, and every column keeps at least one unit of
     // each color at its handle; unequal color counts in a column are penalized (no alternation).
     template <class ColorAt>
