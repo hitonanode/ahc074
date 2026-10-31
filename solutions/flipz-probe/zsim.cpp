@@ -288,7 +288,7 @@ bool sat_packed(int dv, int w) {
 }
 struct Eval {
     double partners = 0, gh = 0, gg = 0, moves = 0, nopart = 0;
-    int npairs = 0, R = 0;
+    int npairs = 0, R = 0, plain = 0;  // plain: displays of Y / ~Y only (32 = every orientation)
 };
 // Consistent pairs under the display set rl; greedy matching (70 pairs) by handle distance; moves.
 Eval evaluate(const Design& d, bool with_moves, bool free_mode = false, bool ideal = false) {
@@ -301,6 +301,11 @@ Eval evaluate(const Design& d, bool with_moves, bool free_mode = false, bool ide
         if (!rset[sp.disp[s]]) rset[sp.disp[s]] = 1, rl.push_back(sp.disp[s]);
     Eval ev;
     ev.R = rl.size();
+    for (int dv : rl) {
+        bool pl = true;
+        for (int c = 0; c < NB; c++) if ((dv >> (2 * c) & 3) >= 2) pl = false;
+        ev.plain += pl;
+    }
     std::vector<int> ok;
     std::vector<int> pc(P, 0);
     for (int i = 0; i < (int)pairs_all.size(); i++) {
@@ -422,8 +427,8 @@ int main(int argc, char** argv) {
                                  pack(want_of(u, diff)), pack(want_of(v, diff))});
         }
     auto print = [&](const char* tag, const Design& d, const Eval& e) {
-        std::printf("%-6s %s |R|=%3d partners %.2f (none %.0f) pairs %d handle-dist %.2f G-dist %.2f moves %.4f\n", tag,
-                    show(d).c_str(), e.R, e.partners, e.nopart, e.npairs, e.gh, e.gg, e.moves);
+        std::printf("%-6s %s |R|=%3d (plain %2d) partners %.2f (none %.0f) pairs %d handle-dist %.2f G-dist %.2f moves %.4f\n", tag,
+                    show(d).c_str(), e.R, e.plain, e.partners, e.nopart, e.npairs, e.gh, e.gg, e.moves);
     };
     if (!std::strcmp(argv[2], "search")) {
         int iters = std::atoi(argv[3]);
