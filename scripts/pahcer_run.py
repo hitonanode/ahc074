@@ -44,7 +44,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import replay  # noqa: E402
 
-COMPILE_CMD = ["g++", "-std=c++23", "-O2"]
+# CLOCK_SCALE: solutions that multiply their clock readings by it (see CLAUDE.md, 時間の扱い) search
+# here as much as on the judge, which is about 1.1 times slower than this 24-parallel evaluation
+# (trial_log.md, clock-probe). The judge does not define it (the solutions default to 1.0).
+COMPILE_CMD = ["g++", "-std=c++23", "-O2", "-DCLOCK_SCALE=1.1"]
 CPP_SUFFIXES = {".cpp", ".cc", ".cxx"}
 SOURCE_SUFFIXES = CPP_SUFFIXES | {".hpp", ".hh", ".hxx", ".h", ".ipp", ".inc"}
 # The description that every solutions/<name>/ must have; saved with the sources.
