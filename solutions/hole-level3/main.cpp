@@ -842,10 +842,13 @@ struct Solver {
             if (fillers[i].paper != x) continue;
             int pred = fillers[i].pred;
             fillers.erase(fillers.begin() + i);
-            if (pred >= 0) {
+            // Below its cyclic predecessor if that one is in place; a filler kept out over several
+            // requests (refill) may find it lifted or used as a filler: then the top or the bottom.
+            if (pred >= 0 && in_column(pred, col_of[pred])) {
                 move_after(x, pred);
                 return;
             }
+            if (pred >= 0) stat_pred_out++;
             break;
         }
         std::vector<int> mem;  // column l top to bottom, without x
@@ -1396,6 +1399,7 @@ struct Solver {
     bool search_on = env_int("SEARCH", 1) != 0;
     bool prev_filler = env_int("PREV_FILLER", 1) != 0;
     bool refill = env_int("REFILL", 1) != 0;
+    long long stat_pred_out = 0;
     long long stat_kept = 0, stat_fill = 0, stat_level_fill = 0, stat_prev_fill_try = 0, stat_prev_fill = 0,
               stat_refill_try = 0, stat_refill = 0;
     std::vector<std::pair<int, int>> process(int u) {
@@ -1499,6 +1503,7 @@ int main() {
     std::cerr << "level_fillers_tried = " << solver.stat_level_fill << '\n';
     std::cerr << "prev_fillers_used = " << solver.stat_prev_fill << '\n';
     std::cerr << "refill_plans_used = " << solver.stat_refill << '\n';
+    std::cerr << "pred_out_returns = " << solver.stat_pred_out << '\n';
     std::cerr << "total_moves = " << total << '\n';
     return 0;
 }
