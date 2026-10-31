@@ -1111,22 +1111,26 @@ struct Solver {
     // Moves paper k so that d papers are above it. While plans are simulated (check_vis), a move of
     // an invisible paper marks the plan invalid instead of being an error.
     bool check_vis = false, invalid = false;
+    // audit-merge: a move that leaves the paper where it is (1 to 5 per case in tiny-bias, pool-climb
+    // and mix-pt, e.g. a filler re-leveled to its own place) is not output.
     void move(int k, int d) {
+        int i = index_of(k);
+        if (i == d) return;
         if (check_vis && !visible(k)) invalid = true;
 #ifdef DEBUG_VIS
         if (!visible(k)) { std::cerr << "invisible move of " << k << '\n'; std::exit(1); }
 #endif
-        int i = index_of(k);
         order.erase(order.begin() + i);
         order.insert(order.begin() + d, k);
         ops.push_back({k, d});
     }
     void move_after(int k, int x) {
+        int i = index_of(k);
+        if (index_of(x) + 1 == i) return;
         if (check_vis && !visible(k)) invalid = true;
 #ifdef DEBUG_VIS
         if (!visible(k)) { std::cerr << "invisible move of " << k << '\n'; std::exit(1); }
 #endif
-        int i = index_of(k);
         order.erase(order.begin() + i);
         int j = 0;
         while (order[j] != x) j++;
