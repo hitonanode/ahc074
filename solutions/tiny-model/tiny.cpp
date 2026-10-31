@@ -12,7 +12,20 @@
 // with a sorted source list merged with a FIFO queue) gives F_t(s) = min_{s'} dist(s, s') + h(s')
 // for every state. A target that no permutation shows costs PEN (an error, no move).
 //
-// Usage: tiny mode=sa|eval N=8 K=8 T=10 seed=1 [design=file] [iters=..] [out=file] ...
+// Usage: tiny mode=sa|eval|hub|ssa N=8 K=8 T=10 seed=1 [design=file] [iters=..] [out=file] ...
+//   mode=sa   simulated annealing over the cells of a design (exact cost, warm-started value
+//             iteration of vi=6 steps per proposal), then the policy is simulated and summarized
+//   mode=eval exact cost of design=file, simulation of the optimal policy (hubpol=1: also the hub
+//             policy of simulate_hub, for designs made by mode=hub)
+//   mode=hub  hub designs (triangle) of the handle sub-model with column sizes cols=2,2,2,2,
+//             the best of tries= random assignments of the targets to the columns
+//   mode=ssa  structural search: holes of the dedicated papers only, cost averaged over sets=
+//             random draws of the handle colors (no coincidence of one draw can be exploited)
+//   Handle sub-model: code=c (c code windows, paper k < T dedicated to target k), H=handles,
+//   free=number of non-dedicated papers (T = K - free), zcode=1 (paper K-1 is a generic paper
+//   opaque on the code windows with an unused code).
+// Example (handle sub-model, K=8, H=4): tiny mode=hub code=3 H=4 K=8 cols=2,2,2,2 out=hub.txt;
+//   tiny mode=sa code=3 H=4 K=8 iters=5000 design=hub.txt T0=0.1
 #include <algorithm>
 #include <array>
 #include <chrono>
