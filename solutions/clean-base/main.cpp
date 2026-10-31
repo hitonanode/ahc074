@@ -580,6 +580,22 @@ struct Solver {
         const double t_begin = elapsed_sec(), t_end = 1.1;
         double progress = 0, temp = t0;
         auto reject = [&](double delta) { return delta > 0 && delta > temp * neglog[rng() >> 48]; };
+        // A change of the units x and y (apply, undo) judged by cost() before and after.
+        auto attempt = [&](int x, int y, auto&& cost, auto&& apply, auto&& undo) {
+            double before = cost();
+            change(x, y, apply);
+            double delta = cost() - before;
+            bool ok = !reject(delta);
+            if (ok) cur_total += delta;
+            else change(x, y, undo);
+            return ok;
+        };
+        auto try_y = [&](int b, u64 bits) {  // complement Y_b on the windows `bits`
+            blocks[b].y ^= bits;
+            double after = total_cost() * P;
+            if (reject(after - cur_total)) blocks[b].y ^= bits;
+            else cur_total = after;
+        };
         long long anneal_iters = 0;
         int ap_done = 0, resim_done = 0;
         // Targeted re-pairing: from progress kTgtStart on, Y is frozen and the exchange move takes
@@ -629,10 +645,7 @@ struct Solver {
                 // Complement Y on a whole block (the base and the flip swap their colors there):
                 // every pair keeps its consistency, the orientations wanted on the block swap.
                 int b = rnd((int)blocks.size());
-                blocks[b].y ^= blocks[b].mask;
-                double after = total_cost() * P;
-                if (reject(after - cur_total)) blocks[b].y ^= blocks[b].mask;
-                else cur_total = after;
+                try_y(b, blocks[b].mask);
                 continue;
             }
             double r = unif();
@@ -643,11 +656,7 @@ struct Solver {
                 int j = rnd(__builtin_popcountll(m));
                 u64 bit = m;
                 for (int i = 0; i < j; i++) bit &= bit - 1;
-                bit &= -bit;
-                blocks[b].y ^= bit;
-                double after = total_cost() * P;
-                if (reject(after - cur_total)) blocks[b].y ^= bit;
-                else cur_total = after;
+                try_y(b, bit & -bit);
                 continue;
             }
             if (r < kYFlip + kHandleSwap) {
@@ -719,23 +728,19 @@ struct Solver {
                 if (y < 0) continue;
                 int c2x = color_at(x, l2), c2y = color_at(y, l2);
                 if (c2x < 0 || c2y < 0 || c2x == c2y) continue;
-                double before = uc(x, l1) + uc(y, l1) + col_cost(l1) + col_cost(l2) - kApW * (ap_v(x, l1) + ap_v(y, l1));
-                change(x, y, [&] { col[x] = col[y] = l2; });
-                double after = uc(x, l2) + uc(y, l2) + col_cost(l1) + col_cost(l2) - kApW * (ap_v(x, l2) + ap_v(y, l2));
-                double delta = after - before;
-                if (reject(delta)) change(x, y, [&] { col[x] = col[y] = l1; });
-                else cur_total += delta;
+                auto cost = [&] {
+                    return uc(x, col[x]) + uc(y, col[y]) + col_cost(l1) + col_cost(l2) - kApW * (ap_v(x, col[x]) + ap_v(y, col[y]));
+                };
+                attempt(x, y, cost, [&] { col[x] = col[y] = l2; }, [&] { col[x] = col[y] = l1; });
             } else if (type == 0) {  // swap the columns of two units
                 int y = rnd(U);
                 if (y == x || col[y] < 0 || col[x] == col[y]) continue;
                 int lx = col[x], ly = col[y];
                 if (color_at(x, ly) < 0 || color_at(y, lx) < 0) continue;
-                double before = uc(x, lx) + uc(y, ly) + col_cost(lx) + col_cost(ly) - kApW * (ap_v(x, lx) + ap_v(y, ly));
-                change(x, y, [&] { col[x] = ly, col[y] = lx; });
-                double after = uc(x, ly) + uc(y, lx) + col_cost(lx) + col_cost(ly) - kApW * (ap_v(x, ly) + ap_v(y, lx));
-                double delta = after - before;
-                if (reject(delta)) change(x, y, [&] { col[x] = lx, col[y] = ly; });
-                else cur_total += delta;
+                auto cost = [&] {
+                    return uc(x, col[x]) + uc(y, col[y]) + col_cost(lx) + col_cost(ly) - kApW * (ap_v(x, col[x]) + ap_v(y, col[y]));
+                };
+                attempt(x, y, cost, [&] { col[x] = ly, col[y] = lx; }, [&] { col[x] = lx, col[y] = ly; });
             } else {  // exchange one target between two units (re-pairing), columns kept
                 if (units[x][1] < 0) continue;  // x must be a pair
                 int y, ix, iy;
@@ -759,16 +764,9 @@ struct Solver {
                 };
                 int lx = col[x], ly = col[y];
                 if (!agrees(nx, lx) || !agrees(ny, ly)) continue;
-                double before = uc(x, lx) + uc(y, ly) + col_cost(lx) + (lx != ly ? col_cost(ly) : 0);
                 auto ox = units[x], oy = units[y];
-                change(x, y, [&] { units[x] = nx, units[y] = ny; });
-                double after = unit_cost(nx[0], nx[1], lx) + unit_cost(ny[0], ny[1], ly) + col_cost(lx) +
-                               (lx != ly ? col_cost(ly) : 0);
-                double delta = after - before;
-                if (reject(delta)) {
-                    change(x, y, [&] { units[x] = ox, units[y] = oy; });
-                } else {
-                    cur_total += delta;
+                auto cost = [&] { return uc(x, lx) + uc(y, ly) + col_cost(lx) + (lx != ly ? col_cost(ly) : 0); };
+                if (attempt(x, y, cost, [&] { units[x] = nx, units[y] = ny; }, [&] { units[x] = ox, units[y] = oy; })) {
                     for (int t : nx) if (t >= 0) unit_of[t] = x;
                     for (int t : ny) if (t >= 0) unit_of[t] = y;
                 }
@@ -1148,8 +1146,8 @@ struct Solver {
     std::vector<int16_t> blk_dist;               // [s * S + t] moves from s to t
     std::vector<int16_t> blk_nxt;                // [s * S + t] first move from s to t: paper * 8 + depth
     std::vector<double> blk_v;                   // expected moves of the next pair target from s
-    std::vector<std::vector<int>> blk_sat;       // satisfying states per want code (3^nb), lazily
-    std::vector<char> blk_sat_done;
+    std::vector<std::vector<int>> blk_sat;       // satisfying states per want code (3^nb codes)
+    std::vector<std::vector<uint8_t>> blk_dsat;  // [code][state] distance to a satisfying state
     std::vector<std::vector<int>> blk_radj;      // predecessors of each state
     std::vector<int> blk_disp;                   // orientation bits of each state
     int blk_S = 0;
@@ -1181,15 +1179,8 @@ struct Solver {
             if (want[b] >= 0 && (blk_disp[s] >> b & 1) != want[b]) return false;
         return true;
     }
-    const std::vector<int>& blk_sat_list(const std::vector<int>& want) {
-        int c = blk_want_code(want);
-        if (!blk_sat_done[c]) {
-            blk_sat_done[c] = 1;
-            for (int s = 0; s < blk_S; s++) if (blk_sat_state(s, want)) blk_sat[c].push_back(s);
-        }
-        return blk_sat[c];
-    }
-    // The states, the legal moves, all shortest paths (dist, first move) and the orientations.
+    // The states, the legal moves, all shortest paths (dist, first move), the orientations, and for
+    // every want code its satisfying states and the distances to them.
     void build_abstract() {
         const int nb = blocks.size(), n = nb + 1;
         std::array<int8_t, 6> o{};
@@ -1241,10 +1232,25 @@ struct Solver {
                 }
             }
         }
-        int W3 = 1;
-        for (int b = 0; b < nb; b++) W3 *= 3;
+        const int W3 = blk_want_code(std::vector<int>(nb, 1)) + 1;  // 3^nb
+        blk_dsat.assign(W3, std::vector<uint8_t>(S, 255));
         blk_sat.assign(W3, {});
-        blk_sat_done.assign(W3, 0);
+        for (int c = 0; c < W3; c++) {  // backward BFS from the satisfying states
+            std::vector<int> want = want_of(c, nb);
+            q.clear();
+            for (int s = 0; s < S; s++)
+                if (blk_sat_state(s, want)) blk_sat[c].push_back(s), blk_dsat[c][s] = 0, q.push_back(s);
+            for (size_t h = 0; h < q.size(); h++) {
+                int x = q[h];
+                for (int p : blk_radj[x])
+                    if (blk_dsat[c][p] > blk_dsat[c][x] + 1) blk_dsat[c][p] = blk_dsat[c][x] + 1, q.push_back(p);
+            }
+        }
+    }
+    static std::vector<int> want_of(int code, int nb) {  // the want (-1 free, 0 off, 1 on) of a code
+        std::vector<int> want(nb);
+        for (int b = 0; b < nb; b++, code /= 3) want[b] = code % 3 - 1;
+        return want;
     }
     // Expected generic moves of a request by its want code (3^nb codes), for the annealing: the
     // lookahead policy is simulated on a synthetic request mix shaped as measured (pairs touching
@@ -1252,31 +1258,10 @@ struct Solver {
     // 18 / 41 / 41%; singles 46% of the requests), averaged over 8 synthetic pair sets; the cost of
     // a want is its distance to a satisfying order averaged over the orders met at the pair
     // requests. given: the want codes of the current pairs instead of the synthetic mix.
-    std::vector<std::vector<uint8_t>> wc_dsat;  // [code][state] distance to a satisfying state
-    std::vector<std::vector<int>> wc_sat;       // satisfying states per code
     std::vector<double> want_costs(const std::vector<int>& given = {}) {
-        const int nb = blocks.size(), S = blk_S;
-        int W3 = 1;
-        for (int b = 0; b < nb; b++) W3 *= 3;
-        auto& dsat = wc_dsat;
-        auto& sat = wc_sat;
-        if (dsat.empty()) {
-            dsat.assign(W3, std::vector<uint8_t>(S, 255));
-            sat.assign(W3, {});
-            std::vector<int> q;
-            for (int c = 0; c < W3; c++) {
-                std::vector<int> want(nb);
-                for (int b = 0, x = c; b < nb; b++, x /= 3) want[b] = x % 3 - 1;
-                q.clear();
-                for (int s = 0; s < S; s++)
-                    if (blk_sat_state(s, want)) sat[c].push_back(s), dsat[c][s] = 0, q.push_back(s);
-                for (size_t h = 0; h < q.size(); h++) {
-                    int x = q[h];
-                    for (int p : blk_radj[x])
-                        if (dsat[c][p] > dsat[c][x] + 1) dsat[c][p] = dsat[c][x] + 1, q.push_back(p);
-                }
-            }
-        }
+        const int nb = blocks.size(), S = blk_S, W3 = blk_sat.size();
+        const auto& dsat = blk_dsat;
+        const auto& sat = blk_sat;
         const int sets = given.empty() ? 8 : 1;
         std::vector<double> wsum(W3, 0.0);
         for (int set = 0; set < sets; set++) {
@@ -1345,35 +1330,18 @@ struct Solver {
         blk_paper.assign(n, -1);
         blk_paper[0] = base_paper;
         for (int b = 0; b < nb; b++) blk_paper[1 + b] = blocks[b].pf;
-        const int S = blk_S;
-        int W3 = 1;
-        for (int b = 0; b < nb; b++) W3 *= 3;
-        blk_v.assign(S, 0.0);
-        std::vector<int> wcount(W3, 0);
+        std::vector<int> wcount(blk_sat.size(), 0);
         int npair = 0;
         for (int u = 0; u < P; u++) {
             int D = ded[u];
-            if (D < 0) continue;
-            u64 gh = gmask & ~paper[D].opaque;
-            if (!gh) continue;
-            wcount[blk_want_code(wanted_blocks(u, gh))]++;
+            if (D < 0 || !(gmask & ~paper[D].opaque)) continue;
+            wcount[blk_want_code(wanted_blocks(u, gmask & ~paper[D].opaque))]++;
             npair++;
         }
-        std::vector<int> dsat(S), q;
-        for (int c = 0; c < W3 && npair > 0; c++) {
-            if (!wcount[c]) continue;
-            std::vector<int> want(nb);
-            for (int b = 0, x = c; b < nb; b++, x /= 3) want[b] = x % 3 - 1;
-            std::fill(dsat.begin(), dsat.end(), 1000);
-            q.clear();
-            for (int s : blk_sat_list(want)) dsat[s] = 0, q.push_back(s);
-            for (size_t h = 0; h < q.size(); h++) {
-                int x = q[h];
-                for (int p : blk_radj[x])
-                    if (dsat[p] > dsat[x] + 1) dsat[p] = dsat[x] + 1, q.push_back(p);
-            }
-            for (int s = 0; s < S; s++) blk_v[s] += (double)wcount[c] * dsat[s] / npair;
-        }
+        blk_v.assign(blk_S, 0.0);
+        for (int c = 0; c < (int)blk_sat.size(); c++)
+            if (wcount[c])
+                for (int s = 0; s < blk_S; s++) blk_v[s] += (double)wcount[c] * blk_dsat[c][s] / npair;
         blk_ok = true;
     }
     // The orientation of every block touched by `holes` that shows A_u there (consistent pairs
@@ -1407,7 +1375,7 @@ struct Solver {
         if (top) {
             int s = blk_code[blk_encode(o, n)];
             int best = -1;
-            for (int t : blk_sat_list(want)) {
+            for (int t : blk_sat[blk_want_code(want)]) {
                 if (best < 0) {
                     best = t;
                     continue;
@@ -1590,14 +1558,14 @@ struct Solver {
     }
     // Papers of column l that are in place (not lifted to the top, not out as a filler).
     bool in_column(int k, int l) const { return col_of[k] == l && k != top_d && !is_filler(k); }
-    std::vector<int> column_tops(int l, int n) const {  // up to n papers in place of column l, top first
-        std::vector<int> top;
+    // Up to n papers in place at the top of column l, top first, into `top`.
+    void column_tops(int l, int n, std::vector<int>& top) const {
+        top.clear();
         for (int k : order)
             if (in_column(k, l)) {
                 top.push_back(k);
                 if ((int)top.size() >= n) break;
             }
-        return top;
     }
     int column_top(int l) const {
         for (int k : order) if (in_column(k, l)) return k;
@@ -1680,7 +1648,8 @@ struct Solver {
     // A filler from column c at depth `depth` (moved after X_0..X_{depth-1} go just below it in
     // their order, which keeps the cyclic order of the column) placed at level lvl.
     void place_filler(int c, int depth, int lvl, u64& hh) {
-        auto top = column_tops(c, depth + 1);
+        std::vector<int> top;
+        column_tops(c, depth + 1, top);
         int pred = -1;
         for (int i = 0, prev = top[depth]; i < depth; i++) move_after(top[i], prev), prev = top[i];
         if (depth > 0) pred = top[depth - 1];
@@ -1691,20 +1660,11 @@ struct Solver {
     }
 
     // An out-of-place paper x (the lifted paper or a filler) goes back to its column: just below its
-    // cyclic predecessor if that is in place and not the column bottom; otherwise at the top
-    // (mode 2) or the bottom (mode 1), both keeping the cyclic order (a predecessor that is the
-    // bottom puts x between the bottom and the top). Mode 0 is the hub7 rule: at the top when u's
-    // paper has a hole at the column's handle whose current top shows the wrong color and x the
-    // right one (at the bottom if u's paper is of this column, at the top if it is x).
-    bool is_bottom_without(int p, int l, int x) const {
-        int last = -1;
-        for (int k : order)
-            if (k != x && in_column(k, l)) last = k;
-        return last == p;
-    }
-    bool free_return(int pred, int x) const {  // may go back at either end of its column
-        return pred < 0 || (in_column(pred, col_of[pred]) && is_bottom_without(pred, col_of[x], x));
-    }
+    // cyclic predecessor if it has one in place; otherwise (pred -1: taken from the column top, or
+    // its predecessor is the column bottom, see canonicalize) at the top (mode 2) or the bottom
+    // (mode 1), both keeping the cyclic order. Mode 0 is the hub7 rule: at the top when u's paper
+    // has a hole at the column's handle whose current top shows the wrong color and x the right
+    // one (at the bottom if u's paper is of this column, at the top if it is x).
     void return_paper(int x, int u, int mode) {
         int l = col_of[x], pred = -1;
         if (x == top_d) {
@@ -1718,7 +1678,7 @@ struct Solver {
                 }
             drop_filler(x);
         }
-        if (pred >= 0 && in_column(pred, col_of[pred]) && !is_bottom_without(pred, l, x)) {
+        if (pred >= 0 && in_column(pred, col_of[pred])) {
             move_after(x, pred);
             return;
         }
@@ -1814,9 +1774,10 @@ struct Solver {
     std::vector<FillerPick> choose_fillers_dp(int u, int d, u64 hh) const {
         auto fix = fix_costs(u, hh);
         std::vector<std::vector<Cand>> cand(H);
+        std::vector<int> top;
         for (int c = 0; c < H; c++) {
             if (!(hh >> handle[c] & 1)) continue;
-            auto top = column_tops(c, kFillerDepth + 1);
+            column_tops(c, kFillerDepth + 1, top);
             if (top.empty() || top[0] == d) continue;
             for (int depth = 0; depth < (int)top.size(); depth++) {
                 u64 shown = paper[top[depth]].opaque & hh;
@@ -1850,10 +1811,11 @@ struct Solver {
         for (auto& f : fillers) covered |= shown_by(f);
         auto fix = fix_costs(u, hh);
         std::vector<std::vector<Cand>> cand(H);
+        std::vector<int> top;
         for (int c = 0; c < H; c++) {
             if (c == l || (covered >> handle[c] & 1)) continue;
             bool hole_c = hole_all >> handle[c] & 1;
-            auto top = column_tops(c, kFillerDepth + 1);
+            column_tops(c, kFillerDepth + 1, top);
             for (int depth = 0; depth < (int)top.size(); depth++) {
                 int f = top[depth];
                 u64 shown = paper[f].opaque & hh;
@@ -2091,10 +2053,11 @@ struct Solver {
         if (x0 >= 0) add_old(x0, -1, -1, true);
         // New fillers from the column tops (all after the lift if D is lifted from the fillers, as D
         // on top hides the columns whose handles it covers).
+        std::vector<int> top;
         for (int c = 0; c < H; c++) {
             bool hole_c = hh >> handle[c] & 1;
             if (c == l || (d_out && !hole_c)) continue;
-            auto top = column_tops(c, kFillerDepth + 1);
+            column_tops(c, kFillerDepth + 1, top);
             for (int depth = 0; depth < (int)top.size(); depth++) {
                 int f = top[depth];
                 int lvl = mism_level(f);
@@ -2485,7 +2448,7 @@ struct Solver {
         const State st0 = save();
         const int top0 = top_d, d = ded[u];
         bool free_filler = false;  // a filler that may go back at either end of its column
-        for (auto& f : fillers) free_filler |= free_return(f.pred, f.paper);
+        for (auto& f : fillers) free_filler |= f.pred < 0;
         const bool prev_ok = top0 >= 0 && d >= 0 && d != top0;
         // the old fillers not re-used go back at the bottom (1), or by the hub7 rule (0) if one is free
         const std::vector<int> frets = free_filler ? std::vector<int>{1, 0} : std::vector<int>{1};
