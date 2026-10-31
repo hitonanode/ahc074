@@ -1536,11 +1536,18 @@ struct Solver {
         ops.push_back({k, d});
     }
     void move_after(int k, int x) {  // just below paper x
-        int i = index_of(k), ix = index_of(x);
-        move(k, i < ix ? ix : ix + 1);
+        int i = index_of(k);
+        if (index_of(x) + 1 == i) return;
+        if (check_vis && !visible(k)) invalid = true;
+        order.erase(order.begin() + i);
+        int j = 0;
+        while (order[j] != x) j++;
+        order.insert(order.begin() + j + 1, k);
+        ops.push_back({k, j + 1});
     }
     bool is_filler(int k) const {
-        return std::any_of(fillers.begin(), fillers.end(), [&](const Filler& f) { return f.paper == k; });
+        for (auto& f : fillers) if (f.paper == k) return true;
+        return false;
     }
     void drop_filler(int k) {
         std::erase_if(fillers, [&](const Filler& f) { return f.paper == k; });
