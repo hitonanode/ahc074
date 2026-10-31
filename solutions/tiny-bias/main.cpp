@@ -4,7 +4,9 @@
 // of 1/2 when the targets with a hole at h_m have color 1 with frequency p_m. The annealing biases
 // the assignment (which units go to the columns shallower than m) towards one color per handle,
 // with marginal weights frozen between refreshes (see anneal_units). Handle swaps are evaluated
-// incrementally. Request processing is unchanged.
+// incrementally. The plan search of a request adds 0.55 x (2 p_m - 1) for every column whose top
+// is left at the minority color (tops_penalty), so that ties and filler choices keep the majority
+// colors on the column tops.
 // hole-relax: solutions/gen-relax with the fillers of solutions/hole-level3 (same changes as from
 // solutions/search-bf2 to hole-level3): leveled fillers (a column paper inserted just above the
 // top of column c' covers only the handles h_{c'}..h_c), chosen by an interval DP before the paper
@@ -111,6 +113,8 @@ struct Solver {
     u64 gmask = 0;
     std::vector<Paper> paper;
     std::vector<int> col_of;    // column of a dedicated paper, -1 otherwise
+    std::vector<int> bias_c;    // majority color of the targets with a hole at handle h_m
+    std::vector<double> bias_g; // 2 p_m - 1: expected fixes saved when column m shows bias_c[m]
     std::vector<int> block_of;  // block of a generic paper, -1 otherwise
     std::vector<int> ded;       // ded[u] = dedicated paper of target u, -1 if none
     std::vector<Block> blocks;
@@ -1070,6 +1074,18 @@ struct Solver {
             }
             std::cerr << "model_dig = " << dig / P << "\nmodel_handle_holes = " << hh / P << "\nmodel_touched_blocks = " << gt / P << '\n';
             std::cerr << "model_hole_fixes = " << refresh() << '\n';
+            // Majority color c_m and its gain 2 p_m - 1 per handle position, for the value of the
+            // column tops left by a plan (see process()).
+            bias_c.assign(H, 0);
+            bias_g.assign(H, 0.0);
+            for (int m = 0; m < H; m++) {
+                double w0 = wcol[m][0], w1 = wcol[m][1];  // w1 < w0 iff color 1 is the majority
+                bias_c[m] = w1 < w0 ? 1 : 0;
+                // w = 4 (1 - p(c))^2 with mix 1: p(majority) = 1 - sqrt(w_majority) / 2
+                double wm = std::min(w0, w1);
+                double pm = kBiasMix > 0 ? 1 - std::sqrt(std::max(0.0, (wm - (1 - kBiasMix)) / kBiasMix)) / 2 : 0.5;
+                bias_g[m] = std::max(0.0, 2 * pm - 1);
+            }
         }
         for (int l = 0; l < H; l++) members[l][0].clear(), members[l][1].clear();
         for (int x = 0; x < U; x++) {
@@ -1823,7 +1839,44 @@ struct Solver {
     long long stat_pred_out = 0;
     long long stat_kept = 0, stat_fill = 0, stat_level_fill = 0, stat_prev_fill_try = 0, stat_prev_fill = 0,
               stat_refill_try = 0, stat_refill = 0;
+    // Probe (BIAS_PROBE=1): at the start of a request, how many handle holes of the target's
+    // paper see a column top of the wrong color (what the persistence model of the annealing
+    // predicts as 2 p (1 - p) per hole).
+    long long probe_holes = 0, probe_wrong = 0;
+    void probe(int u) {
+        int D = ded[u];
+        if (D < 0) return;
+        for (int m = 0; m < H; m++) {
+            int w = handle[m];
+            if (paper[D].opaque >> w & 1) continue;
+            int t = column_top(m);
+            if (t < 0) continue;
+            probe_holes++;
+            probe_wrong += (paper[t].black >> w & 1) != (A[u] >> w & 1);
+        }
+    }
+    // Expected extra fixes caused by the column tops of the current state: a column whose top
+    // shows the minority color at its handle costs 2 p_m - 1 more at the next request that needs
+    // that handle (persistence model of the annealing).
+    double tops_penalty() const {
+        if (bias_g.empty()) return 0;
+        static std::vector<char> seen;
+        seen.assign(H, 0);
+        double pen = 0;
+        int found = 0;
+        for (int k : order) {
+            int l = col_of[k];
+            if (l < 0 || seen[l] || !in_column(k, l)) continue;
+            seen[l] = 1;
+            if ((int)(paper[k].black >> handle[l] & 1) != bias_c[l]) pen += bias_g[l];
+            if (++found == H) break;
+        }
+        return pen;
+    }
+    const double kTopValue = env_double("BIAS_TOPV", 0.55);
     std::vector<std::pair<int, int>> process(int u) {
+        static const bool kProbe = std::getenv("BIAS_PROBE") != nullptr;
+        if (kProbe) probe(u);
         const State st0 = save();
         int top0 = top_d;
         std::vector<PlanOpt> opts;
@@ -1856,7 +1909,7 @@ struct Solver {
             if (!fillers_reachable()) continue;
             // A filler left out costs its return later, but is often re-used (refill) instead,
             // so it is charged less than a move now (seed 0-95: 1.0 -> 0.8 is -0.48%).
-            double cost = ops.size() + kFillerCharge * fillers.size();
+            double cost = ops.size() + kFillerCharge * fillers.size() + kTopValue * tops_penalty();
             if (cost < best) {
                 best = cost;
                 best_ops = ops;
@@ -1924,6 +1977,10 @@ int main() {
     std::cerr << "self_wrong = " << wrong << '\n';
     std::cerr << "kept_partner = " << solver.stat_kept << '\n';
     std::cerr << "fillers_used = " << solver.stat_fill << '\n';
+    if (solver.probe_holes) {
+        std::cerr << "probe_holes_per_req = " << (double)solver.probe_holes / r << '\n';
+        std::cerr << "probe_wrong_rate = " << (double)solver.probe_wrong / solver.probe_holes << '\n';
+    }
     std::cerr << "level_fillers_tried = " << solver.stat_level_fill << '\n';
     std::cerr << "prev_fillers_used = " << solver.stat_prev_fill << '\n';
     std::cerr << "refill_plans_used = " << solver.stat_refill << '\n';
