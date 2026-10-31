@@ -1671,6 +1671,7 @@ struct Solver {
         if (bias_debug) std::cerr << "bias_max_drift = " << max_drift << '\n';
         std::cerr << "repaired_pairs = " << repaired << '\n';
         std::cerr << "ap_refreshes = " << ap_done << "\nap_sec = " << ap_sec << '\n';
+        final_wcost = wcost;  // for the probe of the requests (WCOST_PROBE)
         apv.clear();  // model_cost_after reports the model cost without the proxy
         std::cerr << "anneal_iters = " << anneal_iters << '\n';
         std::cerr << "model_cost_after = " << total_cost() << '\n';
@@ -3382,6 +3383,11 @@ struct Solver {
         }
     }
 
+    // Probe (WCOST_PROBE=1): generic moves of the chosen plan against the simulated want cost of
+    // the request, by (touched blocks, wanted on).
+    std::vector<double> final_wcost;
+    double wp_res[6][6] = {}, wp_mv[6][6] = {};
+    long long wp_cnt[6][6] = {};
     std::vector<std::pair<int, int>> process(int u) {
         static const bool kProbe = std::getenv("BIAS_PROBE") != nullptr;
         if (kProbe) probe(u);
@@ -3459,6 +3465,21 @@ struct Solver {
         stat_joint += best_opt.fret_mode == 5;
         stat_pool_lift += best_pool_lift;
         stat_fill += fillers.size();
+        static const bool kWcostProbe = env_int("WCOST_PROBE", 0) != 0;
+        if (kWcostProbe && !final_wcost.empty() && ded[u] >= 0 && (int)blocks.size() <= 5) {
+            u64 gh = gmask & ~paper[ded[u]].opaque;
+            auto want = wanted_blocks(u, gh);
+            int t = 0, on = 0;
+            for (int w : want) t += w >= 0, on += w == 1;
+            if (t > 0) {
+                int gm = 0;
+                for (auto [k, d] : ops) gm += block_of[k] >= 0;
+                double wc = final_wcost[blk_want_code(want)];
+                wp_res[t][on] += gm - wc;
+                wp_mv[t][on] += gm;
+                wp_cnt[t][on]++;
+            }
+        }
         return ops;
     }
 };
@@ -3519,6 +3540,14 @@ int main() {
     std::cerr << "pool_lifts = " << solver.stat_pool_lift << '\n';
     std::cerr << "fret_rule_used = " << solver.stat_fret_rule << '\n';
     std::cerr << "blk_policy = " << solver.stat_blk_policy << "\nblk_fallback = " << solver.stat_blk_fallback << '\n';
+    if (env_int("WCOST_PROBE", 0)) {
+        for (int t = 1; t <= 5; t++)
+            for (int on = 0; on <= t; on++)
+                if (solver.wp_cnt[t][on])
+                    std::cerr << "wp_mv_t" << t << "_on" << on << " = " << solver.wp_mv[t][on] / solver.wp_cnt[t][on]
+                              << "\nwp_res_t" << t << "_on" << on << " = " << solver.wp_res[t][on] / solver.wp_cnt[t][on]
+                              << "\nwp_cnt_t" << t << "_on" << on << " = " << solver.wp_cnt[t][on] << '\n';
+    }
     std::cerr << "total_moves = " << total << '\n';
     return 0;
 }
