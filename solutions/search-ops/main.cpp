@@ -1372,8 +1372,80 @@ struct Solver {
         ops = best_ops;
         stat_kept += best_opt.keep && top0 >= 0 && ded[u] == top0;
         stat_fill += best_fill >= 0 && best_fill != fill0;
+#ifdef ROLLOUT_CHECK
+        if (++req_count % 37 == 5) rollout_check(u, order0, top0, fill0, opts, best);
+        order = best_order;
+        top_d = best_top;
+        filler = best_fill;
+        ops = best_ops;
+#endif
         return ops;
     }
+
+#ifdef ROLLOUT_CHECK
+    // Analysis only: papers out of the layered structure ([lifted] [generic] [filler] [column 0] ...
+    // [column H-1] [unused]); each would need a move to restore it.
+    int misplaced() const {
+        double mx = -10;
+        int bad = 0;
+        for (int i = 0; i < K; i++) {
+            int k = order[i];
+            double key;
+            if (k == top_d) key = (i == 0) ? -3 : 1e9;
+            else if (group_of[k] >= 0) key = -2;
+            else if (k == filler) key = -1;
+            else if (col_of[k] >= 0) key = col_of[k];
+            else key = H;
+            if (key < mx) bad++;
+            else mx = key;
+        }
+        return bad;
+    }
+    // Analysis only: every legal first move (visible paper, any depth) followed by every plan option.
+    // Counts how often this beats the plan search, and by which kind of first move.
+    long long req_count = 0, rc_checked = 0, rc_better = 0;
+    double rc_gain = 0;
+    long long rc_kind[6] = {};
+    void rollout_check(int u, const std::vector<int>& order0, int top0, int fill0,
+                       const std::vector<PlanOpt>& opts, double best) {
+        rc_checked++;
+        double best2 = best;
+        int kind2 = -1;
+        check_vis = true;
+        for (int k0 = 0; k0 < K; k0++) {
+            order = order0;
+            top_d = top0;
+            filler = fill0;
+            if (!visible(k0)) continue;
+            int kind = k0 == top0 ? 0 : k0 == fill0 ? 1 : group_of[k0] >= 0 ? 2 : k0 == ded[u] ? 3 : col_of[k0] >= 0 ? 4 : 5;
+            for (int d0 = 0; d0 < K; d0++) {
+                for (const PlanOpt& o : opts) {
+                    order = order0;
+                    top_d = top0;
+                    filler = fill0;
+                    ops.clear();
+                    invalid = false;
+                    move(k0, d0);
+                    if (k0 == top0 && d0 != 0) top_d = -1;  // no longer on top: treated as a column paper
+                    if (k0 == fill0) filler = -1;
+                    run_plan(u, o);
+                    if (invalid || display() != A[u]) continue;
+                    double cost = ops.size() + (filler >= 0 ? 1 : 0) + misplaced();
+                    if (cost < best2 - 1e-9) {
+                        best2 = cost;
+                        kind2 = kind;
+                    }
+                }
+            }
+        }
+        check_vis = false;
+        if (best2 < best - 1e-9) {
+            rc_better++;
+            rc_gain += best - best2;
+            rc_kind[kind2]++;
+        }
+    }
+#endif
 };
 
 }  // namespace
@@ -1429,6 +1501,11 @@ int main() {
     std::cerr << "filler_pos_frac = " << (double)solver.stat_filler_pos / r << '\n';
     std::cerr << "partner_hits = " << partner_hits << '\n';
     std::cerr << "kept_partner = " << solver.stat_kept << '\n';
+#ifdef ROLLOUT_CHECK
+    std::cerr << "rc_checked = " << solver.rc_checked << "\nrc_better = " << solver.rc_better
+              << "\nrc_gain_per_checked = " << solver.rc_gain / std::max(1LL, solver.rc_checked) << '\n';
+    for (int t = 0; t < 6; t++) std::cerr << "rc_kind" << t << " = " << solver.rc_kind[t] << '\n';
+#endif
     std::cerr << "fillers_used = " << solver.stat_fill << '\n';
     std::cerr << "total_moves = " << total << '\n';
     for (int t = 0; t < 3; t++)
