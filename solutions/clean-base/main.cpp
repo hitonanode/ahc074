@@ -28,10 +28,18 @@
 //   filler_climb        exchanges of units between columns for better fillers (until 1.15 s)
 //   split_inconsistent  fallback for a pair still inconsistent: split a block
 //   build_block_tables  the lookahead policy of the generic layer (set_blocks)
-// Requests (Solver::process): every combination of the plan options (PlanOpt: run_plan, run_joint)
-// is simulated on a copy of the state; the plan of least cost (moves after merge_double_moves,
-// + 0.8 per paper left out of its column, + 0.55 tops_penalty) is kept, and the records of the
-// papers out of their columns are rebuilt from the order (canonicalize).
+// Requests (Solver::process): every combination of the plan options (PlanOpt) is simulated on a
+// copy of the state; the plan of least cost (moves after merge_double_moves, + 0.8 per paper left
+// out of its column, + 0.55 tops_penalty) is kept, and the records of the papers out of their
+// columns are rebuilt from the order (canonicalize).
+//   run_plan            the previous lifted paper (return_paper, re-used as a filler, or left under
+//                       the new one), the old fillers (return_paper or refill_or_return), the
+//                       blocks (set_blocks), new fillers (choose_fillers_prelift, place_filler), the
+//                       lift of D (lift) and the digs of the remaining handle holes (fix_handles)
+//   run_joint           the papers out and the new fillers chosen by one interval DP
+//   set_blocks          the generic layer: the lookahead policy on the precomputed tables, or a BFS
+//                       when a dedicated paper lies above it (set_blocks_blocked), or the plain
+//                       procedure after a split (set_blocks_plain)
 #include <algorithm>
 #include <array>
 #include <chrono>
