@@ -144,3 +144,39 @@ for b in range(6):
     v = [x for x in rows if x['pair'] and x['bt'] == b]
     if v:
         print(f"  bt={b} n={len(v)} " + " ".join(f"{mean([x['rc'][j] for x in v]):.2f}" for j in (0, 1, 2, 4, 7)) + f" holes {mean([x['nh'] for x in v]):.1f} blocks {mean([x['rc'][3] for x in v]):.2f}")
+# Does the per-target residual of the pairs follow the mismatches at the start (persistence, which
+# the annealing models per handle)? Residual of the per-target means regressed on the mean
+# mismatches minus the mean over targets with the same number of holes.
+sub = defaultdict(list)
+for x in rows:
+    if x["pair"]:
+        sub[(x["seed"], x["u"])].append(x)
+by_nh = defaultdict(list)
+for v in sub.values():
+    by_nh[v[0]["nh"]].append(mean([y["nm"] for y in v]))
+pts = []
+for v in sub.values():
+    r = mean([fitres(y) for y in v])
+    dm = mean([y["nm"] for y in v]) - mean(by_nh[v[0]["nh"]])
+    pts.append((dm, r, len(v)))
+mx = mean([p[0] for p in pts]); my = mean([p[1] for p in pts])
+sxy = sum((p[0] - mx) * (p[1] - my) for p in pts); sxx = sum((p[0] - mx) ** 2 for p in pts)
+b = sxy / sxx
+res2 = [p[1] - my - b * (p[0] - mx) for p in pts]
+print(f"pair targets: residual ~ {b:.3f} x (mismatches - mean at the same holes); var of means {mean([(p[1]-my)**2 for p in pts]):.3f} -> after {mean([r*r for r in res2]):.3f}")
+# Cost carried to the next request: moves of request r by the kind of request r-1 (the fillers and
+# the lifted paper left by r-1 are returned during r).
+prev = {}
+for x in rows:
+    prev[(x["seed"], x["r"])] = x
+print("next request's moves by the previous request (kind, column band): count, ops, ret_prev, ret_old, relevel, nf0")
+grp = defaultdict(list)
+for x in rows:
+    p = prev.get((x["seed"], x["r"] - 1))
+    if p is None:
+        continue
+    grp[(p["pair"], p["l"] // 6)].append(x)
+for k in sorted(grp):
+    v = grp[k]
+    print(f"  prev {'pair' if k[0] else 'single'} l={6*k[1]:2d}-{6*k[1]+5:2d}: {len(v):6d} {mean([x['ops'] for x in v]):.2f} "
+          f"{mean([x['rc'][0] for x in v]):.2f} {mean([x['rc'][1] for x in v]):.2f} {mean([x['rc'][2] for x in v]):.2f} {mean([x['nf0'] for x in v]):.2f}")
