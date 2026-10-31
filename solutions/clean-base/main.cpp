@@ -209,6 +209,16 @@ struct Solver {
         if (v >= 0 && (int)(A[v] >> handle[l] & 1) != c) return -1;
         return c;
     }
+    std::vector<int> unit_columns() const {  // column of each unit, from members
+        std::vector<int> col(units.size(), -1);
+        for (int l = 0; l < H; l++) for (int c = 0; c < 2; c++) for (int x : members[l][c]) col[x] = l;
+        return col;
+    }
+    u64 handle_bits(u64 windows) const {  // the window set by handle index (bit j = window h_j)
+        u64 r = 0;
+        for (int j = 0; j < H; j++) r |= (windows >> handle[j] & 1) << j;
+        return r;
+    }
     void set_members(const std::vector<int>& col) {
         for (int l = 0; l < H; l++) members[l][0].clear(), members[l][1].clear();
         for (int x = 0; x < (int)units.size(); x++)
@@ -395,8 +405,7 @@ struct Solver {
         constexpr double kBlkCmp = 0.001, kYFlip = 0.05, kHandleSwap = 0.05, t0 = 3.0, t1 = 0.05;
         constexpr int kApRefresh = 4, kResim = 2, kRefresh = 1 << 14;
         const int U = units.size();
-        std::vector<int> col(U, -1);
-        for (int l = 0; l < H; l++) for (int c = 0; c < 2; c++) for (int x : members[l][c]) col[x] = l;
+        std::vector<int> col = unit_columns();
         // Handle holes (tiny-bias). A hole at h_m shows the top of column m, which keeps the color
         // set for the last request that needed h_m. If the targets with a hole at h_m have color 1
         // with frequency p_m, a request needs a fix with probability 2 p_m (1 - p_m) instead of
@@ -410,8 +419,7 @@ struct Solver {
         std::vector<double> dsum((size_t)P * (H + 1), 0.0);
         auto make_tables = [&]() {
             for (int t = 0; t < P; t++) {
-                hb[t] = 0;
-                for (int m = 0; m < H; m++) hb[t] |= (A[t] >> handle[m] & 1) << m;
+                hb[t] = handle_bits(A[t]);
                 double* d = &dsum[(size_t)t * (H + 1)];
                 d[H - 1] = 0;
                 for (int l = H - 2; l >= 0; l--) d[l] = d[l + 1] + wcol[l + 1][hb[t] >> (l + 1) & 1];
@@ -826,15 +834,9 @@ struct Solver {
         const int iters = env_int("CLIMB_ITERS");
         const double t_end = 1.15;
         const int U = units.size();
-        std::vector<int> col(U, -1);
-        for (int l = 0; l < H; l++) for (int c = 0; c < 2; c++) for (int x : members[l][c]) col[x] = l;
-        auto hbits = [&](u64 m) {  // bit j = window h_j
-            u64 r = 0;
-            for (int j = 0; j < H; j++) r |= (m >> handle[j] & 1) << j;
-            return r;
-        };
+        std::vector<int> col = unit_columns();
         std::vector<u64> hu(P), diffb(U, 0);  // colors at the handles, pair differences
-        for (int u = 0; u < P; u++) hu[u] = hbits(A[u]);
+        for (int u = 0; u < P; u++) hu[u] = handle_bits(A[u]);
         for (int x = 0; x < U; x++) if (units[x][1] >= 0) diffb[x] = hu[units[x][0]] ^ hu[units[x][1]];
         // hn[m] / hn1[m] = targets with a hole at h_m / of them with color 1 there; the holes of
         // h_m cost kH hn 4 p (1 - p) with p = hn1 / hn (the persistence model, exact).
@@ -988,8 +990,7 @@ struct Solver {
     void split_inconsistent() {
         std::vector<u64> shallow_l(H + 1, 0);
         for (int l = 0; l < H; l++) shallow_l[l + 1] = shallow_l[l] | 1ULL << handle[l];
-        std::vector<int> col_of_unit(units.size(), -1);
-        for (int l = 0; l < H; l++) for (int c = 0; c < 2; c++) for (int x : members[l][c]) col_of_unit[x] = l;
+        std::vector<int> col_of_unit = unit_columns();
         auto single = [&](int x) { return units[x][1] < 0 && col_of_unit[x] >= 0; };
         auto drop_single = [&](int x) {  // single x leaves its column (its target joins a pair)
             int t = units[x][0], l = col_of_unit[x];
@@ -1125,11 +1126,7 @@ struct Solver {
         for (int j = 0; j < H; j++) hidx[handle[j]] = j, hmask |= 1ULL << handle[j];
         h_opq.assign(K, 0);
         h_blk.assign(K, 0);
-        for (int k = 0; k < K; k++)
-            for (int j = 0; j < H; j++) {
-                h_opq[k] |= (u64)(paper[k].opaque >> handle[j] & 1) << j;
-                h_blk[k] |= (u64)(paper[k].black >> handle[j] & 1) << j;
-            }
+        for (int k = 0; k < K; k++) h_opq[k] = handle_bits(paper[k].opaque), h_blk[k] = handle_bits(paper[k].black);
         build_block_tables();
         init_cycles();
         int bad_pairs = 0;
@@ -1847,11 +1844,7 @@ struct Solver {
         std::vector<Stack> stacks;
         auto hib = [](u64 x) { return x ? 63 - __builtin_clzll(x) : -1; };
         auto upto = [](int b) -> u64 { return b < 0 ? 0 : b >= 63 ? ~0ULL : (1ULL << (b + 1)) - 1; };
-        u64 hh_i = 0, au_i = 0;  // holes to fill and the colors of A_u, by handle index
-        for (int j = 0; j < H; j++) {
-            hh_i |= (u64)(hh >> handle[j] & 1) << j;
-            au_i |= (u64)(A[u] >> handle[j] & 1) << j;
-        }
+        const u64 hh_i = handle_bits(hh), au_i = handle_bits(A[u]);  // holes to fill, colors of A_u
         // The top papers of the usable columns: pcs of column c are [first_of[c], first_of[c + 1]).
         std::vector<std::array<int, kFillerDepth + 1>> tops(H);
         std::vector<int> ntop(H, 0);
