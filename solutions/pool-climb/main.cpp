@@ -1,9 +1,9 @@
 // pool-climb: solutions/pool-value with a hill climbing after the annealing (filler_climb, until
-// 1.2 s) that exchanges two units between columns (same colors at both handles) when the model
-// cost minus 0.7 x a proxy of the filler opportunities decreases: for each target u, the papers of
-// each deeper column c that would cover many holes of D_u at their leveled position (sum over c of
-// the column mean of max(0, covered holes - 3)). A unit of this proxy saved about 0.7 moves per
-// request (regression on seed 0-95), and the annealing alone leaves it at its random level.
+// 1.2 s) that exchanges two units between columns (same kind, same colors at both handles) when the
+// model cost minus 0.7 x a proxy of the filler opportunities decreases: for each target u, how many
+// holes of D_u the papers of each deeper column would cover at their leveled position. A unit of
+// this proxy saved about 0.7 moves per request, and the annealing alone leaves it at its random
+// level (0.49 per target; the climb raises it to about 0.77).
 // pool-value: solutions/hole-relax with one more plan for each request (fret_mode 5, run_joint): the
 // papers out of their columns (the previous lifted paper and the old fillers: return, move to a new
 // level, or stay) and the new fillers from the column tops are chosen together by one weighted
@@ -559,54 +559,55 @@ struct Solver {
     //   its two targets differ) cost kHandleHole each, a block touched by a pair costs kBlock per
     //   request (a flip half of the time) and kIncons if the pair is inconsistent with it, and
     //   reaching a unit costs (column size - 1) / 2 digs on average.
-    // After the annealing: hill climbing over exchanges of two units between columns (same color
-    // at both handles, so the column balance is kept) that also rewards the papers of the deeper
-    // columns being good fillers for each target: proxy(u) = sum over the columns c deeper than u's
-    // of the mean over the papers y of c of max(0, g - 3), g = holes of D_u that y covers at the
-    // level just past its deepest mismatch (excluding h_c). Per request a unit of proxy saved about
-    // 0.7 moves (regression, seed 0-95). Objective: model cost - kClimbW * mean proxy.
+    // After the annealing: hill climbing over exchanges of two units of the same kind (two pairs or
+    // two singles) between two columns, with the same colors at both handles (the column balance
+    // and the digs of the model are kept). Besides the model cost (handle holes), it rewards the
+    // papers of the deeper columns being good fillers for each target u:
+    //   proxy(u) = sum over the columns c deeper than u's of the mean over the units y of c of
+    //              max(0, g - kT), g = holes of D_u on the deeper handles that the paper of y covers
+    //              at the level just past its deepest mismatch with A_u (h_c excluded).
+    // Per request, one unit of proxy(u) saved about 0.7 moves (regression on seed 0-95, with the
+    // triangle holes, pair holes, blocks and column size), while the annealing leaves it at random.
+    // Objective: model cost - kW * sum of proxy. Seed 0-95 (annealing fixed at 3M iterations, 20k
+    // exchanges): -1.07 +- 0.10% against pool-value; kW 0.4 / 1.5 -0.93 / -0.89%, kT 2 / 4 worse by
+    // 0.22 / 0.14%, also exchanging a pair with a single +0.18 +- 0.10%, re-pairing moves +0.14%,
+    // pair holes in the proxy +0.06%, 3x more exchanges +0.09% (converged).
     template <class ColorAt>
     void filler_climb(std::vector<std::array<int, 2>>& units,
                       std::vector<std::array<std::vector<int>, 2>>& members, ColorAt color_at) {
-        // Fixed number of exchanges (CLIMB_ITERS > 0, experiments) or until CLIMB_TL seconds.
+        // A fixed number of exchanges (CLIMB_ITERS > 0, experiments) or until CLIMB_TL seconds.
         const int iters = env_int("CLIMB_ITERS", 0);
         const double t_end = env_double("CLIMB_TL", 1.2);
         if (iters < 0) return;
         const double kW = env_double("CLIMB_W", 0.7), kH = env_double("HUB_KH", 0.51);
+        const int kT = env_int("CLIMB_T", 3);
         const int U = units.size();
         std::vector<int> col(U, -1);
         for (int l = 0; l < H; l++) for (int c = 0; c < 2; c++) for (int x : members[l][c]) col[x] = l;
-        auto hb = [&](u64 m) {
+        auto hb = [&](u64 m) {  // bit j = window h_j
             u64 r = 0;
             for (int j = 0; j < H; j++) r |= (m >> handle[j] & 1) << j;
             return r;
         };
-        std::vector<u64> hu(P), diffb(U, 0);
+        std::vector<u64> hu(P), diffb(U, 0);  // colors on the handles, pair differences
         for (int u = 0; u < P; u++) hu[u] = hb(A[u]);
         for (int x = 0; x < U; x++) if (units[x][1] >= 0) diffb[x] = hu[units[x][0]] ^ hu[units[x][1]];
-        std::vector<std::vector<int>> colm(H);
+        std::vector<std::vector<int>> colm(H);  // units of each column
         for (int x = 0; x < U; x++) if (col[x] >= 0) colm[col[x]].push_back(x);
-        const int kT = env_int("CLIMB_T", 3);
-        const bool pair_holes = env_int("CLIMB_PAIR", 0) != 0;
-        const double kD = env_double("CLIMB_D", 1.0), kT0 = env_double("CLIMB_T0", 0.0);
-        std::vector<int> ucol(P, -1);
+        std::vector<int> ucol(P, -1);  // unit of each target
         for (int x = 0; x < U; x++) for (int t : units[x]) if (t >= 0) ucol[t] = x;
-        // g of unit y (in column c) as a filler for target u (in column l < c): the holes of D_u
-        // (the deeper handles, and with CLIMB_PAIR its pair holes too) that y covers at the level
-        // just past its deepest mismatch, excluding h_c, minus kT.
+        auto tcol = [&](int u) { return col[ucol[u]]; };
+        // g - kT (at least 0) for the paper of unit y (column c) as a filler for target u (column l < c).
         auto gval = [&](int u, int l, int y, int c) {
             u64 ob = (c + 1 >= 64 ? ~0ULL : (1ULL << (c + 1)) - 1) & ~diffb[y];
-            u64 dh = ~((1ULL << (l + 1)) - 1);
-            if (pair_holes) dh |= diffb[ucol[u]] & ((1ULL << l) - 1);
-            u64 range = ob & dh;
+            u64 range = ob & ~((1ULL << (l + 1)) - 1);
             u64 mis = (hu[units[y][0]] ^ hu[u]) & range;
             if (mis >> c & 1) return 0;
             int lvl = mis ? 64 - __builtin_clzll(mis) : 0;
             u64 cov = range & ((1ULL << c) - 1) & ~((1ULL << lvl) - 1);
             return std::max(0, __builtin_popcountll(cov) - kT);
         };
-        // colsum[u][c] = sum over the units y of column c of g(u, y) (c deeper than u's column).
-        auto tcol = [&](int u) { return col[ucol[u]]; };
+        // colsum[u][c] = sum of gval(u, y) over the units y of column c (c deeper than u's column).
         std::vector<std::vector<int>> colsum(P, std::vector<int>(H, 0));
         auto recompute_u = [&](int u) {
             int l = tcol(u);
@@ -620,47 +621,42 @@ struct Solver {
         auto proxy_u = [&](int u) {
             int l = tcol(u);
             double s = 0;
-            for (int c = l + 1; c < H; c++)
-                if (!colm[c].empty()) s += colsum[u][c] * std::min(1.0, kD / colm[c].size());
+            for (int c = l + 1; c < H; c++) if (!colm[c].empty()) s += (double)colsum[u][c] / colm[c].size();
             return s;
         };
         auto holes_cost = [&](int x, int l) {  // handle-hole part of the model cost of unit x in column l
             int t = units[x][1] >= 0 ? 2 : 1;
             return t * kH * ((H - 1 - l) + __builtin_popcountll(diffb[x] & ((1ULL << l) - 1)));
         };
-        std::vector<int> tgt(H, 0);
-        for (int x = 0; x < U; x++) if (col[x] >= 0) tgt[col[x]] += units[x][1] >= 0 ? 2 : 1;
         double total_proxy = 0;
         for (int u = 0; u < P; u++) if (ucol[u] >= 0 && col[ucol[u]] >= 0) total_proxy += proxy_u(u);
         std::cerr << "climb_proxy_before = " << total_proxy / P << '\n';
         std::mt19937_64 rng(999);
         int accepted = 0;
         long long climb_iters = 0;
+        std::vector<int> affected;
+        std::vector<std::vector<int>> saved;
         for (int it = 0;; it++) {
             if (iters > 0 ? it >= iters : ((it & 63) == 0 && elapsed_sec() >= t_end)) break;
             climb_iters = it + 1;
             int x = rng() % U, y = rng() % U;
             int a = col[x], b = col[y];
             if (a < 0 || b < 0 || a == b) continue;
+            if ((units[x][1] >= 0) != (units[y][1] >= 0)) continue;
             int cxa = color_at(x, a), cyb = color_at(y, b);
             if (color_at(x, b) != cyb || color_at(y, a) != cxa) continue;
-            int tx = units[x][1] >= 0 ? 2 : 1, ty = units[y][1] >= 0 ? 2 : 1;
             double dmodel = holes_cost(x, b) + holes_cost(y, a) - holes_cost(x, a) - holes_cost(y, b);
-            // digs: tgt[l] * (n_l - 1) / 2, sizes unchanged
-            dmodel += (ty - tx) * (colm[a].size() - 1) * 0.5 + (tx - ty) * (colm[b].size() - 1) * 0.5;
-            // Proxy change: targets of x and y (recomputed), and every other target shallower than a
-            // or b (column sums of a and b change).
-            double before = 0;
-            std::vector<int> affected;
+            // Proxy change: the targets of x and y (recomputed), and every target shallower than a
+            // or b (the sums of columns a and b change).
+            affected.clear();
             for (int u = 0; u < P; u++) {
                 if (ucol[u] < 0) continue;
-                int l = tcol(u);
-                if (ucol[u] == x || ucol[u] == y || l < std::max(a, b)) affected.push_back(u);
+                if (ucol[u] == x || ucol[u] == y || tcol(u) < std::max(a, b)) affected.push_back(u);
             }
+            double before = 0;
             for (int u : affected) before += proxy_u(u);
-            std::vector<std::vector<int>> saved;
-            saved.reserve(affected.size());
-            for (int u : affected) saved.push_back(colsum[u]);
+            saved.resize(affected.size());
+            for (size_t i = 0; i < affected.size(); i++) saved[i] = colsum[affected[i]];
             auto apply = [&](int cx, int cy) {
                 auto& ma = colm[col[x]];
                 ma.erase(std::find(ma.begin(), ma.end(), x));
@@ -686,13 +682,9 @@ struct Solver {
                 }
                 after += proxy_u(u);
             }
-            double delta = dmodel - kW * (after - before);
-            double temp = kT0 * (iters > 0 ? 1.0 - (double)it / iters : 1.0);
-            if (delta < -1e-9 || (temp > 0 && std::exp(-delta / temp) > (rng() >> 11) * 0x1.0p-53)) {
+            if (dmodel - kW * (after - before) < -1e-9) {
                 accepted++;
                 total_proxy += after - before;
-                tgt[a] += ty - tx;
-                tgt[b] += tx - ty;
             } else {
                 apply(a, b);
                 for (size_t i = 0; i < affected.size(); i++) colsum[affected[i]] = saved[i];
