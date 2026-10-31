@@ -950,6 +950,73 @@ struct Solver {
         return bc;
     }
 
+    // Best set of fillers with pairwise disjoint handle intervals [lvl, c] (weighted interval
+    // scheduling over the handle indices), each candidate being a paper at depth <= kFillerDepth
+    // of a column c whose handle is a hole of D, at the level just past its deepest wrong handle.
+    // Disjoint intervals never cover each other's column handles, so their gains add up.
+    std::vector<FillerChoice> choose_fillers_dp(int u, int d, u64 hh) const {
+        std::vector<int> fix(H, 0);
+        for (int j = 0; j < H; j++)
+            if (hh >> handle[j] & 1) fix[j] = handle_fix_cost(j, A[u] >> handle[j] & 1);
+        std::vector<int> hidx(N, -1);
+        for (int j = 0; j < H; j++) hidx[handle[j]] = j;
+        // cand_end[c]: candidates whose interval ends at c (lvl, gain, depth)
+        std::vector<std::vector<std::array<int, 3>>> cand_end(H);
+        std::vector<int> top;
+        for (int c = 0; c < H; c++) {
+            if (!(hh >> handle[c] & 1)) continue;
+            top.clear();
+            for (int k : order) {
+                if (!in_column(k, c)) continue;
+                top.push_back(k);
+                if ((int)top.size() > kFillerDepth) break;
+            }
+            if (top.empty() || top[0] == d) continue;
+            for (int depth = 0; depth < (int)top.size(); depth++) {
+                int f = top[depth];
+                u64 shown = paper[f].opaque & hh;
+                u64 bad = (paper[f].black ^ A[u]) & shown;
+                int lvl = 0;
+                if (bad) {
+                    if (!leveled) continue;
+                    for (u64 x = bad; x; x &= x - 1) lvl = std::max(lvl, hidx[__builtin_ctzll(x)] + 1);
+                    if (lvl > c) continue;
+                }
+                int save = 0;
+                for (int j = lvl; j <= c; j++)
+                    if ((j != c || depth) && (shown >> handle[j] & 1)) save += fix[j];
+                int gain = save - 2 - depth;
+                if (gain > 0) cand_end[c].push_back({lvl, gain, depth});
+            }
+        }
+        // best[j + 1] = best total gain with intervals inside handles 0..j
+        std::vector<int> best(H + 1, 0), pick_c(H + 1, -1), pick_i(H + 1, -1);
+        for (int c = 0; c < H; c++) {
+            best[c + 1] = best[c];
+            for (int i = 0; i < (int)cand_end[c].size(); i++) {
+                auto [lvl, gain, depth] = cand_end[c][i];
+                if (best[lvl] + gain > best[c + 1]) {
+                    best[c + 1] = best[lvl] + gain;
+                    pick_c[c + 1] = c;
+                    pick_i[c + 1] = i;
+                }
+            }
+        }
+        std::vector<FillerChoice> res;
+        for (int j = H; j > 0;) {
+            if (pick_c[j] < 0) {
+                j--;
+                continue;
+            }
+            int c = pick_c[j];
+            auto [lvl, gain, depth] = cand_end[c][pick_i[j]];
+            res.push_back({c, depth, lvl});
+            j = lvl;
+        }
+        std::reverse(res.begin(), res.end());
+        return res;
+    }
+
     // The orientation of every block touched by `holes` that shows A_u there (consistent pairs
     // match Y_b or ~Y_b; an inconsistent pair takes the closer one and is wrong).
     std::vector<int> wanted_blocks(int u, u64 holes) const {
@@ -963,7 +1030,8 @@ struct Solver {
         return want;
     }
 
-    int kMaxFillers = env_int("MAX_FILLERS", 4);
+    int kMaxFillers = env_int("MAX_FILLERS", 8);
+    bool filler_dp = env_int("FILLER_DP", 1) != 0;
     void run_plan(int u, const PlanOpt& opt) {
         u64 all = gmask;
         for (int l = 0; l < H; l++) all |= 1ULL << handle[l];
@@ -980,8 +1048,18 @@ struct Solver {
                 top_d = d;
             }
             u64 hh = holes & ~gmask;
+            std::vector<FillerChoice> plan_f;
+            if (opt.use_filler && filler_dp) plan_f = choose_fillers_dp(u, d, hh);
+            size_t plan_i = 0;
             while (opt.use_filler && (int)fillers.size() < kMaxFillers) {
-                auto [c, depth, lvl] = choose_filler(u, d, hh);
+                FillerChoice ch;
+                if (filler_dp) {
+                    if (plan_i >= plan_f.size()) break;
+                    ch = plan_f[plan_i++];
+                } else {
+                    ch = choose_filler(u, d, hh);
+                }
+                auto [c, depth, lvl] = ch;
                 if (c < 0) break;
                 std::vector<int> top;  // the top papers of column c
                 for (int k : order) {
