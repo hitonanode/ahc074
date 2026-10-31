@@ -958,6 +958,7 @@ struct Solver {
             for (int t = 0; t < 4; t++) if (mask >> t & 1) env_types.push_back(t);
         }
         const double handle_swap_rate = env_double("HUB_HSWAP", 0.05);
+        const double kHswapEnd = env_double("HSWAP_END", 0.6);  // <= 0: the former rates
         const double yflip_rate = env_double("CB_YFLIP", 0.05);
         const double wmove_rate = env_double("CB_WMOVE", 0.0);  // not effective (seed 100-195), off
         const int min_block = env_int("CB_MINB", 2);
@@ -990,6 +991,7 @@ struct Solver {
         double max_drift = 0;
         const double t_begin = elapsed_sec(), t_end = env_double("HUB_TL", 1.1);
         double progress = 0, temp = t0;
+        std::array<long long, 10> hs_try{}, hs_valid{}, hs_acc{};
         long long anneal_iters = 0;
         // Targeted re-pairing: from progress kTgtStart on, Y is frozen and the exchange move takes
         // the new partner of a pair's target among its consistent partners (most random exchanges
@@ -1032,7 +1034,19 @@ struct Solver {
                 cur_total = total_cost() * P;  // the weights changed
             }
             double r = unif();
-            if (targeted && r < yflip_rate) r += yflip_rate + wmove_rate;  // Y is frozen
+            // left-fast: a handle swap scans every unit (about half of the annealing time at a 10%
+            // rate) and is almost never accepted late (seed 0, 10M iterations: 532 / 712 / 386 /
+            // 146 / 80 accepted per tenth of the annealing, then fewer, 0 in the last fifth). Its
+            // rate decays linearly to 0 at progress kHswapEnd, and once Y is frozen the share of
+            // the block color flips goes to the unit moves (it went to the handle swaps).
+            if (kHswapEnd > 0) {
+                if (targeted && r < yflip_rate) r = yflip_rate + wmove_rate + handle_swap_rate + r;  // unit moves
+                else if (r >= yflip_rate + wmove_rate && r < yflip_rate + wmove_rate + handle_swap_rate &&
+                         (r - yflip_rate - wmove_rate) >= handle_swap_rate * std::max(0.0, 1 - progress / kHswapEnd))
+                    r = yflip_rate + wmove_rate + handle_swap_rate;  // unit moves
+            } else if (targeted && r < yflip_rate) {
+                r += yflip_rate + wmove_rate;  // Y is frozen
+            }
             if (r < yflip_rate) {
                 // Flip one color of a block (changes which pairs are consistent with it).
                 int b = rnd((int)blocks.size());
@@ -1102,6 +1116,7 @@ struct Solver {
                 // colors at their handles): computed incrementally, the tables are updated only
                 // when the swap is accepted.
                 int a = rnd(H), b = rnd(H);
+                hs_try[std::min(9, (int)(progress * 10))]++;
                 if (a == b) continue;
                 if (a > b) std::swap(a, b);
                 // One pass over the units of the columns a..b: hole cost change dh, and the colors
@@ -1139,10 +1154,12 @@ struct Solver {
                 int s0a = cnt0[a], s1a = cnt1[a], s0b = cnt0[b], s1b = cnt1[b];
                 cnt0[a] = n0a, cnt1[a] = n1a, cnt0[b] = n0b, cnt1[b] = n1b;
                 double delta = kHandleHole * dh + col_cost(a) + col_cost(b) - before_cols;
+                hs_valid[std::min(9, (int)(progress * 10))]++;
                 if (delta > 0 && std::exp(-delta / temp) < unif()) {
                     std::swap(handle[a], handle[b]);
                     cnt0[a] = s0a, cnt1[a] = s1a, cnt0[b] = s0b, cnt1[b] = s1b;
                 } else {
+                    hs_acc[std::min(9, (int)(progress * 10))]++;
                     cur_total += delta;
                     std::swap(wcol[a], wcol[b]);
                     swap_tables(a, b);
@@ -1326,6 +1343,7 @@ struct Solver {
         }
         if (bias_debug) std::cerr << "bias_max_drift = " << max_drift << '\n';
         std::cerr << "repaired_pairs = " << repaired << '\n';
+        for (int i = 0; i < 10; i++) std::cerr << "hswap_" << i << " = " << hs_try[i] << ' ' << hs_valid[i] << ' ' << hs_acc[i] << '\n';
         std::cerr << "anneal_iters = " << anneal_iters << '\n';
         std::cerr << "model_cost_after = " << total_cost() << '\n';
         std::cerr << "anneal_end_sec = " << elapsed_sec() << '\n';
