@@ -3,11 +3,12 @@
 Runs each binary on seeds [lo, hi) through the tester with the annealing and the climb fixed to
 the given iteration counts (HUB_ANNEAL / ANNEAL_ITERS and CLIMB_ITERS, so that the outputs do not
 depend on the machine), holding runs/.lock, and reports for every binary after the first whether
-its stdout (the papers and every move) is identical to the first one's, seed by seed.
+its stdout (the papers and every move) is identical to the first one's, seed by seed, and the
+mean log score ratio against the first one (negative: better) for behavior-changing variants.
 
 usage: eqcheck.py <lo> <hi> <anneal_iters> <climb_iters> <binary> <binary> ...   (JOBS env, default 8)
 """
-import fcntl, os, re, subprocess, sys
+import fcntl, math, os, re, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -40,3 +41,9 @@ for b in bins[1:]:
     ds = [s for s in range(lo, hi) if out[(b, s)][1] != out[(ref, s)][1]]
     mean = sum(out[(b, s)][1] for s in range(lo, hi)) / (hi - lo)
     print(f"{b}: stdout differs on {len(diff)} / {hi - lo} seeds {diff[:10]}; score differs on {len(ds)}; mean score {mean:.1f}")
+    xs = [100 * math.log(out[(b, s)][1] / out[(ref, s)][1]) for s in range(lo, hi) if out[(b, s)][1] > 0 and out[(ref, s)][1] > 0]
+    if len(xs) > 1:
+        m = sum(xs) / len(xs)
+        se = math.sqrt(sum((x - m) ** 2 for x in xs) / (len(xs) - 1) / len(xs))
+        print(f"  log ratio vs ref: {m:+.3f} +- {se:.3f}% (W/D/L {sum(x < 0 for x in xs)}/{sum(x == 0 for x in xs)}/{sum(x > 0 for x in xs)}), "
+              f"WA {sum(out[(b, s)][1] == 0 for s in range(lo, hi))}")
