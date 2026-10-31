@@ -1,6 +1,6 @@
-# astra03-09-cache-twocut
+# astra-03-09-cache-twocut
 
-改良元: solutions/astra03-08-cache-crossplan
+改良元: solutions/astra-03-08-cache-crossplan
 
 ## 改良元との差分
 
@@ -11,7 +11,7 @@
 
 - H=38、prior=4、accessUnit=16、cw=0.35（main の実行引数 `H seed Q prior accessUnit cw` の既定値。seed=1 は設計中の乱数の初期値）。
 
-## 移植について（全 astra03-* 共通）
+## 移植について（全 astra-03-* 共通）
 
 外部の agent（astra-03。この repo の文脈を共有しない）が作った検証用シミュレータ（商品と注文を内部の乱数で作り、設計・操作・検査を自前で行う）を、提出できる reactive 形式に機械的に移植したもの。アルゴリズムは元のまま。元のソースと報告は main checkout の other_agents/astra-03.md, astra-03.zip（cache_twocut.cpp）。変更は次だけ:
 
