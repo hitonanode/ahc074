@@ -343,7 +343,7 @@ struct Solver {
             std::vector<int> col_of_unit(units.size(), -1);
             for (int l = 0; l < H; l++) for (int c = 0; c < 2; c++) for (int x : members[l][c]) col_of_unit[x] = l;
             int splits = 0, failed = 0;
-            for (int x = 0; x < (int)units.size(); x++) {
+            for (int x = 0; x < (int)units.size() && env_int("CB_SPLIT", 1); x++) {
                 auto [u, v] = units[x];
                 if (v < 0 || col_of_unit[x] < 0) continue;
                 for (int b = 0; b < (int)blocks.size(); b++) {
