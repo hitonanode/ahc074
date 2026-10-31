@@ -13,7 +13,8 @@
 //     (free_return; e.g. audit3-stack seed 4 request 482, seed 11 request 258: a dig saved).
 //   - After every request the records are rebuilt from the order (canonicalize): nearest cyclic
 //     predecessor in place, the free case above, and a filler sitting on its own column top in
-//     cyclic order is in place. All three: -0.105 +- 0.019% (seed 0-479, annealing fixed).
+//     cyclic order is in place. All three: -0.105 +- 0.019% (seed 0-479, annealing fixed); 500
+//     cases against audit3-stack: -0.120 +- 0.064% (20261031-222459, 269/2/229).
 // audit3-stack: solutions/audit3-narrow whose filler DP before the lift (choose_fillers_prelift)
 // also offers two papers stacked at one level a: U (column cU) placed first, then L (column cL > cU)
 // at the same level, which inserts L just below U. U shows on its opaque handles in [a, cU], L on the

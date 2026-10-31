@@ -1,6 +1,7 @@
 // audit4-flip: solutions/cons-flip with the changes of solutions/audit4-fix (from audit3-stack):
 // gen_harm, free_return and canonicalize below (order processing only; the generic layer of
-// cons-flip is untouched).
+// cons-flip is untouched). 500 cases against cons-flip: -0.152 +- 0.063% (20261031-223907, 272/4/224);
+// seed 0-479 with the annealing fixed: -0.130 +- 0.018%.
 // audit4-fix: solutions/audit3-stack with the records of the papers out of their columns corrected
 // (fourth audit, solutions/audit4-tools: the state after any prefix of the chosen plan is rebuilt
 // from the physical order, every legal move is tried there and the plan search is run again; on
