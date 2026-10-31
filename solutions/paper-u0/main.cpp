@@ -8,11 +8,16 @@
 // is kept). A request of u0: the previous paper and the old fillers go back, the generic layer takes
 // the orientation of A_u0, and every handle is a hole covered by the fillers of the DP before a lift
 // (choose_fillers_prelift with the base paper as D) and digs.
+// 500 cases against audit4-flip: +0.086 +- 0.074% (20261031-231006, 240/1/259); with U0_FREE=0 (same
+// Y_b = A_u0, but u0 keeps its paper; paper-u0keep) -0.052 +- 0.073% (262/1/237), so tying Y to one
+// target costs nothing. u0's requests cost 17.0 moves (13.4 in audit4-flip): +14.7 +- 0.5 moves per
+// case; the request after them 0.16 less; the other 255 targets -0.004 +- 0.009 moves per request
+// (against paper-u0keep -0.000 +- 0.007): the freed paper is worth about nothing (u0_after.py).
 // Measurements (seed 0-95, --compare, against audit4-flip):
-//   - paper-u0: +0.375 +- 0.153% (20261031-225837, 46/0/50). u0's requests cost 16.9 moves (13.3 with
-//     its paper in audit4-flip), the next request 0.22 less, but the other requests 0.031 more.
-//   - one dedicated paper less (DROP_PAPERS=1 with U0=0, paper-drop1): +0.872 +- 0.163% (20261031-230138).
-//   - no flips of single colors of Y in the annealing (CB_YFLIP=0, paper-noyflip): +0.026 +- 0.141%.
+//   - one dedicated paper less (DROP_PAPERS=1 with U0=0, paper-drop1; 71 pairs, one column of odd
+//     size): +0.872 +- 0.163% (20261031-230138). A paper less costs much, a paper more gains ~0.
+//   - no flips of single colors of Y in the annealing (CB_YFLIP=0, paper-noyflip): +0.026 +- 0.141%;
+//     9000 iterations of the block hill climbing instead of 3000 (paper-climb9k): -0.041 +- 0.151%.
 // audit4-flip: solutions/cons-flip with the changes of solutions/audit4-fix (from audit3-stack):
 // gen_harm, free_return and canonicalize below (order processing only; the generic layer of
 // cons-flip is untouched). 500 cases against cons-flip: -0.152 +- 0.063% (20261031-223907, 272/4/224);
