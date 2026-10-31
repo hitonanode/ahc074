@@ -1536,25 +1536,14 @@ struct Solver {
         ops.push_back({k, d});
     }
     void move_after(int k, int x) {  // just below paper x
-        int i = index_of(k);
-        if (index_of(x) + 1 == i) return;
-        if (check_vis && !visible(k)) invalid = true;
-        order.erase(order.begin() + i);
-        int j = 0;
-        while (order[j] != x) j++;
-        order.insert(order.begin() + j + 1, k);
-        ops.push_back({k, j + 1});
+        int i = index_of(k), ix = index_of(x);
+        move(k, i < ix ? ix : ix + 1);
     }
     bool is_filler(int k) const {
-        for (auto& f : fillers) if (f.paper == k) return true;
-        return false;
+        return std::any_of(fillers.begin(), fillers.end(), [&](const Filler& f) { return f.paper == k; });
     }
     void drop_filler(int k) {
-        for (size_t i = 0; i < fillers.size(); i++)
-            if (fillers[i].paper == k) {
-                fillers.erase(fillers.begin() + i);
-                return;
-            }
+        std::erase_if(fillers, [&](const Filler& f) { return f.paper == k; });
     }
     // Papers of column l that are in place (not lifted to the top, not out as a filler).
     bool in_column(int k, int l) const { return col_of[k] == l && k != top_d && !is_filler(k); }
@@ -1670,13 +1659,10 @@ struct Solver {
         if (x == top_d) {
             pred = top_pred;
             top_d = top_pred = -1;
-        } else {
-            for (auto& f : fillers)
-                if (f.paper == x) {
-                    pred = f.pred;
-                    break;
-                }
-            drop_filler(x);
+        } else if (auto it = std::find_if(fillers.begin(), fillers.end(), [&](const Filler& f) { return f.paper == x; });
+                   it != fillers.end()) {
+            pred = it->pred;
+            fillers.erase(it);
         }
         if (pred >= 0 && in_column(pred, col_of[pred])) {
             move_after(x, pred);
