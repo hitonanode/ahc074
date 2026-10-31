@@ -11,6 +11,8 @@ every n-th request), plus fm2.inc:
   - INS=n (INS_OFF=o): before every n-th request (t % n == o), for every prefix of the best plan
     (i moves), every legal move (visible paper x every depth) followed by the plan search from the
     rebuilt state, and the plan search alone from the prefix; INS lines for the gains.
+  - INS2=n (INS_OFF=o): two insertions by a beam (the INS2_B = 8 best single insertions, each
+    completed by its best plan and searched again); IN2 lines with the best single and double.
   - PLAN_DBG=r: every plan option of request r with its outcome (PDBG lines).
   - TOGGLE=1 (compile with -DTOGGLE_PROBE, audit4-fix only): before every request, the best plan
     cost with the audit4 options (PRED_BOTTOM, GEN_FIX) off and on from the same state.
@@ -43,6 +45,7 @@ old = "        auto ops = solver.process(u);"
 new = ("        if (t == 0) solver.a4_init_cycles();\n"
        "        if ((solver.kFm && t % solver.kFm == 0) || t == env_int(\"FM_SHOW\", -1)) solver.analyse_first_moves(u, t);\n"
        "        if (env_int(\"INS\", 0) && t % env_int(\"INS\", 1) == env_int(\"INS_OFF\", 0)) solver.analyse_insert(u, t);\n"
+       "        if (env_int(\"INS2\", 0) && t % env_int(\"INS2\", 1) == env_int(\"INS_OFF\", 0)) solver.analyse_insert2(u, t);\n"
        "        if (t == env_int(\"PLAN_DBG\", -1)) solver.debug_plans(u);\n"
        "#ifdef TOGGLE_PROBE\n"
        "        if (env_int(\"TOGGLE\", 0)) solver.analyse_toggle(u, t);\n"
@@ -56,6 +59,8 @@ new = old + """
 #ifdef TOGGLE_PROBE
     std::cerr << "tg_req = " << solver.tg_req << "\\ntg_better = " << solver.tg_better << "\\ntg_worse = " << solver.tg_worse << "\\ntg_gain = " << solver.tg_gain << "\\ntg_dmoves = " << solver.tg_dm << '\\n';
 #endif
+    std::cerr << "in2_req = " << solver.in2_req << "\\nin2_better1 = " << solver.in2_better1 << "\\nin2_better2 = " << solver.in2_better2
+              << "\\nin2_gain1 = " << solver.in2_gain1 << "\\nin2_gain2 = " << solver.in2_gain2 << '\\n';
     std::cerr << "fm_req = " << solver.fm_req << "\\nfm_better = " << solver.fm_better << "\\nfm_gain = " << solver.fm_gain << '\\n';
     std::cerr << "dsc_req = " << solver.dsc_req << "\\ndsc_bad = " << solver.dsc_bad << "\\ndsc_pred = " << solver.dsc_pred << '\\n';
     std::cerr << "ins_req = " << solver.ins_req << "\\nins_better = " << solver.ins_better << "\\nins_gain = " << solver.ins_gain

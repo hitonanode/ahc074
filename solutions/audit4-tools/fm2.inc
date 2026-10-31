@@ -326,3 +326,113 @@
             ins_dm += base_m - best_m;
         }
     }
+    // INS2=n (audit4): two insertions by a beam. Level 1 is the insertion analysis above (every
+    // prefix of the best plan, every legal move, then the plan search); the INS2_B best results
+    // become full plans (prefix + move + their best plan) and each is searched again the same way.
+    // Prints IN2 lines with the base cost, the best single insertion and the best double one.
+    struct InsCand {
+        double cost;
+        std::vector<std::pair<int, int>> pre;  // moves before the plan search (prefix + inserted move)
+        State st;
+        std::string desc;
+    };
+    std::vector<InsCand> ins_level(int u, const State& st0, const std::vector<std::pair<int, int>>& plan, int B) {
+        std::vector<InsCand> top;
+        auto offer = [&](double c, const std::vector<std::pair<int, int>>& pre, const State& s, const std::string& d) {
+            if ((int)top.size() == B && c >= top.back().cost - 1e-9) return;
+            top.push_back({c, pre, s, d});
+            std::sort(top.begin(), top.end(), [](const InsCand& a, const InsCand& b) { return a.cost < b.cost; });
+            if ((int)top.size() > B) top.pop_back();
+        };
+        std::vector<int> ord = st0.order;
+        std::vector<std::pair<int, int>> pre;
+        int n = plan.size();
+        for (int i = 0; i < n; i++) {
+            State si;
+            if (describe(ord, si)) {
+                if (i > 0) {
+                    restore(si);
+                    auto [b, bm, bf] = best_of(u);
+                    if (b < 1e17) offer(i + b, pre, si, "restart i " + std::to_string(i));
+                }
+                std::vector<int> ks;
+                restore(si);
+                for (int k : ord) if (visible(k)) ks.push_back(k);
+                auto out_in = [](const State& s, int x) {
+                    if (s.top_d == x) return true;
+                    for (auto& f : s.fillers) if (f.paper == x) return true;
+                    return false;
+                };
+                for (int k : ks) {
+                    int i0 = std::find(ord.begin(), ord.end(), k) - ord.begin();
+                    for (int d = 0; d < K; d++) {
+                        if (d == i0) continue;
+                        std::vector<int> o2 = ord;
+                        o2.erase(o2.begin() + i0);
+                        o2.insert(o2.begin() + d, k);
+                        State s2;
+                        if (!describe(o2, s2)) continue;
+                        bool same = true;
+                        if (s2.top_d >= 0 && s2.top_d != k && !out_in(si, s2.top_d)) same = false;
+                        for (auto& f : s2.fillers) if (f.paper != k && !out_in(si, f.paper)) same = false;
+                        if (si.top_d >= 0 && si.top_d != k && !out_in(s2, si.top_d)) same = false;
+                        for (auto& f : si.fillers) if (f.paper != k && !out_in(s2, f.paper)) same = false;
+                        if (!same) continue;
+                        restore(s2);
+                        if (out_in(s2, k) && s2.top_d != k && !visible(k)) continue;
+                        auto [b, bm, bf] = best_of(u);
+                        if (b > 1e17) continue;
+                        auto p2 = pre;
+                        p2.push_back({k, d});
+                        offer(i + 1 + b, p2, s2,
+                              "i " + std::to_string(i) + " paper " + std::to_string(k) + " " + paper_class(k, si) + " -> " +
+                                  paper_class(k, s2) + " pos " + std::to_string(i0) + ">" + std::to_string(d));
+                    }
+                }
+            }
+            auto [k, d] = plan[i];
+            ord.erase(std::find(ord.begin(), ord.end(), k));
+            ord.insert(ord.begin() + d, k);
+            pre.push_back(plan[i]);
+        }
+        restore(st0);
+        return top;
+    }
+    long long in2_req = 0, in2_better1 = 0, in2_better2 = 0;
+    double in2_gain1 = 0, in2_gain2 = 0;
+    void analyse_insert2(int u, int r) {
+        const State st0 = save();
+        auto cands = plan_cands(u);
+        if (cands.empty()) return;
+        int bi = 0;
+        for (int i = 1; i < (int)cands.size(); i++) if (cands[i].cost < cands[bi].cost) bi = i;
+        const double base = cands[bi].cost;
+        static const int kB = env_int("INS2_B", 8);
+        auto l1 = ins_level(u, st0, cands[bi].ops, kB);
+        double best1 = base, best2 = base;
+        std::string d1, d2;
+        if (!l1.empty() && l1[0].cost < best1 - 1e-9) best1 = l1[0].cost, d1 = l1[0].desc;
+        best2 = best1, d2 = d1;
+        for (auto& c : l1) {
+            // the full plan of this candidate: its moves so far and its best plan
+            restore(c.st);
+            auto cs = plan_cands(u);
+            if (cs.empty()) continue;
+            int bj = 0;
+            for (int i = 1; i < (int)cs.size(); i++) if (cs[i].cost < cs[bj].cost) bj = i;
+            auto plan = c.pre;
+            for (auto& m : cs[bj].ops) plan.push_back(m);
+            restore(st0);
+            auto l2 = ins_level(u, st0, plan, 1);
+            if (!l2.empty() && l2[0].cost < best2 - 1e-9) best2 = l2[0].cost, d2 = c.desc + " ; " + l2[0].desc;
+        }
+        restore(st0);
+        in2_req++;
+        in2_better1 += best1 < base - 1e-9;
+        in2_better2 += best2 < best1 - 1e-9;
+        in2_gain1 += base - best1;
+        in2_gain2 += best1 - best2;
+        if (best2 < base - 1e-9)
+            std::cerr << "IN2 r " << r << " u " << u << " base " << base << " best1 " << best1 << " best2 " << best2 << " | " << d1
+                      << " || " << d2 << '\n';
+    }
