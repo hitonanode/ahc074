@@ -1237,6 +1237,7 @@ struct Solver {
     int kMaxFillers = env_int("MAX_FILLERS", 8);
     bool filler_dp = env_int("FILLER_DP", 1) != 0;
     bool prelift = env_int("PRELIFT", 1) != 0;
+    double kFillerCharge = env_double("FILL_W", 0.8);
     void run_plan(int u, const PlanOpt& opt) {
         u64 all = gmask;
         for (int l = 0; l < H; l++) all |= 1ULL << handle[l];
@@ -1432,7 +1433,9 @@ struct Solver {
             invalid = false;
             run_plan(u, o);
             if (invalid || display() != A[u]) continue;
-            double cost = ops.size() + fillers.size();
+            // A filler left out costs its return later, but is often re-used (refill) instead,
+            // so it is charged less than a move now (seed 0-95: 1.0 -> 0.8 is -0.48%).
+            double cost = ops.size() + kFillerCharge * fillers.size();
             if (cost < best) {
                 best = cost;
                 best_ops = ops;
