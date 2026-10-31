@@ -1,5 +1,5 @@
 // pool-climb: solutions/pool-value with a hill climbing after the annealing (filler_climb, until
-// 1.2 s) that exchanges two units between columns (same kind, same colors at both handles) when the
+// 1.15 s) that exchanges two units between columns (same kind, same colors at both handles) when the
 // model cost minus 0.7 x a proxy of the filler opportunities decreases: for each target u, how many
 // holes of D_u the papers of each deeper column would cover at their leveled position. A unit of
 // this proxy saved about 0.7 moves per request, and the annealing alone leaves it at its random
@@ -571,13 +571,14 @@ struct Solver {
     // Objective: model cost - kW * sum of proxy. Seed 0-95 (annealing fixed at 3M iterations, 20k
     // exchanges): -1.07 +- 0.10% against pool-value; kW 0.4 / 1.5 -0.93 / -0.89%, kT 2 / 4 worse by
     // 0.22 / 0.14%, also exchanging a pair with a single +0.18 +- 0.10%, re-pairing moves +0.14%,
-    // pair holes in the proxy +0.06%, 3x more exchanges +0.09% (converged).
+    // pair holes in the proxy +0.06%, 3x / 10x more exchanges +0.09 / -0.07% (converged), simulated
+    // annealing over 200k exchanges (start temperature 0.3 / 1.0) -0.03 / +0.32%.
     template <class ColorAt>
     void filler_climb(std::vector<std::array<int, 2>>& units,
                       std::vector<std::array<std::vector<int>, 2>>& members, ColorAt color_at) {
         // A fixed number of exchanges (CLIMB_ITERS > 0, experiments) or until CLIMB_TL seconds.
         const int iters = env_int("CLIMB_ITERS", 0);
-        const double t_end = env_double("CLIMB_TL", 1.2);
+        const double t_end = env_double("CLIMB_TL", 1.15);
         if (iters < 0) return;
         const double kW = env_double("CLIMB_W", 0.7), kH = env_double("HUB_KH", 0.51);
         const int kT = env_int("CLIMB_T", 3);
@@ -634,10 +635,25 @@ struct Solver {
         std::mt19937_64 rng(999);
         int accepted = 0;
         long long climb_iters = 0;
-        std::vector<int> affected;
-        std::vector<std::vector<int>> saved;
+        // Incremental: a target u not in x or y only sees the sums of columns a and b change, by
+        // g(u, y in a) - g(u, x in a) and g(u, x in b) - g(u, y in b); the targets of x and y are
+        // recomputed. Optional simulated annealing (CLIMB_T0, temperature falling to 0).
+        const double kT0 = env_double("CLIMB_T0", 0.0), t_begin = elapsed_sec();
+        double temp = kT0;
+        std::vector<int> others;
+        std::vector<std::array<int, 2>> dlt;
+        std::vector<int> moved;
+        std::vector<std::vector<int>> moved_saved;
+        auto unif = [&]() { return (rng() >> 11) * 0x1.0p-53; };
         for (int it = 0;; it++) {
-            if (iters > 0 ? it >= iters : ((it & 63) == 0 && elapsed_sec() >= t_end)) break;
+            if (iters > 0) {
+                if (it >= iters) break;
+                temp = kT0 * (1.0 - (double)it / iters);
+            } else if ((it & 63) == 0) {
+                double now = elapsed_sec();
+                if (now >= t_end) break;
+                temp = kT0 * std::max(0.0, (t_end - now) / std::max(1e-9, t_end - t_begin));
+            }
             climb_iters = it + 1;
             int x = rng() % U, y = rng() % U;
             int a = col[x], b = col[y];
@@ -646,17 +662,32 @@ struct Solver {
             int cxa = color_at(x, a), cyb = color_at(y, b);
             if (color_at(x, b) != cyb || color_at(y, a) != cxa) continue;
             double dmodel = holes_cost(x, b) + holes_cost(y, a) - holes_cost(x, a) - holes_cost(y, b);
-            // Proxy change: the targets of x and y (recomputed), and every target shallower than a
-            // or b (the sums of columns a and b change).
-            affected.clear();
+            const double na = colm[a].size(), nb = colm[b].size();
+            const int hi = std::max(a, b);
+            double dproxy = 0;
+            others.clear();
+            dlt.clear();
             for (int u = 0; u < P; u++) {
-                if (ucol[u] < 0) continue;
-                if (ucol[u] == x || ucol[u] == y || tcol(u) < std::max(a, b)) affected.push_back(u);
+                if (ucol[u] < 0 || ucol[u] == x || ucol[u] == y) continue;
+                int l = tcol(u);
+                if (l >= hi) continue;
+                int da = 0, db = 0;
+                if (a > l) da = gval(u, l, y, a) - gval(u, l, x, a);
+                if (b > l) db = gval(u, l, x, b) - gval(u, l, y, b);
+                if (da || db) {
+                    others.push_back(u);
+                    dlt.push_back({da, db});
+                    dproxy += da / na + db / nb;
+                }
             }
-            double before = 0;
-            for (int u : affected) before += proxy_u(u);
-            saved.resize(affected.size());
-            for (size_t i = 0; i < affected.size(); i++) saved[i] = colsum[affected[i]];
+            moved.clear();
+            for (int t : units[x]) if (t >= 0) moved.push_back(t);
+            for (int t : units[y]) if (t >= 0) moved.push_back(t);
+            moved_saved.resize(moved.size());
+            for (size_t i = 0; i < moved.size(); i++) {
+                dproxy -= proxy_u(moved[i]);
+                moved_saved[i] = colsum[moved[i]];
+            }
             auto apply = [&](int cx, int cy) {
                 auto& ma = colm[col[x]];
                 ma.erase(std::find(ma.begin(), ma.end(), x));
@@ -668,26 +699,21 @@ struct Solver {
                 colm[cy].push_back(y);
             };
             apply(b, a);
-            double after = 0;
-            for (int u : affected) {
-                if (ucol[u] == x || ucol[u] == y) {
-                    recompute_u(u);
-                } else {
-                    int l = tcol(u);
-                    for (int c : {a, b}) {
-                        colsum[u][c] = 0;
-                        if (c <= l) continue;
-                        for (int z : colm[c]) colsum[u][c] += gval(u, l, z, c);
-                    }
-                }
-                after += proxy_u(u);
+            for (int t : moved) {
+                recompute_u(t);
+                dproxy += proxy_u(t);
             }
-            if (dmodel - kW * (after - before) < -1e-9) {
+            double delta = dmodel - kW * dproxy;
+            if (delta < -1e-9 || (temp > 0 && std::exp(-delta / temp) > unif())) {
                 accepted++;
-                total_proxy += after - before;
+                total_proxy += dproxy;
+                for (size_t i = 0; i < others.size(); i++) {
+                    colsum[others[i]][a] += dlt[i][0];
+                    colsum[others[i]][b] += dlt[i][1];
+                }
             } else {
                 apply(a, b);
-                for (size_t i = 0; i < affected.size(); i++) colsum[affected[i]] = saved[i];
+                for (size_t i = 0; i < moved.size(); i++) colsum[moved[i]] = moved_saved[i];
             }
         }
         std::cerr << "climb_proxy_after = " << total_proxy / P << "\nclimb_accepted = " << accepted
