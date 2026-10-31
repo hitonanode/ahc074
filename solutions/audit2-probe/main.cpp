@@ -2646,12 +2646,20 @@ struct Solver {
                 }
             u64 gholes = d >= 0 ? (gmask & ~paper[d].opaque) : gmask;
             auto [bt, bbad] = touch(A[u], gholes);
+            // audit2: wanted orientation pattern of the touched blocks (bit b), and the touched set
+            u64 want_pat = 0, want_set = 0;
+            {
+                auto want = wanted_blocks(u, gholes);
+                for (int b = 0; b < (int)blocks.size(); b++)
+                    if (want[b] >= 0) want_set |= 1ULL << b, want_pat |= (u64)want[b] << b;
+            }
             std::array<int, 9> rc{};
             for (int x : best_roles) rc[x]++;
             std::cerr << "REQ " << req_no << ' ' << u << ' ' << d << ' ' << l << ' ' << n << ' ' << best_ops.size() << ' ' << best_pre
                       << ' ' << std::hex << holes << ' ' << mism << ' ' << best_fixed << std::dec << ' ' << bt;
             for (int x : rc) std::cerr << ' ' << x;
-            std::cerr << ' ' << best_opt.ret_mode << ' ' << best_opt.fret_mode << ' ' << best_pool_lift << '\n';
+            std::cerr << ' ' << best_opt.ret_mode << ' ' << best_opt.fret_mode << ' ' << best_pool_lift
+                      << ' ' << std::hex << want_set << ' ' << want_pat << std::dec << '\n';
             if (env_int("DBG_R", -1) == req_no) {
                 std::cerr << "roles:";
                 for (int x : best_roles) std::cerr << ' ' << x;
