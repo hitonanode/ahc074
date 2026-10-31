@@ -9,7 +9,7 @@
                                                                    # 複数の解法を seed ごとに続けて実行して比べる
     （そのほか --no-record）
 
-- 解法のソースを runs/<run-id>/src/ にコピーし、そのコピーをコンパイルして評価する。
+- 解法のソース（と solutions/<name>/README.md）を runs/<run-id>/src/ にコピーし、そのコピーをコンパイルして評価する。
 - 1 ケースごとに公式テスター (tools/target/release/tester) が解法を起動して対話する。解法の stdout を
   runs/<run-id>/out/<seed>.txt に、解法の stderr とテスターの判定（エラー文と "Score = ..."）を
   err/<seed>.txt に保存する。result.json にスコアと実行時間、meta.json にコメントや commit が入る。
@@ -47,6 +47,8 @@ import replay  # noqa: E402
 COMPILE_CMD = ["g++", "-std=c++23", "-O2"]
 CPP_SUFFIXES = {".cpp", ".cc", ".cxx"}
 SOURCE_SUFFIXES = CPP_SUFFIXES | {".hpp", ".hh", ".hxx", ".h", ".ipp", ".inc"}
+# The description that every solutions/<name>/ must have; saved with the sources.
+DESCRIPTION_FILE = "README.md"
 # The time limit of the problem. Cases above it are counted in the summary (the tester has no limit).
 TIME_LIMIT_SEC = 2.0
 SCORE_LINE = re.compile(r"(?m)^\s*Score\s*=\s*(\d+)\s*$")
@@ -131,12 +133,16 @@ def create_run_dir(runs_dir: Path, name: str) -> tuple[str, Path]:
 def snapshot_sources(src_root: Path, entry: Path, dest: Path, whole_dir: bool) -> Path:
     """Copies the sources to dest and returns the copied entry file.
 
-    For a directory, every source file under it is copied. For a single file, only that
-    file and the headers next to it are copied.
+    For a directory, every source file under it and its description (README.md) are copied.
+    For a single file, only that file and the headers next to it are copied.
     """
+    if whole_dir and not (src_root / DESCRIPTION_FILE).is_file():
+        print(f"[pahcer_run] 警告: {src_root / DESCRIPTION_FILE} がありません（解法の説明を書いてください）",
+              file=sys.stderr)
     files = src_root.rglob("*") if whole_dir else src_root.iterdir()
     for f in files:
-        if not f.is_file() or f.suffix not in SOURCE_SUFFIXES:
+        is_description = whole_dir and f == src_root / DESCRIPTION_FILE
+        if not f.is_file() or (f.suffix not in SOURCE_SUFFIXES and not is_description):
             continue
         if not whole_dir and f.suffix in CPP_SUFFIXES and f != entry:
             continue
