@@ -320,7 +320,8 @@ struct Solver {
         // nested), and windows are exchanged between blocks (hill climbing) to maximize the sum
         // over blocks of log(fraction of consistent target pairs): a pair must be consistent with
         // every block it touches, so the fraction of usable pairs is about the product.
-        // blk6: CB_NB blocks (default 6, of 5 windows for H = 34); CB_NB=0: G / CB_S rounded.
+        // blk6: CB_NB blocks (default 6: windows 6, 5, 5, 5, 5, 5 for H = 33); CB_NB=0: G / CB_S
+        // rounded as before.
         int s = env_int("CB_S", 6);
         int nb = env_int("CB_NB", 6) > 0 ? env_int("CB_NB", 6) : std::max(1, (G + s / 2) / s);
         {
