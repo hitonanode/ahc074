@@ -1,3 +1,25 @@
+// left-fast: solutions/audit2-blk with a faster annealing (same moves, same costs): a handle swap
+// scans only the units of the columns it changes (lists of the units per column) instead of every
+// unit, the temperature is recomputed every 256 iterations, and the acceptance test reads -log u
+// from a table instead of computing exp.
+// audit2-blk: solutions/audit2-ret whose generic layer is driven by a lookahead policy (set_blocks):
+// over the orders of the base paper and the flip papers (720 states for 5 blocks, legal moves of
+// visible papers only), the request takes a shortest path to a state showing the wanted
+// orientations, and among those end states the one with the least expected moves for the next
+// pair target (mean over the pair targets of the design of the distance to a satisfying state).
+// The second audit (solutions/audit2-probe/blk_sim.cpp, seed 0-11) measured the generic layer at
+// 1.235 moves per request with the former set_blocks, 1.21 with the lookahead and 1.19 with the
+// exact MDP policy: the former procedure is 0.02 above the per-request minimum and leaves the end
+// state arbitrary. A mixed orientation pattern on 5 touched blocks costs 2.5 moves, a uniform one
+// (all on or all off) 1.0; they are 94% / 6% of the pair requests.
+// audit2-ret: solutions/audit-mix with one more plan option (PlanOpt::fret_ret): in the plans that
+// re-use or keep the old fillers (fret_mode 3, 4, 5), the old fillers that do go back to their
+// column were always returned at the bottom; now plans with the hub7 rule (return_paper mode 0:
+// at the top when the handle of that column is a hole of the new paper whose current top shows the
+// wrong color and the returned paper the right one, else at the bottom) are tried too. The second
+// audit (audit2-probe) found about 60-80 requests per case where an old filler went back to the
+// bottom of a column that the same plan then dug as a handle fix, 12-28 of them with the fitting
+// color: one move each.
 // audit-mix: solutions/mix-pt with the fixes found by the audit of the best solutions: the peephole
 // merging two moves of one paper in a plan (merge_double_moves), no move to the same place, and the
 // previous lifted paper may stay under the new one (ret_mode 4 of run_plan; a paper lifted from the
@@ -552,6 +574,7 @@ struct Solver {
         for (auto& bl : blocks) bl.pf = new_id[bl.pf];
         base_paper = new_id[base_paper];
         std::iota(order.begin(), order.end(), 0);
+        build_block_tables();
         std::vector<std::string> rows(K);
         for (int k = 0; k < K; k++) {
             std::string str(N, '.');
@@ -949,8 +972,16 @@ struct Solver {
         std::cerr << "anneal_start_sec = " << elapsed_sec() << '\n';
         std::cerr << "model_cost_before = " << total_cost() << '\n';
         std::mt19937_64 rng(777);
-        auto rnd = [&](int n) { return (int)(rng() % n); };
+        // left-fast: a multiply-shift instead of a 64-bit modulo.
+        auto rnd = [&](int n) { return (int)(((unsigned __int128)rng() * (unsigned)n) >> 64); };
         auto unif = [&]() { return (rng() >> 11) * 0x1.0p-53; };
+        // left-fast: the annealing's acceptance test exp(-delta / T) < u is delta > T (-log u), with
+        // -log u read from a table of 65536 quantiles (no exp at each rejected move).
+        static std::vector<double> neglog;
+        if (neglog.empty()) {
+            neglog.resize(1 << 16);
+            for (int i = 0; i < (1 << 16); i++) neglog[i] = -std::log((i + 0.5) / (1 << 16));
+        }
         const int iters = env_int("HUB_ANNEAL", 0);  // 0: time-bounded
         std::vector<int> env_types;
         {
@@ -958,20 +989,32 @@ struct Solver {
             for (int t = 0; t < 4; t++) if (mask >> t & 1) env_types.push_back(t);
         }
         const double handle_swap_rate = env_double("HUB_HSWAP", 0.05);
-        const double kHswapEnd = env_double("HSWAP_END", 0.6);  // <= 0: the former rates
         const double yflip_rate = env_double("CB_YFLIP", 0.05);
         const double wmove_rate = env_double("CB_WMOVE", 0.0);  // not effective (seed 100-195), off
         const int min_block = env_int("CB_MINB", 2);
         const double t0 = env_double("HUB_T0", 3.0), t1 = 0.05;
+        // left-fast: the units of each column (mem, with the position of each unit in its list),
+        // kept by remove_unit / add_unit, so that a handle swap only scans the columns it changes.
+        std::vector<std::vector<int>> mem(H);
+        std::vector<int> mpos(U, -1);
+        for (int x = 0; x < U; x++)
+            if (col[x] >= 0) mpos[x] = mem[col[x]].size(), mem[col[x]].push_back(x);
         auto remove_unit = [&](int x) {
             int l = col[x], c = color_at(x, l);
             (c ? cnt1 : cnt0)[l]--;
             tgt[l] -= units[x][1] >= 0 ? 2 : 1;
+            auto& v = mem[l];
+            int last = v.back();
+            v[mpos[x]] = last;
+            mpos[last] = mpos[x];
+            v.pop_back();
         };
         auto add_unit = [&](int x) {
             int l = col[x], c = color_at(x, l);
             (c ? cnt1 : cnt0)[l]++;
             tgt[l] += units[x][1] >= 0 ? 2 : 1;
+            mpos[x] = mem[l].size();
+            mem[l].push_back(x);
         };
         [[maybe_unused]] auto pairs_agree_in = [&](int l) {  // every pair of column l agrees at its handle
             for (int x = 0; x < U; x++) {
@@ -984,6 +1027,7 @@ struct Solver {
             std::fill(cnt0.begin(), cnt0.end(), 0);
             std::fill(cnt1.begin(), cnt1.end(), 0);
             std::fill(tgt.begin(), tgt.end(), 0);
+            for (auto& v : mem) v.clear();
             for (int x = 0; x < U; x++) if (col[x] >= 0) add_unit(x);
         };
         double cur_total = total_cost() * P;
@@ -991,7 +1035,7 @@ struct Solver {
         double max_drift = 0;
         const double t_begin = elapsed_sec(), t_end = env_double("HUB_TL", 1.1);
         double progress = 0, temp = t0;
-        std::array<long long, 10> hs_try{}, hs_valid{}, hs_acc{};
+        auto reject = [&](double delta) { return delta > 0 && delta > temp * neglog[rng() >> 48]; };
         long long anneal_iters = 0;
         // Targeted re-pairing: from progress kTgtStart on, Y is frozen and the exchange move takes
         // the new partner of a pair's target among its consistent partners (most random exchanges
@@ -1012,8 +1056,7 @@ struct Solver {
                     for (int w = 0; w < P; w++)
                         if (w != u && touch(A[u], A[u] ^ A[w]).second == 0) partners[u].push_back(w);
             }
-            // left-fast: the temperature is recomputed only when the progress is (every 256
-            // iterations; std::pow at every iteration took about a fifth of the iteration time).
+            // left-fast: the temperature is recomputed only with the progress (every 256 iterations).
             if (iters > 0) {
                 if (it >= iters) break;
                 if ((it & 255) == 0) {
@@ -1034,19 +1077,7 @@ struct Solver {
                 cur_total = total_cost() * P;  // the weights changed
             }
             double r = unif();
-            // left-fast: a handle swap scans every unit (about half of the annealing time at a 10%
-            // rate) and is almost never accepted late (seed 0, 10M iterations: 532 / 712 / 386 /
-            // 146 / 80 accepted per tenth of the annealing, then fewer, 0 in the last fifth). Its
-            // rate decays linearly to 0 at progress kHswapEnd, and once Y is frozen the share of
-            // the block color flips goes to the unit moves (it went to the handle swaps).
-            if (kHswapEnd > 0) {
-                if (targeted && r < yflip_rate) r = yflip_rate + wmove_rate + handle_swap_rate + r;  // unit moves
-                else if (r >= yflip_rate + wmove_rate && r < yflip_rate + wmove_rate + handle_swap_rate &&
-                         (r - yflip_rate - wmove_rate) >= handle_swap_rate * std::max(0.0, 1 - progress / kHswapEnd))
-                    r = yflip_rate + wmove_rate + handle_swap_rate;  // unit moves
-            } else if (targeted && r < yflip_rate) {
-                r += yflip_rate + wmove_rate;  // Y is frozen
-            }
+            if (targeted && r < yflip_rate) r += yflip_rate + wmove_rate;  // Y is frozen
             if (r < yflip_rate) {
                 // Flip one color of a block (changes which pairs are consistent with it).
                 int b = rnd((int)blocks.size());
@@ -1058,7 +1089,7 @@ struct Solver {
                 blocks[b].y ^= bit;
                 double after = total_cost() * P;
                 double delta = after - cur_total;
-                if (delta > 0 && std::exp(-delta / temp) < unif()) blocks[b].y ^= bit;
+                if (reject(delta)) blocks[b].y ^= bit;
                 else cur_total = after;
                 continue;
             }
@@ -1100,7 +1131,7 @@ struct Solver {
                 }
                 double after = total_cost() * P;
                 double delta = after - cur_total;
-                if (delta > 0 && std::exp(-delta / temp) < unif()) {
+                if (reject(delta)) {
                     blocks[b1] = saved1;
                     blocks[b2] = saved2;
                 } else {
@@ -1116,20 +1147,35 @@ struct Solver {
                 // colors at their handles): computed incrementally, the tables are updated only
                 // when the swap is accepted.
                 int a = rnd(H), b = rnd(H);
-                hs_try[std::min(9, (int)(progress * 10))]++;
                 if (a == b) continue;
                 if (a > b) std::swap(a, b);
                 // One pass over the units of the columns a..b: hole cost change dh, and the colors
                 // of the units of columns a and b at their new handles (a takes the window of b
                 // and vice versa; a pair must agree there).
+                // left-fast: the validity and the colors first, on the units of columns a and b only
+                // (most swaps break the agreement of a pair; the full scan of every unit for each
+                // attempt took about half of the annealing time), then dh on the columns a..b-1.
                 double dh = 0;
                 int n0a = 0, n1a = 0, n0b = 0, n1b = 0;
                 bool ok = true;
-                for (int x = 0; x < U && ok; x++) {
-                    int l = col[x];
-                    if (l < a || l > b) continue;
-                    auto [u, v] = units[x];
-                    if (l < b) {
+                for (int l : {a, b}) {
+                    const int pos = l == a ? b : a;  // position of the new handle window of l
+                    for (int x : mem[l]) {
+                        auto [u, v] = units[x];
+                        if (v >= 0 && ((hb[u] ^ hb[v]) >> pos & 1)) {
+                            ok = false;
+                            break;
+                        }
+                        int c = hb[u] >> pos & 1;
+                        if (l == a) (c ? n1a : n0a)++;
+                        else (c ? n1b : n0b)++;
+                    }
+                    if (!ok) break;
+                }
+                if (!ok) continue;
+                for (int l = a; l < b; l++)
+                    for (int x : mem[l]) {
+                        auto [u, v] = units[x];
                         for (int t : {u, v}) {
                             if (t < 0) continue;
                             dh += wcol[a][hb[t] >> a & 1] - wcol[b][hb[t] >> b & 1];
@@ -1140,26 +1186,15 @@ struct Solver {
                             if (df >> a & 1) dh -= wcol[a][0] + wcol[a][1];
                         }
                     }
-                    if (l == a || l == b) {
-                        int pos = l == a ? b : a;  // position of the new handle window of l
-                        if (v >= 0 && ((hb[u] ^ hb[v]) >> pos & 1)) ok = false;
-                        int c = hb[u] >> pos & 1;
-                        if (l == a) (c ? n1a : n0a)++;
-                        else (c ? n1b : n0b)++;
-                    }
-                }
-                if (!ok) continue;
                 double before_cols = col_cost(a) + col_cost(b);
                 std::swap(handle[a], handle[b]);
                 int s0a = cnt0[a], s1a = cnt1[a], s0b = cnt0[b], s1b = cnt1[b];
                 cnt0[a] = n0a, cnt1[a] = n1a, cnt0[b] = n0b, cnt1[b] = n1b;
                 double delta = kHandleHole * dh + col_cost(a) + col_cost(b) - before_cols;
-                hs_valid[std::min(9, (int)(progress * 10))]++;
-                if (delta > 0 && std::exp(-delta / temp) < unif()) {
+                if (reject(delta)) {
                     std::swap(handle[a], handle[b]);
                     cnt0[a] = s0a, cnt1[a] = s1a, cnt0[b] = s0b, cnt1[b] = s1b;
                 } else {
-                    hs_acc[std::min(9, (int)(progress * 10))]++;
                     cur_total += delta;
                     std::swap(wcol[a], wcol[b]);
                     swap_tables(a, b);
@@ -1191,7 +1226,7 @@ struct Solver {
                 double after = unit_cost(units[x][0], units[x][1], l2) +
                                unit_cost(units[y][0], units[y][1], l2) + col_cost(l1) + col_cost(l2);
                 double delta = after - before;
-                if (delta > 0 && std::exp(-delta / temp) < unif()) {
+                if (reject(delta)) {
                     remove_unit(x);
                     remove_unit(y);
                     col[x] = col[y] = l1;
@@ -1211,7 +1246,7 @@ struct Solver {
                 add_unit(x);
                 double after = unit_cost(units[x][0], units[x][1], l2) + col_cost(l1) + col_cost(l2);
                 double delta = after - before;
-                if (delta > 0 && std::exp(-delta / temp) < unif()) {
+                if (reject(delta)) {
                     remove_unit(x);
                     col[x] = l1;
                     add_unit(x);
@@ -1234,7 +1269,7 @@ struct Solver {
                 double after = unit_cost(units[x][0], units[x][1], ly) +
                                unit_cost(units[y][0], units[y][1], lx) + col_cost(lx) + col_cost(ly);
                 double delta = after - before;
-                if (delta > 0 && std::exp(-delta / temp) < unif()) {
+                if (reject(delta)) {
                     remove_unit(x);
                     remove_unit(y);
                     col[x] = lx;
@@ -1280,7 +1315,7 @@ struct Solver {
                 double after = unit_cost(nx[0], nx[1], lx) + unit_cost(ny[0], ny[1], ly) +
                                col_cost(lx) + (lx != ly ? col_cost(ly) : 0);
                 double delta = after - before;
-                if (delta > 0 && std::exp(-delta / temp) < unif()) {
+                if (reject(delta)) {
                     remove_unit(x);
                     remove_unit(y);
                     units[x] = ox;
@@ -1343,7 +1378,6 @@ struct Solver {
         }
         if (bias_debug) std::cerr << "bias_max_drift = " << max_drift << '\n';
         std::cerr << "repaired_pairs = " << repaired << '\n';
-        for (int i = 0; i < 10; i++) std::cerr << "hswap_" << i << " = " << hs_try[i] << ' ' << hs_valid[i] << ' ' << hs_acc[i] << '\n';
         std::cerr << "anneal_iters = " << anneal_iters << '\n';
         std::cerr << "model_cost_after = " << total_cost() << '\n';
         std::cerr << "anneal_end_sec = " << elapsed_sec() << '\n';
@@ -1458,8 +1492,199 @@ struct Solver {
         }
         return 0;
     }
+    // audit2-blk: lookahead policy for the generic layer (see the header comment). Local paper
+    // index 0 = base, 1 + b = flip paper of block b; a state is their order (top first), encoded in
+    // base 6 (nb <= 5, 6 papers; otherwise the former procedure is used).
+    bool blk_ok = false;
+    std::vector<int> blk_paper;                 // local index -> paper id
+    std::vector<std::array<int8_t, 6>> blk_st;  // states
+    std::vector<int> blk_code;                  // base-6 code -> state index (-1)
+    std::vector<int16_t> blk_dist;              // [s * S + t] moves from s to t
+    std::vector<int16_t> blk_nxt;               // [s * S + t] first move on a shortest path: paper local index * 8 + depth
+    std::vector<double> blk_v;                  // expected moves of the next pair target from s
+    std::vector<std::vector<int>> blk_sat;      // satisfying states per want code (3^nb), filled lazily
+    std::vector<char> blk_sat_done;
+    int blk_S = 0;
+    long long stat_blk_policy = 0, stat_blk_fallback = 0;
+    const bool kBlkPolicy = env_int("BLK_POLICY", 1) != 0;
+    int blk_encode(const std::array<int8_t, 6>& o, int n) const {
+        int c = 0;
+        for (int i = n - 1; i >= 0; i--) c = c * 6 + o[i];
+        return c;
+    }
+    bool blk_visible(const std::array<int8_t, 6>& o, int n, int pos) const {
+        int k = o[pos];
+        if (k == 0) {  // base: visible iff some flip is below it
+            for (int i = pos + 1; i < n; i++) if (o[i] != 0) return true;
+            return false;
+        }
+        for (int i = 0; i < pos; i++) if (o[i] == 0) return false;  // a flip below the base is hidden
+        return true;
+    }
+    int blk_orient(const std::array<int8_t, 6>& o, int n, int b) const {  // 1 iff flip b above the base
+        for (int i = 0; i < n; i++) {
+            if (o[i] == 1 + b) return 1;
+            if (o[i] == 0) return 0;
+        }
+        return 0;
+    }
+    int blk_want_code(const std::vector<int>& want) const {
+        int c = 0;
+        for (int b = (int)want.size() - 1; b >= 0; b--) c = c * 3 + (want[b] + 1);
+        return c;
+    }
+    bool blk_sat_state(int s, const std::vector<int>& want) const {
+        int n = blocks.size() + 1;
+        for (int b = 0; b < (int)want.size(); b++)
+            if (want[b] >= 0 && blk_orient(blk_st[s], n, b) != want[b]) return false;
+        return true;
+    }
+    const std::vector<int>& blk_sat_list(const std::vector<int>& want) {
+        int c = blk_want_code(want);
+        if (!blk_sat_done[c]) {
+            blk_sat_done[c] = 1;
+            for (int s = 0; s < blk_S; s++) if (blk_sat_state(s, want)) blk_sat[c].push_back(s);
+        }
+        return blk_sat[c];
+    }
+    void build_block_tables() {
+        int nb = blocks.size(), n = nb + 1;
+        if (!kBlkPolicy || nb < 1 || nb > 5) return;
+        blk_paper.assign(n, -1);
+        blk_paper[0] = base_paper;
+        for (int b = 0; b < nb; b++) blk_paper[1 + b] = blocks[b].pf;
+        std::array<int8_t, 6> o{};
+        for (int i = 0; i < n; i++) o[i] = i;
+        int pw = 1;
+        for (int i = 0; i < n; i++) pw *= 6;
+        blk_code.assign(pw, -1);
+        do {
+            blk_code[blk_encode(o, n)] = blk_st.size();
+            blk_st.push_back(o);
+        } while (std::next_permutation(o.begin(), o.begin() + n));
+        blk_S = blk_st.size();
+        const int S = blk_S;
+        // Legal moves: (next state, paper local index, depth)
+        std::vector<std::vector<std::array<int, 3>>> adj(S);
+        std::vector<std::vector<int>> radj(S);
+        for (int s = 0; s < S; s++) {
+            const auto& st = blk_st[s];
+            for (int i = 0; i < n; i++) {
+                if (!blk_visible(st, n, i)) continue;
+                for (int d = 0; d < n; d++) {
+                    if (d == i) continue;
+                    auto o2 = st;
+                    int k = o2[i];
+                    for (int j = i; j + 1 < n; j++) o2[j] = o2[j + 1];
+                    for (int j = n - 1; j > d; j--) o2[j] = o2[j - 1];
+                    o2[d] = k;
+                    int t = blk_code[blk_encode(o2, n)];
+                    adj[s].push_back({t, k, d});
+                    radj[t].push_back(s);
+                }
+            }
+        }
+        blk_dist.assign((size_t)S * S, 1000);
+        blk_nxt.assign((size_t)S * S, -1);
+        std::vector<int> q;
+        for (int s = 0; s < S; s++) {
+            // BFS from s; nxt[s][t] = the first move of the path found (parents propagate it).
+            int16_t* ds = &blk_dist[(size_t)s * S];
+            int16_t* nx = &blk_nxt[(size_t)s * S];
+            q.assign(1, s);
+            ds[s] = 0;
+            for (size_t h = 0; h < q.size(); h++) {
+                int x = q[h];
+                for (auto [t, k, d] : adj[x]) {
+                    if (ds[t] <= ds[x] + 1) continue;
+                    ds[t] = ds[x] + 1;
+                    nx[t] = x == s ? (int16_t)(k * 8 + d) : nx[x];
+                    q.push_back(t);
+                }
+            }
+        }
+        // Wants of the pair targets, their satisfying states and distances (backward BFS), V.
+        int W3 = 1;
+        for (int b = 0; b < nb; b++) W3 *= 3;
+        blk_sat.assign(W3, {});
+        blk_sat_done.assign(W3, 0);
+        blk_v.assign(S, 0.0);
+        std::vector<int> wcount(W3, 0);
+        int npair = 0;
+        for (int u = 0; u < P; u++) {
+            int D = ded[u];
+            if (D < 0) continue;
+            u64 gh = gmask & ~paper[D].opaque;
+            if (!gh) continue;
+            wcount[blk_want_code(wanted_blocks(u, gh))]++;
+            npair++;
+        }
+        std::vector<int> dsat(S);
+        for (int c = 0; c < W3 && npair > 0; c++) {
+            if (!wcount[c]) continue;
+            std::vector<int> want(nb);
+            for (int b = 0, x = c; b < nb; b++, x /= 3) want[b] = x % 3 - 1;
+            const auto& sl = blk_sat_list(want);
+            std::fill(dsat.begin(), dsat.end(), 1000);
+            q.clear();
+            for (int s : sl) dsat[s] = 0, q.push_back(s);
+            for (size_t h = 0; h < q.size(); h++) {
+                int x = q[h];
+                for (int p : radj[x])
+                    if (dsat[p] > dsat[x] + 1) dsat[p] = dsat[x] + 1, q.push_back(p);
+            }
+            for (int s = 0; s < S; s++) blk_v[s] += (double)wcount[c] * dsat[s] / npair;
+        }
+        blk_ok = true;
+        std::cerr << "blk_states = " << S << "\nblk_build_sec = " << elapsed_sec() << '\n';
+    }
     // Sets block b to orientation want[b] for every b with want[b] >= 0 (others are free).
     void set_blocks(const std::vector<int>& want) {
+        int nb = blocks.size();
+        if (blk_ok) {
+            // The policy applies when the generic papers are the top of the stack (the lifted paper
+            // of the previous request is back or set aside); otherwise the former procedure.
+            int n = nb + 1;
+            std::array<int8_t, 6> o{};
+            bool top = true;
+            for (int i = 0; i < n && top; i++) {
+                int k = order[i];
+                int li = k == base_paper ? 0 : (block_of[k] >= 0 && block_of[k] < nb ? 1 + block_of[k] : -1);
+                if (li < 0) top = false;
+                else o[i] = li;
+            }
+            if (top) {
+                int s = blk_code[blk_encode(o, n)];
+                const auto& sl = blk_sat_list(want);
+                int best = -1;
+                for (int t : sl) {
+                    if (best < 0) { best = t; continue; }
+                    int16_t dt = blk_dist[(size_t)s * blk_S + t], db = blk_dist[(size_t)s * blk_S + best];
+                    if (dt < db || (dt == db && blk_v[t] < blk_v[best] - 1e-12)) best = t;
+                }
+                if (best >= 0 && blk_dist[(size_t)s * blk_S + best] < 1000) {
+                    stat_blk_policy++;
+                    while (s != best) {
+                        int mv = blk_nxt[(size_t)s * blk_S + best];
+                        int k = mv / 8, d = mv % 8;
+                        move(blk_paper[k], d);
+                        // follow the state
+                        auto o2 = blk_st[s];
+                        int i = 0;
+                        while (o2[i] != k) i++;
+                        for (int j = i; j + 1 < n; j++) o2[j] = o2[j + 1];
+                        for (int j = n - 1; j > d; j--) o2[j] = o2[j - 1];
+                        o2[d] = k;
+                        s = blk_code[blk_encode(o2, n)];
+                    }
+                    return;
+                }
+            }
+            stat_blk_fallback++;
+        }
+        set_blocks_old(want);
+    }
+    void set_blocks_old(const std::vector<int>& want) {
         int nb = blocks.size();
         // One move of the base, to just below the deepest flip paper that must be on (or to the
         // very top if none must be on), or no base move if every flip paper that must be on is
@@ -1592,6 +1817,7 @@ struct Solver {
         int fret_mode = 0;      // return of the previous fillers taken from the column tops
         bool use_filler = false;
         bool keep = false;      // the previous top paper is also the paper of u (a pair): keep it
+        int fret_ret = 1;       // audit2-ret: return_paper mode of the old fillers not re-used (fret_mode 3-5)
     };
 
     // After D (target u) is lifted: the column top X of a column c whose handle is a hole of D,
@@ -2122,7 +2348,7 @@ struct Solver {
         std::vector<char> done(olds.size(), 0);
         for (int i = (int)olds.size() - 1; i >= 0; i--) {
             if (old_dec[i] != 0 || !visible(olds[i].paper)) continue;
-            return_paper(olds[i].paper, u, 1);
+            return_paper(olds[i].paper, u, opt.fret_ret);
             done[i] = 1;
         }
         if (x0 >= 0) {
@@ -2139,7 +2365,7 @@ struct Solver {
             }
         }
         for (int i = (int)olds.size() - 1; i >= 0; i--)
-            if (old_dec[i] == 0 && !done[i]) return_paper(olds[i].paper, u, 1);
+            if (old_dec[i] == 0 && !done[i]) return_paper(olds[i].paper, u, opt.fret_ret);
         for (int i = 0; i < (int)olds.size(); i++) {
             if (old_dec[i] == 0) continue;
             int x = olds[i].paper;
@@ -2230,7 +2456,7 @@ struct Solver {
             }
             pre_cov |= cov0;
             if (opt.fret_mode >= 3) {
-                refill_or_return(u, vis_old, all, pre_cov, placed, 1);
+                refill_or_return(u, vis_old, all, pre_cov, placed, opt.fret_ret);
             } else {
                 for (int i = (int)vis_old.size() - 1; i >= 0; i--) return_paper(vis_old[i].paper, u, opt.fret_mode);
             }
@@ -2248,7 +2474,7 @@ struct Solver {
             top_d = -1;
             top_pred = -1;
             if (opt.fret_mode >= 3) {
-                refill_or_return(u, def_old, all, pre_cov, placed, 1);
+                refill_or_return(u, def_old, all, pre_cov, placed, opt.fret_ret);
             } else {
                 for (int i = (int)def_old.size() - 1; i >= 0; i--) return_paper(def_old[i].paper, u, opt.fret_mode);
             }
@@ -2257,7 +2483,7 @@ struct Solver {
         } else if (opt.fret_mode >= 3) {
             if (top_d >= 0 && !kept) return_paper(top_d, u, opt.ret_mode);
             std::vector<Filler> old = fillers, placed;
-            refill_or_return(u, old, all, pre_cov, placed, 1);
+            refill_or_return(u, old, all, pre_cov, placed, opt.fret_ret);
             for (auto& f : placed) fillers.push_back(f);
         } else {
             if (top_d >= 0 && !kept) return_paper(top_d, u, opt.ret_mode);
@@ -2397,6 +2623,8 @@ struct Solver {
     long long stat_joint = 0, stat_pool_lift = 0;
     long long stat_pred_out = 0, stat_stay = 0, stat_stay_try = 0;
     const bool kPrevStay = env_int("PREV_STAY", 1) != 0;
+    const bool kFretRule = env_int("FRET_RULE", 1) != 0;  // audit2-ret
+    long long stat_fret_rule = 0;
     long long stat_kept = 0, stat_fill = 0, stat_level_fill = 0, stat_prev_fill_try = 0, stat_prev_fill = 0,
               stat_refill_try = 0, stat_refill = 0;
     // Probe (BIAS_PROBE=1): at the start of a request, how many handle holes of the target's
@@ -2538,20 +2766,28 @@ struct Solver {
             bool has_free_filler = false;  // a filler that goes back to the top or the bottom
             for (auto& f : fillers) has_free_filler |= f.pred < 0;
             bool prev_ok = top0 >= 0 && ded[u] >= 0 && ded[u] != top0 && prev_filler;
+            // audit2-ret: the old fillers not re-used go back at the bottom (fret_ret 1) or by the
+            // hub7 rule (0); only with a free filler (one taken from a column top), as the others go
+            // back below their predecessor whatever the mode.
+            std::vector<int> frets = {1};
+            if (kFretRule && has_free_filler) frets.push_back(0);
             for (int rm = 1; rm <= (prev_ok ? 3 : 2); rm++)
                 for (int fm : {1, 2, 3, 4})
                     for (int uf = env_int("UF_MIN", 1); uf < 2; uf++)  // plans without fillers are never better
                         for (int kp = 0; kp < ((top0 >= 0 && ded[u] == top0) ? 2 : 1); kp++)
-                            if ((fm == 2 && !has_free_filler) || (fm >= 3 && (!refill || fillers.empty())) || (fm == 4 && !keep_harmless))
-                                continue;
-                            else
-                                opts.push_back(PlanOpt{rm, fm, uf == 1, kp == 1});
+                            for (int fr : (fm >= 3 ? frets : std::vector<int>{1}))
+                                if ((fm == 2 && !has_free_filler) || (fm >= 3 && (!refill || fillers.empty())) || (fm == 4 && !keep_harmless))
+                                    continue;
+                                else
+                                    opts.push_back(PlanOpt{rm, fm, uf == 1, kp == 1, fr});
             if (joint_on && ded[u] >= 0 && ded[u] != top0)
-                for (int rm = 1; rm <= 2; rm++) opts.push_back(PlanOpt{rm, 5, true, false});
+                for (int rm = 1; rm <= 2; rm++)
+                    for (int fr : frets) opts.push_back(PlanOpt{rm, 5, true, false, fr});
             if (prev_ok && kPrevStay)  // audit-stay: the previous paper stays under the new one
                 for (int fm : {1, 2, 3, 4})
-                    if (!((fm == 2 && !has_free_filler) || (fm >= 3 && (!refill || fillers.empty())) || (fm == 4 && !keep_harmless)))
-                        opts.push_back(PlanOpt{4, fm, true, false});
+                    for (int fr : (fm >= 3 ? frets : std::vector<int>{1}))
+                        if (!((fm == 2 && !has_free_filler) || (fm >= 3 && (!refill || fillers.empty())) || (fm == 4 && !keep_harmless)))
+                            opts.push_back(PlanOpt{4, fm, true, false, fr});
         }
         double best = 1e18;
         std::vector<std::pair<int, int>> best_ops;
@@ -2587,6 +2823,7 @@ struct Solver {
         }
         restore(best_state);
         stat_stay += best_opt.ret_mode == 4;
+        stat_fret_rule += best_opt.fret_ret == 0;
         ops = best_ops;
         stat_kept += best_opt.keep && top0 >= 0 && ded[u] == top0;
         stat_prev_fill += best_opt.ret_mode == 3;
@@ -2652,6 +2889,8 @@ int main() {
     std::cerr << "pred_out_returns = " << solver.stat_pred_out << '\n';
     std::cerr << "joint_plans_used = " << solver.stat_joint << '\n';
     std::cerr << "pool_lifts = " << solver.stat_pool_lift << '\n';
+    std::cerr << "fret_rule_used = " << solver.stat_fret_rule << '\n';
+    std::cerr << "blk_policy = " << solver.stat_blk_policy << "\nblk_fallback = " << solver.stat_blk_fallback << '\n';
     std::cerr << "total_moves = " << total << '\n';
     return 0;
 }
