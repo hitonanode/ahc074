@@ -1868,6 +1868,7 @@ struct Solver {
     bool refill = env_int("REFILL", 1) != 0;
     long long stat_pred_out = 0, stat_stay = 0, stat_stay_try = 0;
     const bool kPrevStay = env_int("PREV_STAY", 1) != 0;
+    const double kStayExtra = env_double("STAY_EXTRA", 0.0);
     long long stat_kept = 0, stat_fill = 0, stat_level_fill = 0, stat_prev_fill_try = 0, stat_prev_fill = 0,
               stat_refill_try = 0, stat_refill = 0;
     // Probe (BIAS_PROBE=1): at the start of a request, how many handle holes of the target's
@@ -2033,6 +2034,12 @@ struct Solver {
             // A filler left out costs its return later, but is often re-used (refill) instead,
             // so it is charged less than a move now (seed 0-95: 1.0 -> 0.8 is -0.48%).
             double cost = ops.size() + kFillerCharge * fillers.size() + kTopValue * tops_penalty();
+            if (kStayExtra != 0) {  // experiment: papers left out above the generic layer
+                for (int k : order) {
+                    if (k == base_paper) break;
+                    if (is_filler(k)) cost += kStayExtra;
+                }
+            }
             if (cost < best) {
                 best = cost;
                 best_ops = ops;
