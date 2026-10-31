@@ -3,7 +3,8 @@
 // top of column c' covers only the handles h_{c'}..h_c), chosen by an interval DP before the paper
 // D is lifted (shallower columns too), the previous lifted paper and the previous fillers re-used
 // as fillers or left in place when harmless, papers left out charged 0.8 move in the plan cost,
-// plans kept only if every paper left out stays visible, annealing until 1.10 s.
+// plans kept only if every paper left out stays visible, annealing until 1.10 s; a filler is taken
+// when it saves at least 2 + depth digs (kFillerCost).
 // gen-relax: solutions/search-bf2 with more pairs consistent with the blocks, so that larger
 // blocks (6 windows) and fewer handles (34) can be used:
 //   - Before the annealing, the G windows, their partition into blocks and the block colors Y_b are
@@ -1184,7 +1185,7 @@ struct Solver {
                 int save = 0;
                 for (int j = lvl; j <= c; j++)
                     if ((j != c || depth) && (shown >> handle[j] & 1)) save += fix[j];
-                int gain = save - 2 - depth;
+                int gain = save - kFillerCost - depth;
                 if (gain > best) {
                     best = gain;
                     bc = {c, depth, lvl};
@@ -1232,7 +1233,7 @@ struct Solver {
                 int save = 0;
                 for (int j = lvl; j <= c; j++)
                     if ((j != c || depth) && (shown >> handle[j] & 1)) save += fix[j];
-                int gain = save - 2 - depth;
+                int gain = save - kFillerCost - depth;
                 if (gain > 0) cand_end[c].push_back({lvl, gain, depth});
             }
         }
@@ -1315,7 +1316,7 @@ struct Solver {
                 int save = 0;
                 for (int j = lvl; j <= c; j++)
                     if ((shown >> handle[j] & 1) && (j != c || depth || !hole_c)) save += fix[j];
-                int gain = save - 2 - depth;
+                int gain = save - kFillerCost - depth;
                 if (gain > 0) cand_end[c].push_back({lvl, gain, depth, post ? 1 : 0});
             }
         }
@@ -1492,6 +1493,10 @@ struct Solver {
     bool filler_dp = env_int("FILLER_DP", 1) != 0;
     bool prelift = env_int("PRELIFT", 1) != 0;
     double kFillerCharge = env_double("FILL_W", 0.8);
+    // A filler from a column costs 1 move (+ depth) now and is charged at most 1 more for its return,
+    // but papers left out are usually re-used or left in place: one that saves 2 + depth digs is
+    // worth taking (2 instead of 3 + depth: seed 0-95 -1.48%, 96-191 -1.45%; 1 + depth: +6%).
+    int kFillerCost = env_int("FILL_COST", 1);
     bool keep_harmless = env_int("KEEP_HARMLESS", 1) != 0;
     bool keep_harmless_now = false;
     void run_plan(int u, const PlanOpt& opt) {
