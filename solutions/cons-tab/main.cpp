@@ -346,7 +346,7 @@ struct Solver {
             for (auto& bl : blocks) gmask |= bl.mask;
         }
         int next = nb + 1;  // generic papers are created after the annealing (Y_b changes)
-        int n_ded = K - next;
+        int n_ded = K - next - env_int("SPARE", 0);  // SPARE: papers left all holes (measures a paper's value)
         // Column sizes: c_l proportional to (1 + slope * l), rounded to even numbers.
         std::vector<double> w(H);
         for (int l = 0; l < H; l++) w[l] = std::max(0.0, 1.0 + slope * l);
@@ -945,7 +945,7 @@ struct Solver {
         // on, measured on left-ap (solutions/cons-probe, CONS_DIAG=3, seed 0-23); a pair (u, v)
         // with k blocks on for u (t - k for v) costs kBlkTab[t][k] + kBlkTab[t][t - k] for its two
         // targets. kBlock per touched block (the former model) charged 2.5 to every 5-block request.
-        const bool kBlkTable = env_int("BLK_TABLE", 1) != 0;
+        const bool kBlkTable = env_int("BLK_TABLE", 1) != 0, kBlkTab6 = env_int("BLK_TAB6", 0) != 0;
         static const double kBlkTab[6][6] = {{0, 0, 0, 0, 0, 0},
                                              {0.5, 0.5, 0, 0, 0, 0},
                                              {1.06, 1.40, 0.87, 0, 0, 0},
@@ -967,7 +967,20 @@ struct Solver {
                         if (x != 0 && x != d) bad++;
                         if (__builtin_popcountll(x) * 2 > __builtin_popcountll(d)) on++;  // wanted_blocks
                     }
-                    c += (t <= 5 ? kBlkTab[t][on] + kBlkTab[t][t - on] : targets * kBlock * t) + targets * kIncons * bad;
+                    if (kBlkTab6) {
+                        // Experiment (BLK_TAB6=1): the table measured with 6 blocks of 5 windows
+                        // and the former set_blocks procedure (nb > 5 has no lookahead policy).
+                        static const double kT6[7][7] = {{0, 0, 0, 0, 0, 0, 0},
+                                                         {0.5, 0.5, 0, 0, 0, 0, 0},
+                                                         {1.00, 1.40, 0.75, 0, 0, 0, 0},
+                                                         {1.00, 1.79, 1.24, 0.89, 0, 0, 0},
+                                                         {0.95, 2.32, 2.13, 1.64, 0.92, 0, 0},
+                                                         {1.04, 2.89, 2.86, 2.39, 1.72, 0.97, 0},
+                                                         {0.97, 3.40, 3.54, 3.14, 2.53, 1.82, 0.98}};
+                        c += (t <= 6 ? kT6[t][on] + kT6[t][t - on] : targets * kBlock * t) + targets * kIncons * bad;
+                    } else {
+                        c += (t <= 5 ? kBlkTab[t][on] + kBlkTab[t][t - on] : targets * kBlock * t) + targets * kIncons * bad;
+                    }
                 } else {
                     auto [t, bad] = touch(A[u], diff);
                     c += targets * (kBlock * t + kIncons * bad);
