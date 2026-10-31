@@ -434,6 +434,14 @@ struct Solver {
             csize[l]--;
             tot--;
         }
+        // blk6: with 7 generic papers the dedicated papers are odd (185) and the unit left over
+        // used to join the deepest column that fits, whose handle is a hole of almost every lifted
+        // paper (an odd column breaks the color alternation of its top). Column ODD_COL (default 0)
+        // takes it instead: h_0 is a hole of a lifted paper only for a pair differing there.
+        if (const int oc = env_int("ODD_COL", 0); tot < n_ded && oc >= 0 && oc < H) {
+            csize[oc] += n_ded - tot;
+            tot = n_ded;
+        }
         // Units: every target must be covered (the generic layer cannot show arbitrary patterns),
         // so exactly P - n_ded pairs. Greedy by (inconsistent blocks, distance), then the leftover
         // singles are paired arbitrarily; the annealing repairs inconsistent pairs.
@@ -3701,8 +3709,8 @@ struct Solver {
     // Probe (WCOST_PROBE=1): generic moves of the chosen plan against the simulated want cost of
     // the request, by (touched blocks, wanted on).
     std::vector<double> final_wcost;
-    double wp_res[6][6] = {}, wp_mv[6][6] = {};
-    long long wp_cnt[6][6] = {};
+    double wp_res[7][7] = {}, wp_mv[7][7] = {};
+    long long wp_cnt[7][7] = {};
     std::vector<std::pair<int, int>> process(int u) {
         if (cyc.empty()) init_cycles();
         static const bool kProbe = std::getenv("BIAS_PROBE") != nullptr;
@@ -3783,7 +3791,7 @@ struct Solver {
         stat_pool_lift += best_pool_lift;
         stat_fill += fillers.size();
         static const bool kWcostProbe = env_int("WCOST_PROBE", 0) != 0;
-        if (kWcostProbe && !final_wcost.empty() && ded[u] >= 0 && (int)blocks.size() <= 5) {
+        if (kWcostProbe && !final_wcost.empty() && ded[u] >= 0 && (int)blocks.size() <= kGen - 1) {
             u64 gh = gmask & ~paper[ded[u]].opaque;
             auto want = wanted_blocks(u, gh);
             int t = 0, on = 0;
@@ -3865,7 +3873,17 @@ int main() {
     std::cerr << "pb_try = " << solver.stat_pb_try << "\npb_top = " << solver.stat_pb_top << "\ngh_try = " << solver.stat_gh_try << '\n';
     std::cerr << "req_sec = " << req_sec << "\nend_sec = " << elapsed_sec() << '\n';
     if (env_int("WCOST_PROBE", 0)) {
-        for (int t = 1; t <= 5; t++)
+        double gm_sum = 0, wc_sum = 0;
+        long long gm_cnt = 0;
+        for (int t = 1; t <= 6; t++)
+            for (int on = 0; on <= t; on++) {
+                gm_sum += solver.wp_mv[t][on];
+                wc_sum += solver.wp_mv[t][on] - solver.wp_res[t][on];
+                gm_cnt += solver.wp_cnt[t][on];
+            }
+        std::cerr << "wp_pair_req = " << gm_cnt << "\nwp_generic_per_pair_req = " << gm_sum / std::max(1LL, gm_cnt)
+                  << "\nwp_model_per_pair_req = " << wc_sum / std::max(1LL, gm_cnt) << '\n';
+        for (int t = 1; t <= 6; t++)
             for (int on = 0; on <= t; on++)
                 if (solver.wp_cnt[t][on])
                     std::cerr << "wp_mv_t" << t << "_on" << on << " = " << solver.wp_mv[t][on] / solver.wp_cnt[t][on]
