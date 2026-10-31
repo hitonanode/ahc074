@@ -460,12 +460,28 @@ struct Solver {
             return c;
         };
         auto uc = [&](int x, int l) { return unit_cost(units[x][0], units[x][1], l); };
-        std::vector<int> cnt0(H, 0), cnt1(H, 0), tgt(H, 0);  // units of each color, targets
-        for (int x = 0; x < U; x++) {
-            if (col[x] < 0) continue;
-            (color_at(x, col[x]) ? cnt1 : cnt0)[col[x]]++;
-            tgt[col[x]] += units[x][1] >= 0 ? 2 : 1;
-        }
+        // Per column: units of each color at the handle, targets, and the units (mem, with the
+        // position of each unit in its list, so that a handle swap scans only the columns it changes).
+        std::vector<int> cnt0(H, 0), cnt1(H, 0), tgt(H, 0), mpos(U, -1);
+        std::vector<std::vector<int>> mem(H);
+        auto remove_unit = [&](int x) {
+            int l = col[x];
+            (color_at(x, l) ? cnt1 : cnt0)[l]--;
+            tgt[l] -= units[x][1] >= 0 ? 2 : 1;
+            auto& v = mem[l];
+            int last = v.back();
+            v[mpos[x]] = last;
+            mpos[last] = mpos[x];
+            v.pop_back();
+        };
+        auto add_unit = [&](int x) {
+            int l = col[x];
+            (color_at(x, l) ? cnt1 : cnt0)[l]++;
+            tgt[l] += units[x][1] >= 0 ? 2 : 1;
+            mpos[x] = mem[l].size();
+            mem[l].push_back(x);
+        };
+        for (int x = 0; x < U; x++) if (col[x] >= 0) add_unit(x);
         auto col_cost = [&](int l) {  // digs and imbalance of column l
             int n = cnt0[l] + cnt1[l];
             int imb = std::max(0, std::abs(cnt0[l] - cnt1[l]) - 1);
@@ -562,29 +578,6 @@ struct Solver {
         static std::vector<double> neglog(1 << 16);
         for (int i = 0; i < (1 << 16); i++) neglog[i] = -std::log((i + 0.5) / (1 << 16));
         const int iters = env_int("ANNEAL_ITERS");
-        // The units of each column (with the position of each unit in its list), so that a handle
-        // swap scans only the columns it changes.
-        std::vector<std::vector<int>> mem(H);
-        std::vector<int> mpos(U, -1);
-        for (int x = 0; x < U; x++)
-            if (col[x] >= 0) mpos[x] = mem[col[x]].size(), mem[col[x]].push_back(x);
-        auto remove_unit = [&](int x) {
-            int l = col[x];
-            (color_at(x, l) ? cnt1 : cnt0)[l]--;
-            tgt[l] -= units[x][1] >= 0 ? 2 : 1;
-            auto& v = mem[l];
-            int last = v.back();
-            v[mpos[x]] = last;
-            mpos[last] = mpos[x];
-            v.pop_back();
-        };
-        auto add_unit = [&](int x) {
-            int l = col[x];
-            (color_at(x, l) ? cnt1 : cnt0)[l]++;
-            tgt[l] += units[x][1] >= 0 ? 2 : 1;
-            mpos[x] = mem[l].size();
-            mem[l].push_back(x);
-        };
         auto change = [&](int x, int y, auto&& f) {  // f changes the units x, y or their columns
             remove_unit(x);
             remove_unit(y);
