@@ -420,7 +420,7 @@ struct Solver {
             for (int x = 0; x < U; x++) if (col[x] >= 0) add_unit(x);
         };
         double cur_total = total_cost() * P;
-        const double t_begin = elapsed_sec(), t_end = env_double("HUB_TL", 1.2);
+        const double t_begin = elapsed_sec(), t_end = env_double("HUB_TL", 1.15);
         double progress = 0, temp = t0;
         for (int it = 0;; it++) {
             if (iters > 0) {
@@ -1055,6 +1055,57 @@ struct Solver {
         return cov ? lvl : -1;
     }
 
+    // Old fillers (olds, from the previous request) that can cover holes of D = ded[u] not yet
+    // covered (pre_cov) move straight to their new level if that saves at least 2 digs (no move at
+    // all if they already sit at that level); the others go back to their column (mode). `placed`
+    // holds the fillers of this request so far (intervals that a new one must not reach from above).
+    void refill_or_return(int u, const std::vector<Filler>& olds, u64 all, u64& pre_cov,
+                          std::vector<Filler>& placed, int mode) {
+        int d = ded[u];
+        for (int i = (int)olds.size() - 1; i >= 0; i--) {
+            int x = olds[i].paper, cf = col_of[x];
+            bool use = false;
+            int lvl = 0;
+            u64 cov = 0;
+            if (d >= 0 && x != d && visible(x)) {
+                lvl = level_for(x, d, all & ~paper[d].opaque & ~gmask & ~pre_cov, u, cov);
+                bool ok = lvl >= 0;
+                for (auto& e : placed) if (e.lvl > lvl && cf >= e.lvl) ok = false;
+                if (ok) {
+                    int save = 0;
+                    for (int j = lvl; j <= cf; j++)
+                        if (cov >> handle[j] & 1) save += handle_fix_cost(j, A[u] >> handle[j] & 1);
+                    use = save >= 2;
+                }
+            }
+            if (!use) {
+                return_paper(x, u, mode);
+                continue;
+            }
+            for (size_t k = 0; k < fillers.size(); k++)
+                if (fillers[k].paper == x) {
+                    fillers.erase(fillers.begin() + k);
+                    break;
+                }
+            int q = -1, last_above = -1;
+            for (int k2 = 0; k2 < K; k2++) {
+                int k = order[k2];
+                if (k == x || col_of[k] < 0 || !in_column(k, col_of[k])) continue;
+                if (col_of[k] < lvl) last_above = k2;
+                else if (q < 0) q = k2;
+            }
+            int xi = index_of(x);
+            if (q < 0) q = K;
+            if (!(xi < q && xi > last_above)) move(x, xi < q ? q - 1 : q);
+            Filler fl = olds[i];
+            fl.lvl = lvl;
+            fl.hi = cf;
+            placed.push_back(fl);
+            pre_cov |= cov;
+            stat_refill_try++;
+        }
+    }
+
     int kMaxFillers = env_int("MAX_FILLERS", 8);
     bool filler_dp = env_int("FILLER_DP", 1) != 0;
     void run_plan(int u, const PlanOpt& opt) {
@@ -1077,11 +1128,20 @@ struct Solver {
                 invalid = true;
                 return;
             }
-            std::vector<Filler> old = fillers;
-            std::vector<int> deferred;
-            for (int i = (int)old.size() - 1; i >= 0; i--) {
-                if (visible(old[i].paper)) return_paper(old[i].paper, u, opt.fret_mode);
-                else deferred.push_back(old[i].paper);
+            std::vector<Filler> old = fillers, vis_old, def_old;
+            for (auto& f : old) (visible(f.paper) ? vis_old : def_old).push_back(f);
+            std::vector<Filler> placed;
+            {
+                Filler fp{x, -1};
+                fp.lvl = lvl;
+                fp.hi = lp;
+                placed.push_back(fp);
+            }
+            pre_cov |= cov0;
+            if (opt.fret_mode == 3) {
+                refill_or_return(u, vis_old, all, pre_cov, placed, 1);
+            } else {
+                for (int i = (int)vis_old.size() - 1; i >= 0; i--) return_paper(vis_old[i].paper, u, opt.fret_mode);
             }
             int q = -1;
             for (int i = 0; i < K; i++) {
@@ -1095,64 +1155,18 @@ struct Solver {
             if (q < 0) q = K;
             move(x, xi < q ? q - 1 : q);
             top_d = -1;
-            Filler fl{x, -1};
-            fl.lvl = lvl;
-            fl.hi = lp;
-            pre_cov |= cov0;
-            for (int k : deferred) return_paper(k, u, opt.fret_mode);
-            fillers.push_back(fl);
+            if (opt.fret_mode == 3) {
+                refill_or_return(u, def_old, all, pre_cov, placed, 1);
+            } else {
+                for (int i = (int)def_old.size() - 1; i >= 0; i--) return_paper(def_old[i].paper, u, opt.fret_mode);
+            }
+            for (auto& f : placed) fillers.push_back(f);
             stat_prev_fill_try++;
         } else if (opt.fret_mode == 3) {
-            // Old fillers that can cover holes of D = ded[u] deeper than its column move straight
-            // to their new level (if they gain at least 2 digs); the others go back to the bottom.
             if (top_d >= 0 && !kept) return_paper(top_d, u, opt.ret_mode);
-            int d = ded[u];
-            std::vector<Filler> old = fillers;
-            std::vector<Filler> placed;
-            for (int i = (int)old.size() - 1; i >= 0; i--) {
-                int x = old[i].paper, cf = col_of[x];
-                bool use = false;
-                int lvl = 0;
-                u64 cov = 0;
-                if (d >= 0 && x != d && visible(x)) {
-                    lvl = level_for(x, d, all & ~paper[d].opaque & ~gmask & ~pre_cov, u, cov);
-                    bool ok = lvl >= 0;
-                    for (auto& e : placed) if (e.lvl > lvl && cf >= e.lvl) ok = false;
-                    if (ok) {
-                        int save = 0;
-                        for (int j = lvl; j <= cf; j++)
-                            if (cov >> handle[j] & 1) save += handle_fix_cost(j, A[u] >> handle[j] & 1);
-                        use = save >= 2;
-                    }
-                }
-                if (!use) {
-                    return_paper(x, u, 1);
-                    continue;
-                }
-                for (size_t k = 0; k < fillers.size(); k++)
-                    if (fillers[k].paper == x) {
-                        fillers.erase(fillers.begin() + k);
-                        break;
-                    }
-                int q = -1;
-                for (int k2 = 0; k2 < K; k2++) {
-                    int k = order[k2];
-                    if (k != x && col_of[k] >= lvl && in_column(k, col_of[k])) {
-                        q = k2;
-                        break;
-                    }
-                }
-                int xi = index_of(x);
-                if (q < 0) q = K;
-                move(x, xi < q ? q - 1 : q);
-                Filler fl = old[i];
-                fl.lvl = lvl;
-                fl.hi = cf;
-                placed.push_back(fl);
-                pre_cov |= cov;
-                stat_refill_try++;
-            }
-            for (auto& fl : placed) fillers.push_back(fl);
+            std::vector<Filler> old = fillers, placed;
+            refill_or_return(u, old, all, pre_cov, placed, 1);
+            for (auto& f : placed) fillers.push_back(f);
         } else {
             if (top_d >= 0 && !kept) return_paper(top_d, u, opt.ret_mode);
             while (!fillers.empty()) return_paper(fillers.back().paper, u, opt.fret_mode);
@@ -1259,7 +1273,7 @@ struct Solver {
                 for (int fm : {1, 2, 3})
                     for (int uf = 0; uf < 2; uf++)
                         for (int kp = 0; kp < ((top0 >= 0 && ded[u] == top0) ? 2 : 1); kp++)
-                            if ((fm == 2 && !has_free_filler) || (fm == 3 && (!refill || fillers.empty() || rm == 3)))
+                            if ((fm == 2 && !has_free_filler) || (fm == 3 && (!refill || fillers.empty())))
                                 continue;
                             else
                                 opts.push_back(PlanOpt{rm, fm, uf == 1, kp == 1});
