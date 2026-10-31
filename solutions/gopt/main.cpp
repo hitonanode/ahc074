@@ -56,7 +56,10 @@ using u64 = std::uint64_t;
 
 namespace {
 
-constexpr int N = 64, K = 192, P = 256, H = 34, G = N - H;
+#ifndef HUB_H
+#define HUB_H 34
+#endif
+constexpr int N = 64, K = 192, P = 256, H = HUB_H, G = N - H;
 
 // Every clock reading is multiplied by CLOCK_SCALE (CLAUDE.md, the clock scale): the local
 // evaluation compiles with -DCLOCK_SCALE=1.1 so that it searches as much as the judge.
