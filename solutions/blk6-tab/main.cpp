@@ -1,6 +1,6 @@
 // blk6-tab: solutions/audit4-flip whose generic layer may have 6 blocks (base + 6 flip papers, 5040
 // orders) with the lookahead policy, the flip papers of cons-flip and the simulated want costs of
-// the annealing (CB_NB blocks, default 6: 5 windows each for H = 34). The all-pairs shortest paths
+// the annealing (CB_NB blocks, default 6, and H = 33 handles). The all-pairs shortest paths
 // of the orders (25M pairs) are replaced by the distance of every order to the satisfying orders of
 // every want code (blk_dsat) and a BFS along the moves decreasing it (blk_dag_end); with 5 blocks
 // (CB_NB=5) the moves are those of audit4-flip (BLK_DAG=2: the new policy for the requests gives the
@@ -305,7 +305,9 @@ struct Solver {
     }
 
     std::vector<std::string> design() {
-        H = env_int("HUB_H", 34);
+        // blk6: H = 33 (G = 31: blocks of 6, 5, 5, 5, 5, 5 windows). Seed 0-95 with the annealing
+        // fixed, against audit4-flip: H = 34 / 33 / 32 / 31 +0.82 / +0.23 / +0.26 / +0.55%.
+        H = env_int("HUB_H", 33);
         double slope = env_double("HUB_SLOPE", 1.0);
         std::mt19937_64 rng(12345);
         int G = N - H;
