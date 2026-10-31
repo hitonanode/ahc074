@@ -593,16 +593,17 @@ struct Solver {
         }
         // Repair: an inconsistent pair cannot be served at all, so exchange one of its targets with
         // a target of another unit whenever both new units are consistent and agree at their
-        // handles, taking the exchange of the least cost (column balance is ignored here).
+        // handles, taking the exchange of the least cost (digs and column balance included; a
+        // column must keep both colors at its handle).
         int repaired = 0;
-        for (int x = 0; x < U; x++) {
+        for (int x = 0; x < U && env_int("CB_REPAIR", 1); x++) {
             if (units[x][1] < 0 || touch(A[units[x][0]], A[units[x][0]] ^ A[units[x][1]]).second == 0) continue;
             auto ok_unit = [&](const std::array<int, 2>& un, int l) {
                 if (un[1] < 0) return true;
                 u64 diff = A[un[0]] ^ A[un[1]];
                 return ((diff >> handle[l]) & 1) == 0 && touch(A[un[0]], diff).second == 0;
             };
-            double best = 1e18;
+            double best = 1e5;
             int by = -1, bix = -1, biy = -1;
             for (int y = 0; y < U; y++) {
                 if (y == x) continue;
@@ -611,7 +612,21 @@ struct Solver {
                         auto nx = units[x], ny = units[y];
                         std::swap(nx[ix], ny[iy]);
                         if (!ok_unit(nx, col[x]) || !ok_unit(ny, col[y])) continue;
-                        double c = unit_cost(nx[0], nx[1], col[x]) + unit_cost(ny[0], ny[1], col[y]);
+                        auto ox = units[x], oy = units[y];
+                        remove_unit(x);
+                        remove_unit(y);
+                        units[x] = nx;
+                        units[y] = ny;
+                        add_unit(x);
+                        add_unit(y);
+                        double c = unit_cost(nx[0], nx[1], col[x]) + unit_cost(ny[0], ny[1], col[y]) +
+                                   col_cost(col[x]) + (col[y] != col[x] ? col_cost(col[y]) : 0);
+                        remove_unit(x);
+                        remove_unit(y);
+                        units[x] = ox;
+                        units[y] = oy;
+                        add_unit(x);
+                        add_unit(y);
                         if (c < best) best = c, by = y, bix = ix, biy = iy;
                     }
             }
