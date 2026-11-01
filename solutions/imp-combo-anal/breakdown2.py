@@ -2,7 +2,8 @@
 
 usage: python3 breakdown2.py RUN [SEED_FROM SEED_TO]
 Paper roles: generic = the 6 top papers at the start; handle windows = windows where every generic
-sheet is a hole; the column of a dedicated paper = (number of opaque handle windows) - 1.
+sheet is a hole; the column of a dedicated paper = its deepest opaque handle
+(the handle order is recovered from the initial order of the papers).
 Within a request, D = the last dedicated paper moved to the top (d = 0). Deep moves (d > 6) are
 split into: digs of D's column before D moves, the previous request's top paper put back, and the
 rest (other columns: digging for the handle holes of D, or later clean-up).
@@ -23,7 +24,23 @@ for seed in range(lo, hi):
     gmask = 0
     for k in generic: gmask |= out.designs[k].opaque
     hmask = inp.full & ~gmask if hasattr(inp, "full") else ((1 << 64) - 1) & ~gmask
-    col = {k: bin(p.opaque & hmask).count("1") - 1 for k, p in enumerate(out.designs) if k not in generic}
+    # Handle order: scanning the dedicated papers in the initial order (columns 0, 1, ...), h_j is
+    # the j-th handle window to become opaque. The column of a paper is its deepest opaque handle
+    # (a pair paper can also have holes on shallower handles, so counting opaque handles is wrong).
+    rank = {}
+    for k in game.order:
+        if k in generic: continue
+        m = out.designs[k].opaque & hmask
+        while m:
+            w = (m & -m).bit_length() - 1; m &= m - 1
+            rank.setdefault(w, len(rank))
+    col = {}
+    for k, p in enumerate(out.designs):
+        if k in generic: continue
+        m = p.opaque & hmask; ws = []
+        while m:
+            w = (m & -m).bit_length() - 1; m &= m - 1; ws.append(rank[w])
+        col[k] = max(ws)
     prev_top = None
     for r, ops in enumerate(out.queries):
         reqs += 1
@@ -33,7 +50,8 @@ for seed in range(lo, hi):
         tot["no_target_move"] += D is None
         if D is not None:
             H = bin(hmask).count("1")
-            tot["D_handle_holes"] += H - 1 - col[D]
+            tot["D_handle_holes"] += H - bin(out.designs[D].opaque & hmask).count("1")
+            tot["D_triangle_holes"] += H - 1 - col[D]
             tot["D_column_size_x"] += sum(1 for k in col if col[k] == col[D])
         seen_D = False
         for k, d in ops:
