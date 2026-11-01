@@ -504,6 +504,7 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
         u64 au, diff, dir;
         int u, v;
         double base, w;
+        bool ok;
     };
     std::vector<Pair> pairs;
     std::vector<double> degree(n);
@@ -526,20 +527,22 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
             int hg = __builtin_popcountll(d & ((1ULL << g) - 1));
             double base = std::exp((center - h + (1 - kGenericWeight) * hg) * 0.35);
             double w = ok ? base * clf[__builtin_popcountll(cl0)] : 0;
-            pairs.push_back({A[u], d, r, u, v, base, w});
+            pairs.push_back({A[u], d, r, u, v, base, w, ok});
             degree[u] += w;
             degree[v] += w;
         }
     auto value = [&](double d) { return std::pow(d + 0.2, kStrength); };
+    std::vector<double> vdeg(n);
     double score = 0;
-    for (double d : degree) score += value(d);
+    for (int u = 0; u < n; u++) score += vdeg[u] = value(degree[u]);
     double best = score;
     auto best_mask = mask;
     auto best_order = order;
     u64 best_pol = pol;
     const int np = int(pairs.size());
     std::vector<u64> ndir(np);
-    std::vector<double> nbase(np), nw(np), delta(n);
+    std::vector<double> nbase(np), nw(np), delta(n), nv(n);
+    std::vector<char> nok(np);
     std::vector<int> changed;
     changed.reserve(np);
     double elapsed = 0;
@@ -608,6 +611,7 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
             ndir[p] = r;
             nbase[p] = base;
             nw[p] = w;
+            nok[p] = ok;
             changed.push_back(p);
             double dw = w - q.w;
             delta[q.u] += dw;
@@ -623,8 +627,10 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
                 pairs[p].dir = ndir[p];
                 pairs[p].base = nbase[p];
                 pairs[p].w = nw[p];
+                pairs[p].ok = nok[p];
             }
             for (int u = 0; u < n; u++) degree[u] = std::max(0.0, degree[u] + delta[u]);
+            for (int u = 0; u < n; u++) vdeg[u] = value(degree[u]);
             if (swindow) {
                 which[a] = -1;
                 which[b] = ea;
@@ -648,6 +654,154 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
             mask[eb] = oldb;
             pol = oldpol;
         }
+    }
+    // probe: climb on the greedy matching objective (GOPT_STEPS), from the best state, accepting a
+    // move if gobj does not increase and the score stays within GOPT_SLACK (relative) of its start.
+    static const int kGSteps = int(envd("GOPT_STEPS", 0));
+    if (kGSteps > 0) {
+        mask = best_mask, pol = best_pol, order = best_order;
+        for (int e = 0; e < ne; e++) counts[e] = __builtin_popcountll(mask[e]);
+        std::fill(which.begin(), which.end(), -1);
+        for (int e = 0; e < ne; e++)
+            for (u64 m2 = mask[e]; m2; m2 &= m2 - 1) which[__builtin_ctzll(m2)] = e;
+        std::fill(degree.begin(), degree.end(), 0.0);
+        const u64 gm0 = [&] { u64 x = 0; for (int j = 0; j < g; j++) x |= 1ULL << order[j]; return x; }();
+        for (auto& q : pairs) {
+            u64 r = 0, z = q.au ^ pol;
+            for (int e = 0; e < ne; e++) {
+                u64 qq = q.diff & mask[e];
+                if (qq & ~z) r |= fwd[e];
+                if (qq & z) r |= rev[e];
+            }
+            q.dir = r;
+            q.ok = !(closure8(r) & kDiagonal);
+            int h = __builtin_popcountll(q.diff), hg = __builtin_popcountll(q.diff & gm0);
+            q.base = std::exp((center - h + (1 - kGenericWeight) * hg) * 0.35);
+            q.w = q.ok ? q.base : 0;
+            degree[q.u] += q.w;
+            degree[q.v] += q.w;
+        }
+        score = 0;
+        for (int u = 0; u < n; u++) score += vdeg[u] = value(degree[u]);
+        const double score0 = score, slack = envd("GOPT_SLACK", 0.02) * std::abs(score0);
+        const int need = 256 - (192 - m);
+        auto gobj = [&]() {
+            u64 hm = 0;
+            for (int j = g; j < 64; j++) hm |= 1ULL << order[j];
+            static std::vector<std::vector<int>> byd(65);
+            for (auto& v : byd) v.clear();
+            for (int p = 0; p < np; p++)
+                if (pairs[p].ok) byd[__builtin_popcountll(pairs[p].diff & hm)].push_back(p);
+            std::array<char, 256> used{};
+            int k = 0;
+            double tot = 0;
+            for (int d = 0; d <= 64 && k < need; d++)
+                for (int p : byd[d]) {
+                    if (used[pairs[p].u] || used[pairs[p].v]) continue;
+                    used[pairs[p].u] = used[pairs[p].v] = 1, tot += d;
+                    if (++k == need) break;
+                }
+            return tot / need + (need - k) * 10.0;
+        };
+        double gcur = gobj();
+        std::cerr << "gopt_start = " << gcur << '\n';
+        int acc = 0;
+        for (int it = 0; it < kGSteps; it++) {
+            int ia = rng.mod(g), ib = rng.mod(g), a = order[ia], b = order[ib];
+            bool swindow = rng.real() < kWindowRate;
+            if (swindow) {
+                ib = g + rng.mod(64 - g);
+                b = order[ib];
+            }
+            int kind = rng.mod(10), ea = which[a], eb = swindow ? ea : which[b];
+            u64 olda = mask[ea], oldb = mask[eb], oldpol = pol, affected = 0;
+            int transfer = -1;
+            if (swindow) {
+                mask[ea] ^= (1ULL << a) | (1ULL << b);
+                pol = (pol & ~(1ULL << b)) | (((oldpol >> a) & 1) << b);
+                affected = (1ULL << a) | (1ULL << b);
+            } else if (kind < 3) {
+                pol ^= 1ULL << a;
+                affected = 1ULL << a;
+                eb = ea;
+                oldb = olda;
+            } else if (kind < 8) {
+                if (ea == eb) continue;
+                mask[ea] ^= (1ULL << a) | (1ULL << b);
+                mask[eb] ^= (1ULL << a) | (1ULL << b);
+                affected = (1ULL << a) | (1ULL << b);
+            } else {
+                if (counts[ea] < 2) continue;
+                eb = rng.mod(ne);
+                if (ea == eb) continue;
+                oldb = mask[eb];
+                mask[ea] ^= 1ULL << a;
+                mask[eb] |= 1ULL << a;
+                transfer = eb;
+                affected = 1ULL << a;
+            }
+            const u64 erase = fwd[ea] | rev[ea] | fwd[eb] | rev[eb];
+            std::fill(delta.begin(), delta.end(), 0);
+            changed.clear();
+            for (int p = 0; p < np; p++) {
+                auto& q = pairs[p];
+                if (!(q.diff & affected)) continue;
+                u64 r = q.dir & ~erase, z = q.au ^ pol;
+                u64 d = q.diff & mask[ea];
+                if (d & ~z) r |= fwd[ea];
+                if (d & z) r |= rev[ea];
+                d = q.diff & mask[eb];
+                if (d & ~z) r |= fwd[eb];
+                if (d & z) r |= rev[eb];
+                double base = q.base;
+                if (swindow) base *= bfactor[int((q.diff >> b) & 1) - int((q.diff >> a) & 1) + 1];
+                if (r == q.dir && base == q.base) continue;
+                bool okk = r == q.dir ? q.ok : !(closure8(r) & kDiagonal);
+                double w = okk ? base : 0;
+                ndir[p] = r, nbase[p] = base, nw[p] = w, nok[p] = okk;
+                changed.push_back(p);
+                delta[q.u] += w - q.w;
+                delta[q.v] += w - q.w;
+            }
+            double ds = 0;
+            for (int u = 0; u < n; u++)
+                if (std::abs(delta[u]) > 1e-9) ds += (nv[u] = value(std::max(0.0, degree[u] + delta[u]))) - vdeg[u];
+            bool accept = score + ds >= score0 - slack;
+            std::vector<Pair> saved;
+            if (accept) {
+                saved.reserve(changed.size());
+                for (int p : changed) {
+                    saved.push_back(pairs[p]);
+                    pairs[p].dir = ndir[p], pairs[p].base = nbase[p], pairs[p].w = nw[p], pairs[p].ok = nok[p];
+                }
+                if (swindow) std::swap(order[ia], order[ib]);
+                double gn = gobj();
+                if (gn <= gcur) {
+                    gcur = gn;
+                    acc++;
+                    score += ds;
+                    for (int u = 0; u < n; u++) {
+                        degree[u] = std::max(0.0, degree[u] + delta[u]);
+                        if (std::abs(delta[u]) > 1e-9) vdeg[u] = nv[u];
+                    }
+                    if (swindow) {
+                        which[a] = -1;
+                        which[b] = ea;
+                    } else {
+                        if (kind >= 3 && kind < 8) std::swap(which[a], which[b]);
+                        if (transfer >= 0) counts[ea]--, counts[eb]++, which[a] = eb;
+                    }
+                    continue;
+                }
+                for (size_t i = 0; i < changed.size(); i++) pairs[changed[i]] = saved[i];
+                if (swindow) std::swap(order[ia], order[ib]);
+            }
+            mask[ea] = olda;
+            mask[eb] = oldb;
+            pol = oldpol;
+        }
+        std::cerr << "gopt_end = " << gcur << "\ngopt_acc = " << acc << '\n';
+        best_mask = mask, best_pol = pol, best_order = order;
     }
     for (int j = 0; j < g; j++) {
         int x = best_order[j], e = 0;
@@ -1292,7 +1446,19 @@ struct Solver {
 
     // Orders the generic sheets (contiguous in the stack) so that the generic holes `holes` of the
     // paper of u show A_u (Comparator::plan).
+    // probe: role of the moves being made (0 generic, 1 lift, 2 dig for the lift, 3 dig for a handle,
+    // 4 dig for a filler, 5 filler placement, 6 return, 7 re-level / old paper, 8 other)
+    int role = 8;
+    std::array<double, 13> role_stats{};
+    std::vector<int> op_roles;
+    struct RoleGuard {
+        int& r;
+        int old;
+        RoleGuard(int& rr, int v) : r(rr), old(rr) { r = v; }
+        ~RoleGuard() { r = old; }
+    };
     void set_generic(int u, u64 holes) {
+        RoleGuard rg(role, 0);
         holes &= gmask;
         if (!holes) return;
         int offset = -1;
@@ -1475,6 +1641,7 @@ struct Solver {
         order.erase(order.begin() + i);
         order.insert(order.begin() + d, k);
         ops.push_back({k, d});
+        op_roles.push_back(role);
     }
     // Moves paper k just below paper x.
     void move_after(int k, int x) {
@@ -1486,6 +1653,7 @@ struct Solver {
         while (order[j] != x) j++;
         order.insert(order.begin() + j + 1, k);
         ops.push_back({k, j + 1});
+        op_roles.push_back(role);
     }
     bool is_filler(int k) const {
         for (auto& f : fillers)
@@ -1527,6 +1695,7 @@ struct Solver {
     }
     // Digs the column of d until d is its top, and moves d to the very top.
     void lift(int d) {
+        RoleGuard rg(role, 2);
         int c = col_of[d];
         for (int it = 0; column_top(c) != d; it++) {
             if (it >= K || invalid) {
@@ -1535,11 +1704,13 @@ struct Solver {
             }
             dig(c, d);
         }
+        role = 1;
         move(d, 0);
         top_d = d;
     }
     // Digs column l until its handle shows `color` (until the first paper of that color is on top).
     void set_handle(int l, int color) {
+        RoleGuard rg(role, 3);
         int barrier = -1;
         for (int k : order)
             if (in_column(k, l) && int(paper[k].black >> handle[l] & 1) == color) {
@@ -1558,9 +1729,16 @@ struct Solver {
             dig(l, barrier);
         }
     }
+    double fix_holes = 0, fix_mis = 0, all_holes = 0;
     void fix_handles(int u, u64 hh) {
+        if (ded[u] >= 0) all_holes += __builtin_popcountll(hmask & ~paper[ded[u]].opaque);
         for (int j = 0; j < H; j++)
-            if (hh >> handle[j] & 1) set_handle(j, A[u] >> handle[j] & 1);
+            if (hh >> handle[j] & 1) {
+                fix_holes++;
+                int t = column_top(j);
+                if (t >= 0 && int(paper[t].black >> handle[j] & 1) != int(A[u] >> handle[j] & 1)) fix_mis++;
+                set_handle(j, A[u] >> handle[j] & 1);
+            }
     }
     // Digs set_handle(l, c) would spend (without moving anything).
     int handle_fix_cost(int l, int c) const {
@@ -1602,6 +1780,7 @@ struct Solver {
     // already between the last paper in place of a column < lvl (or base_paper, below_generic) and
     // that position.
     void move_to_level(int x, int lvl, bool lazy = false, bool below_generic = false) {
+        RoleGuard rg(role, role == 5 ? 5 : 7);
         int q = K, last_above = -1;
         for (int i = 0; i < K; i++) {
             int k = order[i];
@@ -1619,6 +1798,7 @@ struct Solver {
     // The paper at depth `depth` of column c (the papers above it dug out first) placed as a filler
     // at level lvl; the handles it shows leave hh.
     void place_filler(int c, int depth, int lvl, u64& hh) {
+        RoleGuard rg(role, 4);
         std::vector<int> top;
         column_tops(c, depth + 1, top);
         if (depth < 0 || depth >= int(top.size())) {
@@ -1633,13 +1813,17 @@ struct Solver {
             }
             dig(c, x);
         }
+        role = 5;
         move_to_level(x, lvl);
         fillers.push_back({x, lvl, c});
         hh &= ~shown_by(fillers.back());
     }
     // An out-of-place paper x (the lifted paper or a filler) goes back to its column at the best
     // depth (adaptive_insert; mode 1 adds the top penalty).
-    void return_paper(int x, int u, int mode) { adaptive_insert(x, u, -1, mode); }
+    void return_paper(int x, int u, int mode) {
+        RoleGuard rg(role, 6);
+        adaptive_insert(x, u, -1, mode);
+    }
 
     // ------------------------------------------------------------------------------------------
     // Plans of a request
@@ -2303,6 +2487,8 @@ struct Solver {
         if (fast_mode) {
             fast_requests++;
             ops.clear();
+            op_roles.clear();
+            fix_holes = fix_mis = all_holes = 0;
             invalid = false;
             check_vis = true;
             run_plan(u, PlanOpt{});
@@ -2330,31 +2516,42 @@ struct Solver {
             for (int fm : fms)
                 for (int fr : frets_of(fm)) opts.push_back({4, fm, true, false, fr});
         double best = 1e18;
+        std::array<double, 13> best_rc{};
         std::vector<std::pair<int, int>> best_ops;
         State best_state;
         check_vis = true;
         for (const PlanOpt& o : opts) {
             restore(st0);
             ops.clear();
+            op_roles.clear();
+            fix_holes = fix_mis = all_holes = 0;
             invalid = false;
             run_plan(u, o);
             if (invalid || ops.size() > 2 * K || display() != A[u] || !fillers_reachable()) continue;
+            std::array<double, 13> rc{};
+            rc[10] = fix_holes, rc[11] = fix_mis, rc[12] = all_holes;
+            for (int r2 : op_roles) rc[r2]++;
+            const size_t pre = ops.size();
             merge_double_moves(st0.order, ops);
+            rc[9] = double(ops.size()) - double(pre);
             double future = kEndWeight * adaptive_next_cost();
             double cost = ops.size() + kFillerCharge * fillers.size() + future;
-            if (cost < best) best = cost, best_ops = ops, best_state = save();
+            if (cost < best) best = cost, best_ops = ops, best_state = save(), best_rc = rc;
         }
         check_vis = false;
         if (best > 1e17) {
             plan_failures++;
             restore(st0);
             ops.clear();
+            op_roles.clear();
+            fix_holes = fix_mis = all_holes = 0;
             invalid = false;
             run_plan(u, PlanOpt{});
             return ops;
         }
         restore(best_state);
         canonicalize();
+        for (int i = 0; i < 13; i++) role_stats[i] += best_rc[i];
         return best_ops;
     }
 };
@@ -2413,7 +2610,7 @@ int main() {
     const int map_iters = env_int("MAP_ITERS"), anneal_iters = env_int("ANNEAL_ITERS");
     const int climb_iters = env_int("CLIMB_ITERS");
     std::vector<int> permutation(64);  // original window of each internal window
-    int M = 6, G = 36;
+    int M = 6, G = int(envd("M_G", 36));
     Comparator comp;
     std::mt19937_64 rng(779879);
     std::unique_ptr<Design> des;
@@ -2549,9 +2746,11 @@ int main() {
     // per request and exits.
     if (int ns = env_int("SIM_SEQS"); ns > 0) {
         double tot = 0, gen = 0;
+        std::array<double, 13> rs{};
         long long wr = 0;
         for (int q = 0; q < ns; q++) {
             Solver sim = solver;
+            sim.role_stats = {};
             std::mt19937_64 rr(1000003ULL * (q + 1));
             int prev = rr() % P;
             for (int t = 0; t < R; t++) {
@@ -2563,6 +2762,11 @@ int main() {
                 for (auto [x, dd] : mv) gen += x < M;
                 wr += sim.display() != A[u];
             }
+            for (int i = 0; i < 13; i++) rs[i] += sim.role_stats[i];
+        }
+        {
+            const char* names[13] = {"generic", "lift", "dig_lift", "dig_handle", "dig_filler", "filler", "ret", "relevel", "other", "merged", "fix_holes", "fix_mis", "all_holes"};
+            for (int i = 0; i < 13; i++) std::cerr << "role_" << names[i] << " = " << rs[i] / (double(ns) * R) << '\n';
         }
         std::cerr << "sim_moves = " << tot / (double(ns) * R) << "\nsim_wrong = " << double(wr) / ns << "\nsim_generic = " << gen / (double(ns) * R) << '\n';
         return 0;
