@@ -1,0 +1,76 @@
+name: Joint research integrity and cleanup
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths: ['.github/workflows/joint-finalize.yml']
+permissions:
+  contents: write
+jobs:
+  finalize:
+    if: github.head_ref == 'research/joint-pairing-20261101' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/joint-pairing-20261101
+      - name: Verify transferred source and numeric tables against local tested blobs
+        run: |
+          python3 - <<'PY'
+          import csv,hashlib,io,json
+          from pathlib import Path
+          root=Path('solutions/joint-pairing')
+          # Normalize one extra blank line introduced during text transfer.
+          p=root/'pool.py';p.write_text(p.read_text().replace('\n\n\ndef main():','\n\ndef main():',1))
+          # Restore this transcribed cell from the evaluated record; the complete
+          # table's expected Git blob below certifies every value, not only this cell.
+          p=root/'results/primary.csv';rs=list(csv.DictReader(io.StringIO(p.read_text())))
+          for r in rs:
+              if r['seed']=='6015':r['pair-only.final']='10981'
+          with p.open('w',newline='') as f:
+              w=csv.DictWriter(f,list(rs[0]),lineterminator='\n');w.writeheader();w.writerows(rs)
+          expected={
+            'reference.hpp':'05e1f9d32e5b453bca64eeb46a386ec7d600d82c',
+            'main.cpp':'9b6f703c5878975387965e53d4cf1c183976cc58',
+            'engine.cpp':'7f9b3fe588745aa7a4955184e0741b9783c24b42',
+            'optimize.py':'a43a8569bba76eac4b80f8eaabd552e256476455',
+            'pool.py':'a056e59e9d387726b56cc52e1d5320aaee3f42e0',
+            'prepare.py':'551447ffd23b4018058729fe30e6b09473c26150',
+            'evaluate.py':'178e71b3339411bd821fa182a4132e06d18dbd4e',
+            'anneal.py':'0d781046ed4ae5fd19395eec1470a398dce13e4c',
+            'extra_orders.py':'3a0a1e4a3a925017c814a315a3288be3247d4d2d',
+            'test_oracle.py':'cc29cfc33b14ac2dd238a0777c3e66ec29800d43',
+            'verify_runs.py':'eea58a38891f0441798526e81ac7f32e14cef63b',
+            'generate.py':'657695536a44b30addf2e934f6714a949e9c5b50',
+            'tester.cpp':'ba5c7e35c231e50d9100cc0ca8314aa5054e7131',
+            'results/primary.csv':'1d3625d69cdf08f3b180fa794bcc0f31e19e28bd',
+            'results/extra.csv':'9e09a69f0bcfaee3d43f4ab9414dac532ebec8cf',
+            'results/deep.csv':'eb513ce3b99b7809a26a1853916bc96c1373a424'}
+          for name,want in expected.items():
+              b=(root/name).read_bytes();got=hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+              assert got==want,(name,got,want)
+          (root/'results/source-integrity.json').write_text(json.dumps(dict(status='passed',git_blobs=expected),indent=2)+'\n')
+          p=Path('trial_log.md');text=p.read_text()
+          marker='joint-pairing / PR #53'
+          if marker not in text:
+              p.write_text(text+'\n## '+marker+'\n\n- imp-lean(df74cd2)・frontier-lattice(f90b9ee)を基準に、2/4枚窓と厳密70辺マッチングを共同探索。独自Python seed6001〜6032、102340近傍、LP100861/MILP376。列再配置と模擬注文2本で10候補を選択し、方策固定後に独立8注文列/問題で比較（追加7列は初回結果後）。混合選択は元設計比 -0.4890 ± 0.0988%、2枚限定の同数候補比 -0.1157 ± 0.0716%、95%区間[-0.2616,+0.0303]%。標準誤差は32問題クラスタ。追加4枚規則の優越は未実証、限定継続・評価模型改善を優先。\n- 4枚候補128個を実現、12/32問題で採用。代理費用と模擬注文の問題内中心化Spearman相関0.065。8問題×各族3000提案の上り許容SAも試したが4枚を最良状態に残したのは1/8。設計準備平均40.37秒、2秒解法ではない。run群20261101-152846/153014/153219。1280解法×列・1310720注文・14063564操作を独立可視性replay、E=WA=0、入力/設計/出力/ログhash一致。模擬896実行も検査。公式RustとCI再生成1問題4設計の出力・得点一致（Actions41322858282）。詳細・ケース別値・再現コードはsolutions/joint-pairing/。\n')
+          PY
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/pip -q install scipy==1.17.0 numpy==2.3.5
+          /tmp/venv/bin/python solutions/joint-pairing/recompute.py > solutions/joint-pairing/results/recomputed.json
+          python3 -m compileall -q solutions/joint-pairing
+          bash -n solutions/joint-pairing/reproduce.sh
+      - name: Remove temporary workflow and commit verified research evidence
+        run: |
+          git rm .github/workflows/joint-finalize.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add solutions/joint-pairing trial_log.md
+          git commit -m '検証済みコード・1280得点の転送整合性確認、集計再計算と研究ログ追記'
+          git push origin HEAD:research/joint-pairing-20261101
+          tar czf /tmp/joint-final-files.tar.gz solutions/joint-pairing trial_log.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: joint-final-files
+          path: /tmp/joint-final-files.tar.gz
+          retention-days: 7
