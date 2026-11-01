@@ -1,0 +1,27 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.39",
+  "python": "3.12.14",
+  "cpu_count": 9,
+  "affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "compiler": "g++ 13.3.0 Ubuntu",
+  "solver_clock": "steady_clock wall-clock multiplied by CLOCK_SCALE=1.1",
+  "initial_probe_threads": 2,
+  "final_comparison_threads": 1,
+  "per_experiment_settings": "See experiments.json for the exact thread count and environment of each run group.",
+  "cpu_detail": "/sys cgroup and CPU topology unavailable in sandbox",
+  "one_million_mod_multiply_wall_sec": 0.16543222600012086,
+  "one_million_mod_multiply_cpu_sec": 0.165381373,
+  "rng_namespace": "astra-generated-v1",
+  "input_generator": "Python random.Random; BASE_SEED=0x4153545241303734; case seed=BASE_SEED+case_id; not official ChaCha20 seeds",
+  "tester": "C++23 POSIX port of tools/src/lib.rs and bin/tester.rs; not official Rust binary"
+}
