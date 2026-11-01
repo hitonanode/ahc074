@@ -2,11 +2,13 @@
 """解法を手元のテストケースで評価し、評価ごとの記録を runs/<run-id>/ に残す（pahcer のラッパー）。
 
 使い方:
-    scripts/pahcer_run.py solutions/<name> -c "<comment>"          # 全 500 ケース (seed 0〜499)
+    scripts/pahcer_run.py solutions/<name> -c "<comment>"          # 全 2000 ケース (seed 0〜1999)
     scripts/pahcer_run.py solutions/<name> -c "<comment>" --seeds 0-50
                                                                    # seed の範囲を指定 (END は含まない)
     scripts/pahcer_run.py --compare solutions/<A> solutions/<B> ... -c "<comment>"
                                                                    # 複数の解法を seed ごとに続けて実行して比べる
+    scripts/pahcer_run.py --extend <run-id> [<run-id> ...] [-c "<comment>"]
+                                                                   # 既存の run に未評価の seed を加える
     （そのほか --no-record）
 
 - 解法のソース（と solutions/<name>/README.md）を runs/<run-id>/src/ にコピーし、そのコピーをコンパイルして評価する。
@@ -17,6 +19,10 @@
   回す。評価中にマシンの速さが変わっても全部の解法に同じようにかかるので、別々に評価した run を
   比べるより差を正確に読める。各解法はふつうの run として runs/ と pahcer/ に記録され、最後に
   最初の解法に対する差（ケースごとの log スコア比の平均と標準誤差）を表示する。
+- --extend は、既存の run（--seeds で一部だけ評価した run や、既定が 2000 ケースになる前の 500 ケースの
+  run）に、未評価の seed を同じバイナリで評価して加える。複数の run は --compare と同じく seed ごとに
+  続けて実行する。run-id はそのままで、result.json に追加したケースが入り、meta.json の extensions に
+  追加の記録が残る。
 - 同時に走る評価は 1 つだけ（runs/.lock）。他の評価が実行中なら、終わるまで待ってから始める
   （CPU を取り合うと探索量が減り、スコアを比較できなくなるため）。
 - 評価が終わるたびに、ケースごとの指標 (runs/<run-id>/metrics.json) を計算し、ダッシュボード
@@ -733,6 +739,166 @@ def evaluate_compare(args, root: Path, template: dict) -> int:
     return 0
 
 
+# ---------------------------------------------------------------- --extend
+
+
+def evaluate_extend(args, root: Path, template: dict) -> int:
+    """Evaluates existing runs on the seeds they lack and adds the cases to the same runs.
+
+    For runs of fewer cases than the default range: the 500 cases of the runs from before 2000
+    became the default, or a first look with --seeds 0-500. Each run keeps its run-id and its binary
+    (runs/<run-id>/a.out, compiled again from src/ with the recorded command if it is missing).
+    As in --compare, each seed is one task in which the runs that lack it run one after another.
+    The new cases are merged into result.json and the extension is recorded in meta.json
+    ("extensions"). A run recorded in pahcer/ gets a new summary line and result JSON there, with
+    all its cases, and its scores enter the best scores.
+    """
+    seeds = seed_range(args, template)
+    runs_dir = root / "runs"
+    out_dir = root / "pahcer"
+    arms = []
+    for arg in args.extend:
+        try:
+            run_dir = replay.resolve_run(arg)
+        except LookupError as e:
+            sys.exit(f"[pahcer_run] {e}")
+        meta = json.loads((run_dir / "meta.json").read_text())
+        if meta.get("status") != "ok" or not (run_dir / "result.json").exists():
+            sys.exit(f"[pahcer_run] 正常に終わった run ではありません: {run_dir.name}")
+        if any(arm["run_dir"] == run_dir for arm in arms):
+            sys.exit(f"[pahcer_run] 同じ run が 2 回指定されています: {run_dir.name}")
+        arms.append({"run_id": run_dir.name, "run_dir": run_dir, "binary": run_dir / "a.out"})
+        log(f"run-id: {run_dir.name}")
+    # Compile outside the lock, only when the binary of the run is gone.
+    for arm in arms:
+        if not arm["binary"].exists():
+            meta = json.loads((arm["run_dir"] / "meta.json").read_text())
+            log(f"{arm['run_id']} の a.out がないので、記録したコマンドでコンパイルします")
+            if not compile_solution(meta["compile_command"], arm["run_dir"], arm["run_dir"] / "src"):
+                log(f"{arm['run_id']} のコンパイルに失敗しました")
+                return 1
+    tester = ensure_tester(root)
+    in_dir = root / "tools" / "in"
+    threads = int(template["test"].get("threads", 0)) or os.cpu_count() or 1
+    group = [arm["run_id"] for arm in arms]
+    lock_fd = None
+    try:
+        lock_fd = acquire_lock(runs_dir / ".lock", f"{group[0]} ほか {len(arms) - 1} 個への seed の追加")
+        # Read the runs under the lock: an extension that held it before may have added seeds.
+        for arm in arms:
+            arm["meta"] = json.loads((arm["run_dir"] / "meta.json").read_text())
+            arm["result"] = json.loads((arm["run_dir"] / "result.json").read_text())
+            done = {c["seed"] for c in arm["result"]["cases"]}
+            arm["missing"] = [s for s in range(*seeds) if s not in done]
+            if not arm["missing"]:
+                log(f"{arm['run_id']} は seed {seeds[0]}〜{seeds[1] - 1} をすべて評価済みです")
+        arms = [arm for arm in arms if arm["missing"]]
+        if not arms:
+            log("追加する seed はありません")
+            return 0
+        count = len(arms)
+        missing = [set(arm["missing"]) for arm in arms]
+        seed_list = sorted(set().union(*missing))
+        started = now_iso()
+        start_time = datetime.datetime.now().astimezone().isoformat()
+        log(f"{count} 個の run に seed を追加します (seed {seed_list[0]}〜{seed_list[-1]} のうち未評価の"
+            f" {sum(map(len, missing))} ケース、{threads} 並列、seed ごとに続けて実行)")
+        records = {}
+        began = time.perf_counter()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as pool:
+            futures = {}
+            for seed in seed_list:
+                order = [i for i in ((seed + j) % count for j in range(count)) if seed in missing[i]]
+                futures[pool.submit(compare_case, seed, order, [arm["binary"] for arm in arms],
+                                    [arm["run_dir"] for arm in arms], in_dir, tester)] = seed
+            try:
+                for done, future in enumerate(concurrent.futures.as_completed(futures), 1):
+                    records[futures[future]] = future.result()
+                    if done % max(1, len(seed_list) // 10) == 0 or done == len(seed_list):
+                        spent = time.perf_counter() - began
+                        log(f"{done}/{len(seed_list)} seed 完了 (経過 {spent / 60:.1f} 分、"
+                            f"残り約 {spent / done * (len(seed_list) - done) / 60:.1f} 分)")
+            except BaseException:
+                pool.shutdown(wait=True, cancel_futures=True)
+                raise
+
+        # Relative scores use the best known score of each seed, including every run here. Only
+        # the runs recorded in pahcer/ enter its best scores (as with --no-record).
+        best_path = out_dir / "best_scores.json"
+        shared = {int(k): v for k, v in json.loads(best_path.read_text()).items()} if best_path.exists() else {}
+        best_all, best_recorded = dict(shared), dict(shared)
+        for index, arm in enumerate(arms):
+            recorded = arm["meta"].get("record", True)
+            for case in arm["result"]["cases"] + [records[s][index] for s in arm["missing"]]:
+                if case["score"] > 0:
+                    for best in (best_all, best_recorded) if recorded else (best_all,):
+                        best[case["seed"]] = min(best.get(case["seed"], case["score"]), case["score"])
+        finished = now_iso()
+        new_results, results = [], []
+        for index, arm in enumerate(arms):
+            new_cases = [dict(records[s][index]) for s in arm["missing"]]
+            cases = sorted(arm["result"]["cases"] + new_cases, key=lambda c: c["seed"])
+            for case in cases:
+                case["relative_score"] = 100.0 * best_all[case["seed"]] / case["score"] if case["score"] > 0 else 0.0
+            lo, hi = arm["missing"][0], arm["missing"][-1] + 1
+            note = f"seed {lo}〜{hi - 1} の {len(new_cases)} ケースを追加" + (f": {args.comment}" if args.comment else "")
+            result = compare_result(cases, f"{arm['result'].get('comment') or arm['run_id']} ({note})", start_time)
+            replay.write_json_atomic(arm["run_dir"] / "result.json", result, indent=2)
+            evaluated = [c["seed"] for c in cases]
+            arm["meta"]["seeds"] = [evaluated[0], evaluated[-1] + 1]
+            arm["meta"].setdefault("extensions", []).append({
+                "seeds": [lo, hi], "cases": len(new_cases), "comment": args.comment, "group": group,
+                "started_at": started, "finished_at": finished,
+            })
+            save_meta(arm["run_dir"], arm["meta"])
+            new_results.append(compare_result(new_cases, "", start_time))
+            results.append(result)
+        if any(arm["meta"].get("record", True) for arm in arms):
+            # The lock is still held, so no pahcer run writes these files meanwhile.
+            (out_dir / "json").mkdir(parents=True, exist_ok=True)
+            stamp = datetime.datetime.now()
+            with open(out_dir / "summary.md", "a") as summary:
+                for arm, result in zip(arms, results):
+                    if arm["meta"].get("record", True):
+                        while (path := out_dir / "json" / f"result_{stamp:%Y%m%d_%H%M%S}.json").exists():
+                            stamp += datetime.timedelta(seconds=1)
+                        replay.write_json_atomic(path, result, indent=2)
+                        stamp += datetime.timedelta(seconds=1)
+                        summary.write(summary_row(started, result) + "\n")
+            replay.write_json_atomic(best_path, {f"{seed:04d}": score for seed, score in sorted(best_recorded.items())},
+                                     indent=2)
+        metrics = [compute_metrics(arm["run_dir"]) for arm in arms]
+    except (KeyboardInterrupt, Interrupted):
+        log("中断しました")
+        return 130
+    finally:
+        if lock_fd is not None:
+            os.close(lock_fd)
+
+    for arm, result, m in zip(arms, results, metrics):
+        arm["meta"]["summary"] = summarize(result, m)
+        save_meta(arm["run_dir"], arm["meta"])
+    log("seed の追加が終わりました")
+    print("  差は最初の run に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。"
+          "「追加分」は今回評価した seed だけ（seed ごとに続けて実行したので、マシンの速さの影響がそろう）")
+    print(f"  {'run-id':<44} {'ケース':>5} {'WA':>3} {'平均スコア':>10} {'追加分の平均':>10}"
+          f" {'追加分の差':>9} {'±':>7} {'全体の差':>8} {'±':>7}")
+    new_table, all_table = compare_against_first(new_results), compare_against_first(results)
+    for arm, result, new, row_new, row_all in zip(arms, results, new_results, new_table, all_table):
+        s = arm["meta"]["summary"]
+        valid = [c["score"] for c in new["cases"] if c["score"] > 0]
+        print(f"  {arm['run_id']:<44} {result['case_count']:>6} {len(result['wa_seeds']):>3} "
+              f"{s['average_score'] or float('nan'):>12.2f} {sum(valid) / len(valid) if valid else float('nan'):>14.2f} "
+              f"{100 * row_new['mean_log_ratio']:>+10.3f}% {100 * row_new['standard_error']:>6.3f}% "
+              f"{100 * row_all['mean_log_ratio']:>+8.3f}% {100 * row_all['standard_error']:>6.3f}%")
+        if s.get("over_time_limit"):
+            print(f"    {TIME_LIMIT_SEC:g} s 超え {s['over_time_limit']} ケース (最大 {s['max_execution_time']:.3f} s)")
+        if s.get("replay_mismatch"):
+            print(f"    警告: scripts/replay.py の再生スコアがテスターと {s['replay_mismatch']} ケースで違います")
+    refresh_report(root)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -744,8 +910,16 @@ def main() -> int:
                         help="複数の解法を seed ごとに続けて実行して比べる。最初の解法が比較の基準")
     parser.add_argument("--no-record", action="store_true",
                         help="pahcer/ の履歴とベストスコアを更新しない（動作確認用）")
+    parser.add_argument("--extend", nargs="+", metavar="RUN",
+                        help="既存の run（run-id か末尾の解法名）に、未評価の seed（既定は全ケースのうち未評価のもの）を"
+                             "評価して加える。複数なら seed ごとに続けて実行する")
     args = parser.parse_args()
-    if args.compare:
+    if args.extend:
+        if args.solution or args.compare:
+            parser.error("--extend は解法や --compare と一緒には使えません")
+        if args.no_record:
+            parser.error("--extend の記録の有無は、元の run に従います（--no-record は使えません）")
+    elif args.compare:
         if args.solution:
             parser.error("--compare を使うときは、解法をすべて --compare の後に並べてください")
     elif not args.solution:
@@ -754,6 +928,8 @@ def main() -> int:
     root = replay.main_root()
     template = tomllib.loads((root / "pahcer_config.toml").read_text())
     signal.signal(signal.SIGTERM, _raise_interrupted)
+    if args.extend:
+        return evaluate_extend(args, root, template)
     if args.compare:
         return evaluate_compare(args, root, template)
     return evaluate(args, root, template)

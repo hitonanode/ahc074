@@ -471,19 +471,26 @@ def _metrics_job(job: tuple[str, int]) -> tuple[int, dict]:
 def run_metrics(run_dir: Path, processes: int | None = None) -> dict[int, dict]:
     """Per-seed metrics of a run, cached in runs/<run-id>/metrics.json.
 
-    Each entry also has judge_score (from result.json) and execution_time.
+    Each entry also has judge_score (from result.json) and execution_time. When result.json is newer
+    than the cache (e.g. seeds added by scripts/pahcer_run.py --extend), the cached entries of the
+    cases whose score and time did not change are kept, and only the other cases are replayed.
     """
     cache = run_dir / "metrics.json"
     result_mtime = (run_dir / "result.json").stat().st_mtime
-    if cache.exists() and cache.stat().st_mtime >= result_mtime:
+    cached = {}
+    if cache.exists():
         try:
             data = json.loads(cache.read_text())
             if data.get("version") == METRICS_VERSION:
-                return {int(s): m for s, m in data["cases"].items()}
+                cached = {int(s): m for s, m in data["cases"].items()}
+                if cache.stat().st_mtime >= result_mtime:
+                    return cached
         except (OSError, ValueError, KeyError):
-            pass
+            cached = {}
     cases = run_cases(run_dir)
-    jobs = [(str(run_dir), s) for s in sorted(cases)]
+    kept = {s: m for s, m in cached.items() if s in cases and m.get("judge_score") == cases[s]["score"]
+            and m.get("execution_time") == cases[s]["execution_time"]}
+    jobs = [(str(run_dir), s) for s in sorted(cases) if s not in kept]
     procs = processes or min(8, os.cpu_count() or 1)
     if procs > 1 and len(jobs) > 8:
         import multiprocessing
@@ -494,5 +501,6 @@ def run_metrics(run_dir: Path, processes: int | None = None) -> dict[int, dict]:
     for s, m in computed.items():
         m["judge_score"] = cases[s]["score"]
         m["execution_time"] = cases[s]["execution_time"]
+    computed = dict(sorted({**kept, **computed}.items()))
     write_json_atomic(cache, {"version": METRICS_VERSION, "cases": {str(s): m for s, m in computed.items()}})
     return computed
