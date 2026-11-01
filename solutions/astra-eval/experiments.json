@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "source_baseline_commit": "800a3030278849158ada3ede2f41401bb72af3d8",
+  "baseline_git_blob_sha": "5c8ad2a0a2fae9f1228a9ff6af6764c41dc269d1",
+  "input_namespace": "astra-generated-v1",
+  "input_manifest": "generated_manifest.csv",
+  "score_statistic": "100*mean(log(candidate_score/baseline_score)); negative is better; SE is sample standard deviation divided by sqrt(n)",
+  "compiler_command_template": [
+    "g++",
+    "-std=c++23",
+    "-O2",
+    "-DCLOCK_SCALE=1.1",
+    "-o",
+    "BINARY",
+    "SOURCE"
+  ],
+  "tester": "C++23 POSIX port; not the official Rust binary",
+  "groups": [
+    {
+      "baseline_run_id": "20261101-073041_imp-gla",
+      "candidate_run_id": "20261101-073041_imp-gla-2",
+      "seeds_half_open": [
+        0,
+        8
+      ],
+      "threads": 2,
+      "environment": {},
+      "description": "A/A noise probe; same source, default time budget",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "2",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/imp-gla",
+        "--seeds",
+        "0-8",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-073201_imp-gla",
+      "candidate_run_id": "20261101-073201_astrasearch-joint",
+      "seeds_half_open": [
+        0,
+        16
+      ],
+      "threads": 2,
+      "environment": {},
+      "description": "G/H assignment exchange; default time budget",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "2",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-joint",
+        "--seeds",
+        "0-16",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-073609_imp-gla",
+      "candidate_run_id": "20261101-073609_astrasearch-joint-hot",
+      "seeds_half_open": [
+        0,
+        16
+      ],
+      "threads": 2,
+      "environment": {},
+      "description": "Earlier and longer joint repair; default time budget",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "2",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-joint-hot",
+        "--seeds",
+        "0-16",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-074439_imp-gla",
+      "candidate_run_id": "20261101-074439_astrasearch-joint-hot",
+      "seeds_half_open": [
+        16,
+        24
+      ],
+      "threads": 1,
+      "environment": {
+        "JOINT_RESEARCH": "1",
+        "JOINT_STEPS": "64",
+        "JOINT_ANNEAL_ITERS": "1000000"
+      },
+      "description": "Research budget, not a two-second solution comparison",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "1",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-joint-hot",
+        "--seeds",
+        "16-24",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-074614_imp-gla",
+      "candidate_run_id": "20261101-074614_astrasearch-relaxed",
+      "seeds_half_open": [
+        0,
+        4
+      ],
+      "threads": 1,
+      "environment": {
+        "RELAX_FORCE": "1",
+        "RELAX_PAIRS": "24"
+      },
+      "description": "H-only pilot; time-based initial design differs; forced candidate has no request cutoff",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "1",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-relaxed",
+        "--seeds",
+        "0-4",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-074944_imp-gla",
+      "candidate_run_id": "20261101-074944_astrasearch-perforated",
+      "seeds_half_open": [
+        0,
+        16
+      ],
+      "threads": 1,
+      "environment": {
+        "MAP_ITERS": "15000",
+        "GOPT_STEPS": "3000",
+        "ANNEAL_ITERS": "8000000",
+        "CLIMB_ITERS": "40000",
+        "RELAX_FORCE": "1",
+        "RELAX_PAIRS": "24"
+      },
+      "description": "Fixed initial iterations; single forced swap, G+H holes",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "1",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-perforated",
+        "--seeds",
+        "0-16",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-075404_imp-gla",
+      "candidate_run_id": "20261101-075404_astrasearch-perforated-union",
+      "seeds_half_open": [
+        0,
+        96
+      ],
+      "threads": 1,
+      "environment": {
+        "MAP_ITERS": "15000",
+        "GOPT_STEPS": "3000",
+        "ANNEAL_ITERS": "8000000",
+        "CLIMB_ITERS": "40000",
+        "RELAX_FORCE": "1",
+        "RELAX_PAIRS": "24",
+        "RELAX_UNION": "24"
+      },
+      "description": "Fixed initial design verified by 96 identical hashes; cases32-95 reserved before source freeze",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "1",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-perforated-union",
+        "--seeds",
+        "0-96",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-075857_imp-gla",
+      "candidate_run_id": "20261101-075857_astrasearch-perforated-union",
+      "seeds_half_open": [
+        128,
+        192
+      ],
+      "threads": 1,
+      "environment": {},
+      "description": "Separate default time-budget comparison; new generated cases",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "1",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-perforated-union",
+        "--seeds",
+        "128-192",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-080403_imp-gla",
+      "candidate_run_ids": [
+        "20261101-080403_astrasearch-perforated-union",
+        "20261101-080403_astrasearch-perforated-shared"
+      ],
+      "seeds_half_open": [
+        0,
+        8
+      ],
+      "threads": 1,
+      "environment": {
+        "MAP_ITERS": "15000",
+        "GOPT_STEPS": "3000",
+        "ANNEAL_ITERS": "8000000",
+        "CLIMB_ITERS": "40000",
+        "RELAX_FORCE": "1",
+        "RELAX_PAIRS": "24",
+        "RELAX_UNION": "24",
+        "RELAX_ROUNDS": "4"
+      },
+      "description": "Shared-helper 4-swap pilot; three-way paired comparison, research force mode",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "1",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-perforated-union",
+        "solutions/astrasearch-perforated-shared",
+        "--seeds",
+        "0-8",
+        "--no-record"
+      ]
+    },
+    {
+      "baseline_run_id": "20261101-080631_imp-gla",
+      "candidate_run_ids": [
+        "20261101-080631_astrasearch-perforated-union",
+        "20261101-080631_astrasearch-perforated-shared"
+      ],
+      "seeds_half_open": [
+        192,
+        256
+      ],
+      "threads": 1,
+      "environment": {
+        "MAP_ITERS": "15000",
+        "GOPT_STEPS": "3000",
+        "ANNEAL_ITERS": "8000000",
+        "CLIMB_ITERS": "40000",
+        "RELAX_FORCE": "1",
+        "RELAX_PAIRS": "24",
+        "RELAX_UNION": "24",
+        "RELAX_ROUNDS": "4"
+      },
+      "description": "Frozen shared-helper holdout, unseen cases; three-way paired comparison, research force mode",
+      "command": [
+        "python3",
+        "solutions/astra-eval/compare.py",
+        "--threads",
+        "1",
+        "--compare",
+        "solutions/imp-gla",
+        "solutions/astrasearch-perforated-union",
+        "solutions/astrasearch-perforated-shared",
+        "--seeds",
+        "192-256",
+        "--no-record"
+      ]
+    }
+  ],
+  "analysis_subsets": [
+    {
+      "group": "20261101-075404",
+      "case_range_half_open": [
+        32,
+        96
+      ],
+      "role": "Prespecified holdout, no source tuning using these results"
+    },
+    {
+      "group": "20261101-075404",
+      "condition": "relax_predicted_delta < -0.15",
+      "role": "Exploratory conditional analysis of forced runs; not an observed default-mode score"
+    },
+    {
+      "group": "20261101-080631",
+      "case_range_half_open": [
+        192,
+        256
+      ],
+      "role": "Prespecified final holdout after source freeze; no tuning on these cases"
+    }
+  ]
+}
