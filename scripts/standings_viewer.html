@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>順位表の構造</title>
+<!--
+  AtCoder の相対評価（順位スコア）の順位表 JSON から、崖・団子・ペアごとの保証を読み取るビューア。
+  使い方: このファイルをブラウザで開き、順位表の JSON（https://atcoder.jp/contests/<id>/standings/json 等の保存）を
+  選ぶかドラッグ＆ドロップする。?src=<URL> を付けて開くと、その URL から読み込む（HTTP で配信しているとき）。
+
+  原理（下の「計算の説明」にも書く）:
+  - 1 ケースの順位スコアは round(1e9 (1 - r/n))。和 S から R = Σ_c r_c = T·n − S·n/1e9 が丸め誤差なく逆算できる。
+    R は「各ケースで自分より良かった人数（同点は 0.5）」の全ケースでの和。n は R が全員 0.5 の倍数になる値を探して決める。
+  - 上位 k 人の R の和から、上位 k 人どうしの対戦分 T·k(k−1)/2 を引いた L_k は、
+    「上位 k 人が k+1 位以下に負けた（ケース, 組）の数」にちょうど等しい。L_k = 0 なら完全な崖。
+  - ペア (i, j) で j が i に勝ったケース数は、i を含み j を含まない任意の集合 X について L_X 以下。
+-->
+<style>
+:root {
+  color-scheme: light;
+  --bg: #fcfcfb;
+  --surface: #ffffff;
+  --text: #1b1b1a;
+  --text2: #52514e;
+  --muted: #8a8984;
+  --line: #e4e3df;
+  --grid: #efeeea;
+  --band: #f3f2ee;
+  --accent: #2a78d6;
+  --cliff: #eb6834;
+  --mark: #c0392b;
+  --hl: #fff6d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #161615;
+    --surface: #1d1d1c;
+    --text: #f0efec;
+    --text2: #c3c2b7;
+    --muted: #8f8e88;
+    --line: #34332f;
+    --grid: #2a2a27;
+    --band: #242422;
+    --accent: #3987e5;
+    --cliff: #d95926;
+    --mark: #e66767;
+    --hl: #3a3420;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161615; --surface: #1d1d1c; --text: #f0efec; --text2: #c3c2b7; --muted: #8f8e88;
+  --line: #34332f; --grid: #2a2a27; --band: #242422; --accent: #3987e5; --cliff: #d95926;
+  --mark: #e66767; --hl: #3a3420;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+h1 { font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+h2 { font-size: 16px; margin: 28px 0 8px; font-weight: 600; }
+p, li { color: var(--text); }
+.sub { color: var(--text2); font-size: 13px; }
+.muted { color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+label { color: var(--text2); font-size: 13px; }
+input[type=number], input[type=text] {
+  width: 6em; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px;
+  background: var(--bg); color: var(--text); font: inherit;
+}
+input[type=text] { width: 12em; }
+button {
+  padding: 3px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg);
+  color: var(--text); font: inherit; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+#drop { border: 1px dashed var(--line); border-radius: 8px; padding: 18px; text-align: center; color: var(--text2); }
+body.dragging #drop { border-color: var(--accent); }
+ul.findings { margin: 0; padding-left: 1.2em; }
+ul.findings li { margin: 4px 0; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart text { fill: var(--muted); font-size: 11px; }
+.tip {
+  position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 8px; font-size: 12px; line-height: 1.5; color: var(--text);
+  box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap; display: none; z-index: 2;
+}
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 3px 8px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
+th { color: var(--text2); font-weight: 500; position: sticky; top: 0; background: var(--surface); }
+td.l, th.l { text-align: left; }
+tr.hl td { background: var(--hl); }
+tr.clk { cursor: pointer; }
+tr.clk:hover td { background: var(--band); }
+.scroll { max-height: 520px; overflow: auto; }
+.wide { overflow-x: auto; }
+.tag { display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 12px; border: 1px solid var(--line); color: var(--text2); }
+.tag.cliff { border-color: var(--cliff); color: var(--cliff); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text2); margin: 4px 0; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+details summary { cursor: pointer; color: var(--text2); }
+code { font-size: 12.5px; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>順位表の構造</h1>
+  <div class="sub">相対評価（順位スコアの和）の順位表から、各人の「負けた回数の合計」を逆算し、崖・団子・ペアごとに保証される勝敗を出します。</div>
+
+  <div id="drop" style="margin-top:14px">
+    順位表の JSON をここにドロップ、または <input type="file" id="file" accept=".json,application/json">
+    <div class="muted" id="loadmsg" style="font-size:12px;margin-top:4px"></div>
+  </div>
+
+  <div id="content" class="hidden">
+    <h2>わかること</h2>
+    <div class="panel"><ul class="findings" id="findings"></ul></div>
+
+    <h2>表示の設定</h2>
+    <div class="panel">
+      <div class="row">
+        <span><label>ケース数 T</label> <input type="number" id="T" min="1"></span>
+        <span><label>注目する人</label> <input type="text" id="focus" placeholder="ユーザー名" list="names"><datalist id="names"></datalist></span>
+        <span><label>順位の範囲</label> <input type="number" id="from" min="1"> 〜 <input type="number" id="to" min="1"></span>
+        <span><button data-r="30">上位 30</button> <button data-r="100">上位 100</button> <button data-r="0">全体</button></span>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <span><label title="境界をまたぐ逆転が 1 ケースあたりこれ以下なら崖とみなす">崖の判定: 1 ケースあたりの逆転 ≤</label> <input type="number" id="absThr" step="0.1" min="0"></span>
+        <span><label title="両側の山の低い方に対する谷の深さの比がこれ以下なら崖とみなす">または 谷 / 両側の山 ≤</label> <input type="number" id="ratio" step="0.05" min="0" max="1"></span>
+        <span><label title="谷とみなす最小の深さ（1 ケースあたりの逆転数）">深さ ≥</label> <input type="number" id="depth" step="0.5" min="0"></span>
+      </div>
+      <div class="sub" id="dataline" style="margin-top:6px"></div>
+    </div>
+
+    <h2>相対スコアの傾斜</h2>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--accent)"></span>相対スコア（満点 = T × 10<sup>9</sup> に対する %）</span>
+      <span><span class="sw" style="background:var(--band);border:1px solid var(--line)"></span>崖で区切った区間（1 つおきに色付け）</span>
+      <span><span class="sw" style="background:var(--cliff)"></span>崖</span>
+    </div>
+    <div class="chart panel" id="scoreChart"><div class="tip"></div></div>
+
+    <h2>境界の混ざり具合</h2>
+    <div class="sub">k 位と k+1 位の間の境界で、上位 k 人が k+1 位以下に負けた（ケース, 組）の数を、1 ケースあたりにした値 C<sub>k</sub> = L<sub>k</sub> / T。0 なら完全に分かれている（崖）。大きいほど上下が入り混じる。縦軸は平方根目盛。</div>
+    <div class="chart panel" id="mixChart" style="margin-top:6px"><div class="tip"></div></div>
+
+    <h2>崖で区切った区間</h2>
+    <div class="sub">区間の中の混ざりの幅（√(8 × 最大の逆転 / ケース)）が人数の 0.4 倍以上なら「団子」（全体が入り混じる）、それ未満なら「坂」（近い順位どうしだけが入れ替わる）。</div>
+    <div class="panel wide"><table id="groups"></table></div>
+
+    <h2>ペアごとに保証される勝ち数</h2>
+    <div class="sub">行の人が列の人（下位）に、少なくとも何ケースで勝っているか（同点は 0.5）。順位表だけから確実に言える下限で、実際はこれ以上。表示範囲の先頭から最大 40 人。</div>
+    <div class="chart panel" id="heat" style="margin-top:6px"><div class="tip"></div></div>
+
+    <h2>個人</h2>
+    <div class="panel" id="person"><span class="muted">表の行か、グラフの点をクリックすると表示します。</span></div>
+
+    <h2>全員</h2>
+    <div class="panel scroll"><table id="all"></table></div>
+
+    <h2>計算の説明</h2>
+    <details class="panel">
+      <summary>R・L<sub>k</sub>・保証の導き方</summary>
+      <div id="explain" style="margin-top:8px"></div>
+    </details>
+  </div>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmtH = (x) => (Number.isInteger(x) ? String(x) : x.toFixed(1)); // 0.5 刻みの数
+const fmt2 = (x) => x.toFixed(2);
+
+let RAW = null; // 読み込んだ JSON
+let A = null;   // 解析結果
+const params = { T: null, from: 1, to: 0, absThr: 0.5, ratio: 0.5, depth: 1, focus: store.get("sv.focus") || "" };
+
+// ---------- 解析 ----------
+
+// 順位表の JSON から、n（提出者数）と各人の R を求める。T は R の解釈（ケース数）にだけ使う。
+function analyze(raw, Tin) {
+  const rows = raw.StandingsData.filter((x) => x.TotalResult && x.TotalResult.Count > 0);
+  rows.sort((a, b) => b.TotalResult.Score - a.TotalResult.Score);
+  const S = rows.map((x) => x.TotalResult.Score / 100); // 順位表の Score は 100 倍で入っている
+  const nPos = S.filter((s) => s > 0).length;
+  // R = T·n − S·n/1e9 が全員 0.5 の倍数になる n を探す（T·n は整数なので T に依らない）
+  let best = null;
+  for (let n = Math.max(2, nPos); n <= rows.length + 20; n++) {
+    let err = 0;
+    for (const s of S) { const v = (s * n) / 1e9 * 2; err = Math.max(err, Math.abs(v - Math.round(v))); }
+    if (!best || err < best.err - 1e-9) best = { n, err };
+  }
+  const n = best.n;
+  const maxS = S[0];
+  const sumS = S.reduce((a, b) => a + b, 0);
+  // T の下限: 最高点 ≤ T·1e9、かつ ΣR ≥ T·n(n−1)/2
+  const Tlow = Math.max(Math.ceil(maxS / 1e9 - 1e-9), Math.ceil((2 * sumS) / (1e9 * (n + 1)) - 1e-9));
+  const T = Tin || (Tlow <= 50 ? 50 : Tlow <= 2000 ? 2000 : Tlow);
+  const m = Math.min(n, rows.length); // 解析に使う人数（得点 0 で n に数えられていない人は除く）
+  const P = rows.slice(0, m).map((x, i) => {
+    const s = S[i];
+    const R = Math.round((T * n - (s * n) / 1e9) * 2) / 2;
+    return { i, rank: x.Rank, name: x.UserScreenName, s, rel: (s / (T * 1e9)) * 100, R, x: R / T };
+  });
+  // L[k] = 上位 k 人の R の和 − T·k(k−1)/2（k = 0..m）
+  const L = [0];
+  for (let k = 1; k <= m; k++) L.push(L[k - 1] + P[k - 1].R - T * (k - 1));
+  const C = L.map((l) => l / T);
+  const sumR = P.reduce((a, p) => a + p.R, 0);
+  const excess = sumR - (T * n * (n - 1)) / 2 - (n - m) * T * n; // WA/TLE による R の水増しの合計
+  return { rows, n, nErr: best.err, T, Tlow, m, P, L, C, sumR, excess, nZero: S.length - nPos, nListed: rows.length };
+}
+
+// i が j（i より下位）に負けたケース数の上界 U(i, j)。
+// i を含み j を含まない集合 X について、L_X = Σ_X R − T·|X|(|X|−1)/2 ≥ (X が X の外に負けた数) ≥ (j が i に勝った数)。
+// |X| を固定すると R の小さい順に取るのが最小なので、{i} ∪ (i, j 以外で R の小さい順の s 人) を全 s で試す。
+function lossBound(A, i, j) {
+  const { P, T, m } = A;
+  let sum = P[i].R, cnt = 1, best = Math.min(T, sum);
+  for (let p = 0; p < m; p++) {
+    if (p === i || p === j) continue;
+    sum += P[p].R; cnt++;
+    const v = sum - (T * cnt * (cnt - 1)) / 2;
+    if (v < best) best = v;
+  }
+  return Math.max(0, best);
+}
+
+// 崖の判定: (a) C_k が閾値以下、または (b) C_k が谷で、両側の山の低い方に比べて十分低く深い
+function findCliffs(A) {
+  const { C, m } = A;
+  const cliffs = new Map(); // k -> 理由
+  for (let k = 1; k < m; k++) {
+    if (C[k] <= params.absThr) { cliffs.set(k, "abs"); continue; }
+    const leftOK = k === 1 || C[k] <= C[k - 1];
+    const rightOK = k === m - 1 || C[k] <= C[k + 1];
+    if (!leftOK || !rightOK) continue;
+    let pl = -1, pr = -1;
+    for (let j = k - 1; j >= 1 && C[j] >= C[k]; j--) pl = Math.max(pl, C[j]);
+    for (let j = k + 1; j < m && C[j] >= C[k]; j++) pr = Math.max(pr, C[j]);
+    const ref = pl < 0 ? pr : pr < 0 ? pl : Math.min(pl, pr);
+    if (ref < 0) continue;
+    if (C[k] <= params.ratio * ref && ref - C[k] >= params.depth) cliffs.set(k, "valley");
+  }
+  return cliffs;
+}
+
+function makeGroups(A, cliffs) {
+  const ks = [...cliffs.keys()].sort((a, b) => a - b);
+  const groups = [];
+  let a = 0;
+  for (const k of [...ks, A.m]) {
+    const b = k - 1; // [a, b]（0-indexed）
+    let inner = 0;
+    for (let t = a + 1; t <= b; t++) inner = Math.max(inner, A.C[t]);
+    const size = b - a + 1;
+    // 混ざりの幅 √(8C) が区間の人数の 0.4 倍以上なら、区間全体が入り混じっている「団子」。
+    // それより狭ければ、区間の中でも順序がおおむね付いている「坂」。
+    const kind = size === 1 ? "単独" : size >= 3 && Math.sqrt(8 * inner) >= 0.4 * size ? "団子" : "坂";
+    groups.push({ a, b, size, inner, kind, left: a > 0 ? A.C[a] : null, right: b + 1 < A.m ? A.C[b + 1] : null });
+    a = k;
+  }
+  return groups;
+}
+
+// R が完全に一致する 3 人以上の連なり（同じプログラム・同じ出力の可能性が高い）
+function tieRuns(A) {
+  const out = [];
+  let a = 0;
+  for (let i = 1; i <= A.m; i++) {
+    if (i === A.m || A.P[i].R !== A.P[a].R) { if (i - a >= 3) out.push([a, i - 1]); a = i; }
+  }
+  return out;
+}
+
+// ---------- 描画 ----------
+
+function render() {
+  if (!RAW) return;
+  A = analyze(RAW, params.T);
+  if (!params.T) params.T = A.T;
+  $("T").value = A.T;
+  const m = A.m;
+  if (!params.to || params.to > m) params.to = Math.min(m, params.to || m);
+  if (params.from < 1) params.from = 1;
+  if (params.from >= params.to) params.from = Math.max(1, params.to - 1);
+  $("from").value = params.from; $("to").value = params.to;
+  $("absThr").value = params.absThr; $("ratio").value = params.ratio; $("depth").value = params.depth;
+  $("focus").value = params.focus;
+  $("names").innerHTML = A.P.map((p) => `<option value="${esc(p.name)}">`).join("");
+
+  // 各人の保証: 下位全員にそれぞれ少なくとも何勝 / 上位全員にそれぞれ少なくとも何敗
+  // U(i, j) は j が下がるほど小さくなる（除く人の R が大きいほど集合の R の和が小さくなる）ので、隣だけ見ればよい。
+  for (let i = 0; i < m; i++) {
+    A.P[i].winAll = i + 1 < m ? A.T - lossBound(A, i, i + 1) : null;
+    A.P[i].loseAll = i > 0 ? A.T - lossBound(A, i - 1, i) : null;
+  }
+  A.cliffs = findCliffs(A);
+  A.groups = makeGroups(A, A.cliffs);
+  A.groupOf = new Array(m);
+  A.groups.forEach((g, gi) => { for (let t = g.a; t <= g.b; t++) A.groupOf[t] = gi; });
+  A.ties = tieRuns(A);
+  A.focusIdx = A.P.findIndex((p) => p.name.toLowerCase() === params.focus.toLowerCase());
+
+  $("dataline").innerHTML =
+    `提出者数 n = <b>${A.n}</b>（得点から逆算。残差 ${A.nErr.toExponential(1)}）、ケース数 T = <b>${A.T}</b>` +
+    `（得点から言える下限 ${A.Tlow}）。順位表の提出あり ${A.nListed} 人、うち得点 0 が ${A.nZero} 人。`;
+  renderFindings();
+  renderScoreChart();
+  renderMixChart();
+  renderGroups();
+  renderHeat();
+  renderAll();
+  if (A.focusIdx >= 0) renderPerson(A.focusIdx);
+  else $("person").innerHTML = '<span class="muted">表の行か、グラフの点をクリックすると表示します。</span>';
+  renderExplain();
+}
+
+const who = (i) => `${i + 1} 位 ${esc(A.P[i].name)}`;
+const rng = (a, b) => (a === b ? `${a + 1} 位` : `${a + 1}〜${b + 1} 位`);
+
+function renderFindings() {
+  const { P, L, C, T, m, n } = A;
+  const li = [];
+  // 完全な崖
+  const perfect = [];
+  for (let k = 1; k < m; k++) if (L[k] === 0) perfect.push(k);
+  for (const k of perfect) {
+    if (k === 1) li.push(`<b>${who(0)}</b> は全 ${T} ケースで単独 1 位（他の全提出より真に良い）。`);
+    else li.push(`<b>上位 ${k} 人</b>は全 ${T} ケースで ${k + 1} 位以下の全員に勝っている（同点もない）。`);
+  }
+  if (!perfect.length) li.push(`上位 k 人が k+1 位以下に一度も負けていない、という完全な崖はない。`);
+  // ほぼ崖（L_k が小さい）: 上位 40 位までと、崖と判定された境界
+  const near = [];
+  for (let k = 1; k < m; k++) {
+    if (L[k] === 0) continue;
+    if (A.cliffs.has(k) && (C[k] <= params.absThr || k <= 40)) near.push(k);
+  }
+  for (const k of near.slice(0, 12)) {
+    const clean = Math.max(0, T - Math.floor(L[k]));
+    li.push(
+      `${k} 位と ${k + 1} 位の間は${C[k] <= params.absThr ? "ほぼ崖" : "崖（谷）"}: 上位 ${k} 人が ${k + 1} 位以下に負けた（ケース, 組）は合計 <b>${fmtH(L[k])}</b> 件（1 ケースあたり ${fmt2(C[k])}）。` +
+      `少なくとも <b>${clean}</b> ケースでは、上位 ${k} 人は ${k + 1} 位以下の誰にも負けていない。`
+    );
+  }
+  // 上位数人と注目する人のペア保証
+  const show = new Set([0, 1, 2, 3, 4].filter((i) => i < m - 1));
+  if (A.focusIdx >= 0 && A.focusIdx < m) show.add(A.focusIdx);
+  for (const i of [...show].sort((a, b) => a - b)) {
+    const p = P[i];
+    const parts = [];
+    if (p.winAll > 0) parts.push(`${i + 2} 位以下の全員に、それぞれ少なくとも <b>${fmtH(p.winAll)}</b> ケースで勝つ`);
+    if (p.loseAll > 0) parts.push(`${i === 1 ? "1 位" : i + " 位以上の全員"}に、それぞれ少なくとも <b>${fmtH(p.loseAll)}</b> ケースで負ける`);
+    if (!parts.length) parts.push("順位表からは、特定の相手への勝ち数の保証はない");
+    li.push(`${who(i)}: ${parts.join("。")}（1 ケースあたり平均 ${fmt2(p.x)} 人に負け）。`);
+  }
+  // 崖で区切った区間（上位 60 位までにある 2 人以上の区間）
+  for (const g of A.groups.filter((g) => g.size >= 2 && g.a < 60).slice(0, 6)) {
+    const w = Math.sqrt(8 * g.inner).toFixed(1);
+    li.push(`${rng(g.a, g.b)}（${g.size} 人、相対スコア ${P[g.a].rel.toFixed(2)}〜${P[g.b].rel.toFixed(2)}%）は<b>${g.kind}</b>: 区間内の境界の逆転は最大 1 ケースあたり ${fmt2(g.inner)} 組（ランダムに入れ替わる約 ${w} 人の混ざりに相当）。` +
+      (g.kind === "団子" ? "区間全体が入り混じっていて、順位はケースの引きで入れ替わる。" : "区間の中でも順序はおおむね付いている（近い順位どうしだけが入れ替わる）。"));
+  }
+  // 同点の塊
+  for (const [a, b] of A.ties) {
+    if (P[a].R >= T * n) { li.push(`${rng(a, b)}の ${b - a + 1} 人は全ケース WA/TLE（得点 0）。`); continue; }
+    li.push(`${rng(a, b)}の ${b - a + 1} 人は R が完全に一致（${fmtH(P[a].R)}）。全ケースで同じ得点、つまり同じ出力（公式サンプルや、それに近い単純な解）の可能性が高い。`);
+  }
+  // WA
+  const firstMaybeWA = P.findIndex((p) => p.R >= n);
+  if (firstMaybeWA > 0) li.push(`${rng(0, firstMaybeWA - 1)}は全ケース AC が確定（WA/TLE は 1 件で R に n = ${n} が加わるが、R < n）。`);
+  if (A.excess > 0.5) {
+    const w = (-1 + Math.sqrt(1 + (8 * A.excess) / T)) / 2;
+    li.push(`R の総和は T·n(n−1)/2 より ${fmtH(A.excess)} 大きい。これは WA/TLE の分で、1 ケースあたり WA/TLE の提出が w 件なら w(w+1)/2 ずつ増える。全ケースで同数と仮定すると w ≈ ${w.toFixed(1)}（全ケース WA/TLE の ${P.filter((p) => p.R >= T * n).length} 人を含む）。WA/TLE がある人の R は水増しされるので、それを含む境界の L<sub>k</sub> は上界になる（保証の向きは変わらない）。`);
+  }
+  $("findings").innerHTML = li.map((s) => `<li>${s}</li>`).join("");
+}
+
+// SVG のユーティリティ
+function svgEl(w, h) { return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">`; }
+function niceTicks(lo, hi, cnt) {
+  const span = hi - lo || 1;
+  const step0 = span / cnt, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 5, 10].map((s) => s * mag).find((s) => s >= step0);
+  const t = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10));
+  return t;
+}
+function chartWidth(el) { return Math.max(320, Math.floor(el.clientWidth - 28)); }
+function showTip(el, html, x, y) {
+  const tip = el.querySelector(".tip");
+  tip.innerHTML = html; tip.style.display = "block";
+  const W = el.clientWidth;
+  const tw = tip.offsetWidth;
+  tip.style.left = Math.min(Math.max(4, x + 14), W - tw - 4) + "px";
+  tip.style.top = y + 12 + "px";
+}
+function hideTip(el) { el.querySelector(".tip").style.display = "none"; }
+
+// x 方向は 2 つのグラフで共通: 順位 index i（0-indexed）の中心
+function xScale(W, padL, padR) {
+  const a = params.from - 1, b = params.to - 1;
+  const span = b - a + 1;
+  return { a, b, x: (i) => padL + ((i - a + 0.5) / span) * (W - padL - padR), step: (W - padL - padR) / span };
+}
+function rankTicks(a, b) { return niceTicks(a + 1, b + 1, 8).filter((v) => v >= a + 1 && v <= b + 1 && Number.isInteger(v)); }
+
+function renderScoreChart() {
+  const el = $("scoreChart");
+  const W = chartWidth(el), H = 260, padL = 44, padR = 10, padT = 10, padB = 26;
+  const X = xScale(W, padL, padR);
+  const vis = A.P.slice(X.a, X.b + 1);
+  let lo = Math.min(...vis.map((p) => p.rel)), hi = Math.max(...vis.map((p) => p.rel));
+  const pad = (hi - lo) * 0.06 || 0.5; lo -= pad; hi += pad;
+  const y = (v) => padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
+  let s = svgEl(W, H);
+  // 団子の帯（交互に薄く）
+  A.groups.forEach((g, gi) => {
+    if (g.b < X.a || g.a > X.b || gi % 2) return;
+    const a = Math.max(g.a, X.a), b = Math.min(g.b, X.b);
+    s += `<rect x="${X.x(a) - X.step / 2}" y="${padT}" width="${(b - a + 1) * X.step}" height="${H - padT - padB}" fill="var(--band)"/>`;
+  });
+  for (const t of niceTicks(lo, hi, 5)) {
+    s += `<line x1="${padL}" x2="${W - padR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/>`;
+    s += `<text x="${padL - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+  }
+  for (const r of rankTicks(X.a, X.b)) s += `<text x="${X.x(r - 1)}" y="${H - 8}" text-anchor="middle">${r}</text>`;
+  // 崖
+  for (const k of A.cliffs.keys()) {
+    if (k - 1 < X.a || k > X.b) continue;
+    const xx = X.x(k - 1) + X.step / 2;
+    s += `<line x1="${xx}" x2="${xx}" y1="${padT}" y2="${H - padB}" stroke="var(--cliff)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+  }
+  s += `<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" points="${vis.map((p) => `${X.x(p.i).toFixed(1)},${y(p.rel).toFixed(1)}`).join(" ")}"/>`;
+  if (vis.length <= 120) for (const p of vis) s += `<circle cx="${X.x(p.i)}" cy="${y(p.rel)}" r="2.5" fill="var(--accent)"/>`;
+  if (A.focusIdx >= X.a && A.focusIdx <= X.b) {
+    const p = A.P[A.focusIdx];
+    s += `<circle cx="${X.x(p.i)}" cy="${y(p.rel)}" r="5" fill="none" stroke="var(--mark)" stroke-width="2"/>`;
+    s += `<text x="${X.x(p.i) + 8}" y="${y(p.rel) - 8}" style="fill:var(--text)">${esc(p.name)}</text>`;
+  }
+  s += `<rect class="hit" x="${padL}" y="${padT}" width="${W - padL - padR}" height="${H - padT - padB}" fill="transparent"/>`;
+  s += `<line class="cross" x1="0" x2="0" y1="${padT}" y2="${H - padB}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>`;
+  s += "</svg>";
+  el.querySelector("svg")?.remove();
+  el.insertAdjacentHTML("beforeend", s);
+  const svg = el.querySelector("svg"), cross = svg.querySelector(".cross");
+  const pick = (ev) => {
+    const r = svg.getBoundingClientRect();
+    const px = ((ev.clientX - r.left) / r.width) * W;
+    return Math.min(X.b, Math.max(X.a, Math.floor((px - padL) / X.step) + X.a));
+  };
+  svg.addEventListener("mousemove", (ev) => {
+    const i = pick(ev), p = A.P[i];
+    cross.setAttribute("x1", X.x(i)); cross.setAttribute("x2", X.x(i)); cross.setAttribute("visibility", "visible");
+    const r = el.getBoundingClientRect();
+    showTip(el, `<b>${p.i + 1} 位 ${esc(p.name)}</b><br>相対スコア ${p.rel.toFixed(3)}%<br>1 ケースあたり平均 ${fmt2(p.x)} 人に負け<br>区間 ${rng(A.groups[A.groupOf[i]].a, A.groups[A.groupOf[i]].b)}（${A.groups[A.groupOf[i]].kind}）`, ev.clientX - r.left, ev.clientY - r.top);
+  });
+  svg.addEventListener("mouseleave", () => { hideTip(el); cross.setAttribute("visibility", "hidden"); });
+  svg.addEventListener("click", (ev) => renderPerson(pick(ev)));
+}
+
+function renderMixChart() {
+  const el = $("mixChart");
+  const W = chartWidth(el), H = 200, padL = 44, padR = 10, padT = 10, padB = 26;
+  const X = xScale(W, padL, padR);
+  const ks = [];
+  for (let k = X.a + 1; k <= X.b; k++) ks.push(k); // 境界 k: index k−1 と k の間
+  const hi = Math.max(1, ...ks.map((k) => A.C[k]));
+  const y = (v) => padT + (1 - Math.sqrt(Math.max(0, v) / hi)) * (H - padT - padB);
+  let s = svgEl(W, H);
+  const ticks = niceTicks(0, Math.sqrt(hi), 4).map((t) => t * t).filter((t) => t <= hi);
+  for (const t of ticks) {
+    s += `<line x1="${padL}" x2="${W - padR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/>`;
+    s += `<text x="${padL - 6}" y="${y(t) + 4}" text-anchor="end">${+t.toFixed(2)}</text>`;
+  }
+  for (const r of rankTicks(X.a, X.b)) s += `<text x="${X.x(r - 1)}" y="${H - 8}" text-anchor="middle">${r}</text>`;
+  const bw = Math.max(1, Math.min(10, X.step - 2));
+  for (const k of ks) {
+    const xx = X.x(k - 1) + X.step / 2, yy = y(A.C[k]);
+    const col = A.cliffs.has(k) ? "var(--cliff)" : "var(--accent)";
+    s += `<rect x="${xx - bw / 2}" y="${Math.min(yy, H - padB - 1)}" width="${bw}" height="${Math.max(1, H - padB - yy)}" rx="${bw >= 6 ? 2 : 0}" fill="${col}" opacity="${A.cliffs.has(k) ? 1 : 0.75}"/>`;
+  }
+  s += `<rect x="${padL}" y="${padT}" width="${W - padL - padR}" height="${H - padT - padB}" fill="transparent"/>`;
+  s += "</svg>";
+  el.querySelector("svg")?.remove();
+  el.insertAdjacentHTML("beforeend", s);
+  const svg = el.querySelector("svg");
+  svg.addEventListener("mousemove", (ev) => {
+    const r = svg.getBoundingClientRect();
+    const px = ((ev.clientX - r.left) / r.width) * W;
+    let k = Math.round((px - padL) / X.step) + X.a;
+    k = Math.min(X.b, Math.max(X.a + 1, k));
+    const rr = el.getBoundingClientRect();
+    const c = A.cliffs.get(k);
+    showTip(el,
+      `<b>${k} 位 | ${k + 1} 位 の境界</b>${c ? ' <span class="tag cliff">崖</span>' : ""}<br>` +
+      `${esc(A.P[k - 1].name)} | ${esc(A.P[k].name)}<br>` +
+      `上位 ${k} 人が下に負けた（ケース, 組）: ${fmtH(A.L[k])}<br>1 ケースあたり ${fmt2(A.C[k])}` +
+      `<br>少なくとも ${Math.max(0, A.T - Math.floor(A.L[k]))} ケースで上位 ${k} 人は下の誰にも負けない`,
+      ev.clientX - rr.left, ev.clientY - rr.top);
+  });
+  svg.addEventListener("mouseleave", () => hideTip(el));
+}
+
+function renderGroups() {
+  const { P, T } = A;
+  let h = `<tr><th class="l">順位</th><th>人数</th><th class="l">性格</th><th>相対スコア (%)</th><th>上の境界の逆転 / ケース</th><th>区間内の最大の逆転 / ケース</th><th>下の境界の逆転 / ケース</th><th class="l">メンバー</th></tr>`;
+  for (const g of A.groups) {
+    if (g.b < params.from - 1 || g.a > params.to - 1) continue;
+    const names = [];
+    for (let t = g.a; t <= Math.min(g.b, g.a + 5); t++) names.push(t === A.focusIdx ? `<b>${esc(P[t].name)}</b>` : esc(P[t].name));
+    if (g.size > 6) names.push(`… 他 ${g.size - 6} 人`);
+    const hl = A.focusIdx >= g.a && A.focusIdx <= g.b ? ' class="hl"' : "";
+    h += `<tr${hl}><td class="l">${rng(g.a, g.b)}</td><td>${g.size}</td><td class="l">${g.kind}</td><td>${P[g.a].rel.toFixed(2)}${g.size > 1 ? "〜" + P[g.b].rel.toFixed(2) : ""}</td>` +
+      `<td>${g.left === null ? "—" : fmt2(g.left)}</td><td>${g.size > 1 ? fmt2(g.inner) : "—"}</td><td>${g.right === null ? "—" : fmt2(g.right)}</td><td class="l">${names.join(", ")}</td></tr>`;
+  }
+  $("groups").innerHTML = h;
+}
+
+function renderHeat() {
+  const el = $("heat");
+  const a = params.from - 1, b = Math.min(params.to - 1, a + 39);
+  const N = b - a + 1;
+  const cell = Math.max(10, Math.min(22, Math.floor((chartWidth(el) - 130) / N)));
+  const padL = 120, padT = 90; // 上の列ラベルは 60° 傾けるので、高さと右の余白を取る
+  const W = padL + N * cell + 60, H = padT + N * cell + 10;
+  const T = A.T;
+  const U = [];
+  for (let i = a; i <= b; i++) { U[i] = []; for (let j = i + 1; j <= b; j++) U[i][j] = lossBound(A, i, j); }
+  let s = svgEl(W, H);
+  for (let r = 0; r < N; r++) {
+    const i = a + r, nm = A.P[i].name;
+    const lbl = `${i + 1} ${nm.length > 12 ? nm.slice(0, 11) + "…" : nm}`;
+    const st = i === A.focusIdx ? ' style="fill:var(--text);font-weight:600"' : "";
+    s += `<text x="${padL - 4}" y="${padT + r * cell + cell / 2 + 4}" text-anchor="end"${st}>${esc(lbl)}</text>`;
+    s += `<text transform="translate(${padL + r * cell + cell / 2 + 4},${padT - 4}) rotate(-60)"${st}>${esc(lbl)}</text>`;
+  }
+  for (let i = a; i <= b; i++) for (let j = i + 1; j <= b; j++) {
+    const g = (T - U[i][j]) / T; // 保証された勝ち数の割合
+    const pct = Math.round(Math.max(0, g) * 100);
+    s += `<rect data-i="${i}" data-j="${j}" x="${padL + (j - a) * cell + 1}" y="${padT + (i - a) * cell + 1}" width="${cell - 2}" height="${cell - 2}" rx="2" style="fill:color-mix(in oklab, var(--accent) ${pct}%, var(--band))"/>`;
+  }
+  s += "</svg>";
+  el.querySelector("svg")?.remove();
+  el.insertAdjacentHTML("beforeend", s);
+  const svg = el.querySelector("svg");
+  svg.addEventListener("mousemove", (ev) => {
+    const t = ev.target;
+    if (!t.dataset || t.dataset.i === undefined) { hideTip(el); return; }
+    const i = +t.dataset.i, j = +t.dataset.j, u = U[i][j];
+    const rr = el.getBoundingClientRect();
+    showTip(el, `${who(i)} は ${who(j)} に<br>少なくとも <b>${fmtH(T - u)}</b> / ${T} ケースで勝つ<br>（${esc(A.P[j].name)} が勝つのは多くても ${fmtH(u)} ケース）`, ev.clientX - rr.left, ev.clientY - rr.top);
+  });
+  svg.addEventListener("mouseleave", () => hideTip(el));
+}
+
+function renderAll() {
+  const { P, C, T } = A;
+  let h = `<tr><th>順位</th><th class="l">名前</th><th>相対スコア (%)</th><th>R</th><th>平均の負け人数 / ケース</th><th>下との境界の逆転 / ケース</th><th>下位全員にそれぞれ最低何勝</th><th>上位全員にそれぞれ最低何敗</th><th class="l">区間</th></tr>`;
+  for (const p of P) {
+    const k = p.i + 1;
+    const cl = A.cliffs.has(k) ? ' <span class="tag cliff">崖</span>' : "";
+    const g = A.groups[A.groupOf[p.i]];
+    h += `<tr class="clk${p.i === A.focusIdx ? " hl" : ""}" data-i="${p.i}"><td>${k}</td><td class="l">${esc(p.name)}</td><td>${p.rel.toFixed(3)}</td><td>${fmtH(p.R)}</td><td>${fmt2(p.x)}</td>` +
+      `<td>${k < A.m ? fmt2(C[k]) : "—"}${cl}</td><td>${p.winAll === null ? "—" : fmtH(p.winAll)}</td><td>${p.loseAll === null ? "—" : fmtH(p.loseAll)}</td><td class="l">${rng(g.a, g.b)}（${g.kind}）</td></tr>`;
+  }
+  $("all").innerHTML = h;
+}
+
+function renderPerson(i) {
+  const { P, T, n } = A;
+  const p = P[i];
+  const g = A.groups[A.groupOf[i]];
+  // 近くの人とのペアの保証
+  const lo = Math.max(0, i - 5), hi = Math.min(A.m - 1, i + 5);
+  let rows = "";
+  for (let j = lo; j <= hi; j++) {
+    if (j === i) continue;
+    let txt;
+    if (j > i) { const u = lossBound(A, i, j); txt = `${fmtH(T - u)} 〜 ${T}`; }
+    else { const u = lossBound(A, j, i); txt = `0 〜 ${fmtH(u)}`; }
+    rows += `<tr><td>${j + 1}</td><td class="l">${esc(P[j].name)}</td><td>${P[j].rel.toFixed(3)}</td><td>${txt}</td></tr>`;
+  }
+  $("person").innerHTML =
+    `<div><b>${i + 1} 位 ${esc(p.name)}</b> <span class="muted">相対スコア ${p.rel.toFixed(3)}%</span></div>` +
+    `<ul class="findings" style="margin-top:6px">` +
+    `<li>R = ${fmtH(p.R)}: 全 ${T} ケースで、自分より良かった人の延べ人数（同点は 0.5）。1 ケースあたり平均 ${fmt2(p.x)} 人。</li>` +
+    (p.R < n ? `<li>R &lt; n = ${n} なので、全ケース AC が確定。</li>` : `<li>R ≥ n なので、WA/TLE が最大 ${Math.floor(p.R / n)} ケースありうる。</li>`) +
+    (p.winAll > 0 ? `<li>${i + 2} 位以下の全員に、それぞれ少なくとも ${fmtH(p.winAll)} ケースで勝つ。</li>` : "") +
+    (p.loseAll > 0 ? `<li>${i} 位以上の全員に、それぞれ少なくとも ${fmtH(p.loseAll)} ケースで負ける。</li>` : "") +
+    `<li>区間: ${rng(g.a, g.b)}（${g.size} 人、${g.kind}）。</li></ul>` +
+    `<table style="margin-top:8px;max-width:560px"><tr><th>順位</th><th class="l">相手</th><th>相対スコア (%)</th><th>${esc(p.name)} の勝ち数としてありうる範囲</th></tr>${rows}</table>`;
+}
+
+function renderExplain() {
+  const { T, n } = A;
+  $("explain").innerHTML = `
+  <p>1 ケースの順位スコアは round(10<sup>9</sup>(1 − r/n))（r = 自分より良い人数 + 0.5 × 同点の人数、n = 提出者数）。丸め誤差は 1 ケース 0.5 以下なので、順位表の得点 S から
+  <b>R = T·n − S·n/10<sup>9</sup></b>（= Σ<sub>ケース</sub> r）がそのまま求まる。n は、全員の R が 0.5 の倍数になる値を探して決めている（今回 n = ${n}）。
+  WA/TLE のケースは順位スコア 0 なので r = n と同じ扱いになる（他の人の r には数えられない）。</p>
+  <p>上位 k 人の R の和は、上位 k 人どうしの勝敗（各組で合計 T、全部で T·k(k−1)/2）と、上位 k 人が k+1 位以下に負けた分 L<sub>k</sub> の和に分かれる。
+  よって <b>L<sub>k</sub> = Σ<sub>i≤k</sub> R<sub>i</sub> − T·k(k−1)/2</b> は、上位 k 人が下の人に負けた（ケース, 組）の数そのもの。
+  L<sub>k</sub> = 0 なら上位 k 人は全ケースで下の全員に勝っている。1 ケースに真の負けが 1 つでもあればそのケースで 1 以上数えるので、少なくとも T − ⌊L<sub>k</sub>⌋ ケースでは上位 k 人は下の誰にも負けていない。</p>
+  <p>C<sub>k</sub> = L<sub>k</sub>/T は境界をまたぐ逆転の 1 ケースあたりの数。m 人がランダムに入れ替わる団子の真ん中の境界では C ≈ m²/8 になるので、√(8C) を「混ざりの幅（人数）」の目安にしている。
+  完全に順序どおりなら C = 0、入り混じる区間の上では山になり、区間の切れ目（崖）で谷になる。崖は、C<sub>k</sub> が閾値以下の境界と、両側の山に比べて十分低い谷として自動で選んでいる（設定で変えられる）。</p>
+  <p>ペアの保証: j が i に勝ったケース数は、i を含み j を含まない任意の集合 X について L<sub>X</sub> = Σ<sub>X</sub> R − T·|X|(|X|−1)/2 以下（X が外に負けた数の一部だから）。
+  X の大きさを決めると R の小さい順に取るのが最小なので、{i} ∪（R の小さい順の s 人）を全部の s で試して最小値を取っている。
+  これは順位表の得点だけから確実に言える下限・上限で、実際の勝敗はその範囲のどこかにある。WA/TLE のある人の R は水増しされるが、水増しは上界を大きくするだけなので保証は正しいまま。</p>
+  <p class="muted">順位表の得点は暫定テスト（T = ${T}）のもの。システムテストのケースでの勝敗とは別。</p>`;
+}
+
+// ---------- 入力 ----------
+
+function loadText(text, label) {
+  try {
+    const raw = JSON.parse(text);
+    if (!raw.StandingsData) throw new Error("StandingsData がない");
+    RAW = raw; params.T = null; params.from = 1; params.to = 0;
+    $("loadmsg").textContent = `読み込み: ${label}`;
+    $("content").classList.remove("hidden");
+    if (text.length < 4e6) { store.set("sv.json", text); store.set("sv.label", label); }
+    render();
+  } catch (e) {
+    $("loadmsg").textContent = `読み込めませんでした: ${e.message}`;
+  }
+}
+$("file").addEventListener("change", (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  f.text().then((t) => loadText(t, f.name));
+});
+document.addEventListener("dragover", (ev) => { ev.preventDefault(); document.body.classList.add("dragging"); });
+document.addEventListener("dragleave", () => document.body.classList.remove("dragging"));
+document.addEventListener("drop", (ev) => {
+  ev.preventDefault(); document.body.classList.remove("dragging");
+  const f = ev.dataTransfer.files[0]; if (f) f.text().then((t) => loadText(t, f.name));
+});
+const num = (id, key, fl) => $(id).addEventListener("change", () => {
+  const v = fl ? parseFloat($(id).value) : parseInt($(id).value, 10);
+  if (!Number.isNaN(v)) { params[key] = v; render(); }
+});
+num("T", "T"); num("from", "from"); num("to", "to");
+num("absThr", "absThr", true); num("ratio", "ratio", true); num("depth", "depth", true);
+$("focus").addEventListener("change", () => { params.focus = $("focus").value.trim(); store.set("sv.focus", params.focus); render(); });
+document.querySelectorAll("button[data-r]").forEach((b) => b.addEventListener("click", () => {
+  const r = +b.dataset.r; params.from = 1; params.to = r || A.m; render();
+}));
+$("all").addEventListener("click", (ev) => {
+  const tr = ev.target.closest("tr[data-i]"); if (tr) renderPerson(+tr.dataset.i);
+});
+let rt = null;
+window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (A) { renderScoreChart(); renderMixChart(); renderHeat(); } }, 150); });
+
+(function init() {
+  const q = new URLSearchParams(location.search);
+  if (q.get("user")) { params.focus = q.get("user"); store.set("sv.focus", params.focus); }
+  const src = q.get("src");
+  if (src) {
+    fetch(src).then((r) => r.text()).then((t) => loadText(t, src)).catch((e) => ($("loadmsg").textContent = `読み込めませんでした: ${e.message}`));
+    return;
+  }
+  const t = store.get("sv.json");
+  if (t) loadText(t, (store.get("sv.label") || "前回のファイル") + "（前回のもの）");
+})();
+</script>
+</body>
+</html>
