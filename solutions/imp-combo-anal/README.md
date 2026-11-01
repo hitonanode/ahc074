@@ -1,0 +1,13 @@
+# imp-combo-anal
+
+改良元: なし（解法ではなく、solutions/imp-combo の出力を分析するスクリプトの置き場所）
+
+- breakdown2.py RUN [SEED_FROM SEED_TO]: run の出力を scripts/replay.py で再生し、注文 1 回あたりの手を役割ごとに数える。紙の役割は出力だけから決める。
+  - 汎用紙: 最初に上にある 6 枚。
+  - ハンドル窓: 汎用紙がすべて穴の窓。
+  - 専用紙の列: その紙が不透明なハンドル窓の数 − 1。
+- 数える役割:
+  - 汎用紙の移動（generic）。
+  - 注文の紙 D を一番上へ（to_top）、汎用層のすぐ下へ（below_generic）。
+  - 深い位置への移動（deep:*）。内訳は、前の注文で一番上だった紙を戻す（prev_top_back）、D より前に D と同じ列を掘る（dig_D_column）、それ以外を D の前（other_before_D）と後（after_D）に分けたもの。
+- あわせて、D のハンドル窓の穴の数（D_handle_holes）と、D の列の紙の数（D_column_size_x）の平均も出す。
