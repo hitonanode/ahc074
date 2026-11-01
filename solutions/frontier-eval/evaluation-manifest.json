@@ -1,0 +1,43 @@
+{
+  "upstream_commit": "df74cd2d8255b2f68d5c815a88b55238899177ec",
+  "tester_backend": "local C++ port of official Rust source",
+  "official_rust_binary_comparison": false,
+  "test_fixtures_passed": 43,
+  "independent_random_replay_fixtures": 30,
+  "generator": "Python random.Random(seed), distribution from problem statement",
+  "generator_official_seed_parity": false,
+  "input_seed_range": [
+    5000,
+    5128
+  ],
+  "recommended_threads": 4,
+  "logical_cpu_count": 9,
+  "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "sha256": {
+    "solutions/frontier-eval/tester.cpp": "923f63b437a0b0e537052377f8256531a02a5fe9222f3c4559abe100b96147b1",
+    "solutions/frontier-eval/generate.py": "3277ce128ecbc9a6556a68fe88e3bddf7e4a704492ba12bd6486aa2a21224eae",
+    "solutions/frontier-eval/compare.py": "c7284287821bb2a7a99f3cfe2c8e8468ee55abe3df3a6ae4f72b295bc784d44c",
+    "solutions/frontier-eval/summarize_compare.py": "ce506798a80b8e2131ebefc611e38be9a8d2a3d99c1afee2466f5b6d8c080eee",
+    "tools/src/lib.rs": "32ea7406f2fc19479afea545420e8cabcb2d7ea41e9c2792d6b731b9f266531c",
+    "tools/src/bin/tester.rs": "da48dc38319a286760710eaf4069e1759be6349e28ab7db09956097cc36e77b0",
+    "scripts/pahcer_run.py": "e505305c303d6287b98bc64b35110c141e55295388a25a0dd1b140a501e273e4",
+    "scripts/replay.py": "02ecee652952e775d1105cbb9006fea291e48eb9338e8726e083c3c4f8f4e2db",
+    "solutions/frontier-eval/test_atomic_logs.py": "e66b7918d438f7bbdb36b8c761aadd0d53483612310ffd4e9607b3af80703d15",
+    "solutions/frontier-eval/verify_integrity.py": "b8034a0800f65c14055b01b1b58722c8274edd17ce42625770188bb6c9d06dd5",
+    "solutions/frontier-eval/run_controlled.py": "1a32f8315d44a46c5b2778c99ecf7ee003bc83b7bc0ef3128f0aa0dba3a0fe24"
+  },
+  "relay_integrity_checks": "fwrite and fflush return checks; recorded stdout byte length and FNV-1a hash",
+  "log_storage": "stdout/stderr captured in pipes; complete files fsynced and atomically renamed after process exit; byte counts and SHA-256 in result.json",
+  "atomic_log_selftest": {
+    "passed": true,
+    "valid_large_log_arms": 2,
+    "abnormal_exit_fixture": true,
+    "timeout_fixture": true,
+    "atomic_publication_observations": 140,
+    "transport": "capture stdout/stderr pipes, fsync temporary files, atomic os.replace",
+    "known_scores": [
+      123,
+      456
+    ]
+  }
+}

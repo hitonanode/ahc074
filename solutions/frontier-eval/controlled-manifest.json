@@ -1,0 +1,42 @@
+{
+  "controls": {
+    "MAP_ITERS": "12000",
+    "GOPT_STEPS": "3000",
+    "ANNEAL_ITERS": "6000000",
+    "CLIMB_ITERS": "30000",
+    "LATTICE_ITERS": "100000"
+  },
+  "seed_range_exclusive": [
+    5020,
+    5084
+  ],
+  "threads": 4,
+  "solvers": [
+    "imp-lean",
+    "frontier-lattice",
+    "frontier-replica",
+    "frontier-replica-one"
+  ],
+  "runs": {
+    "imp-lean": "20261101-052923_imp-lean",
+    "frontier-lattice": "20261101-052923_frontier-lattice",
+    "frontier-replica": "20261101-052923_frontier-replica",
+    "frontier-replica-one": "20261101-052923_frontier-replica-one"
+  },
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+    "/workspace/scratch/f69e96aadd1a/ahc074/solutions/frontier-eval/compare.py",
+    "--compare",
+    "solutions/imp-lean",
+    "solutions/frontier-lattice",
+    "solutions/frontier-replica",
+    "solutions/frontier-replica-one",
+    "--seeds",
+    "5020-5084",
+    "--threads",
+    "4",
+    "--no-record",
+    "-c",
+    "frontier: common fixed design work; lattice and duplicate diagnostic; atomic logs"
+  ]
+}
