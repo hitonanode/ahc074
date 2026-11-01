@@ -1683,7 +1683,9 @@ struct Design {
                         CLOCK_SCALE * std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
                     progress = fixedIterations > 0 ? double(it) / fixedIterations : elapsed / seconds;
                     if (progress >= 1 || elapsed >= seconds) break;
-                    temp = 2.0 * std::pow(0.015 / 2.0, progress);
+                    static const double t0 = env_int("NP_AT0") ? env_int("NP_AT0") / 100.0 : 2.0,
+                                        t1 = env_int("NP_AT1") ? env_int("NP_AT1") / 1000.0 : 0.015;
+                    temp = t0 * std::pow(t1 / t0, progress);
                 }
                 int type = rng.below(1000);
                 if (type < kHandleSwapRate) {
