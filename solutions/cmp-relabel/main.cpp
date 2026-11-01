@@ -2519,7 +2519,7 @@ int main() {
     std::vector<int> permutation(64);  // original window of each internal window
     int M = 6, G = 36;
     Comparator comp;
-    std::mt19937_64 rng(779879);
+    std::mt19937_64 rng(env_int("MAP_SEED") ? env_int("MAP_SEED") : 779879);
     std::unique_ptr<Design> des;
     int map_total = 0;
     // A design may fail (no matching of compatible pairs, or no column with both colors): retry with
@@ -2557,6 +2557,7 @@ int main() {
     else
         des->anneal(std::max(0.005, kAnnealEnd - elapsed_sec()), 0);
     std::cerr << "anneal_iters = " << des->anneal_iters << "\nanneal_end_sec = " << elapsed_sec() << '\n';
+    std::cerr << "anneal_cost = " << des->cur << '\n';
     if (int steps = env_int("RELABEL_STEPS"); steps > 0) {
         // Probe: hill climb on the labels (edge, polarity) of the generic windows for the pairs of the
         // annealed design: sum over pairs of mean_moves, keeping every pair compatible and every pair
