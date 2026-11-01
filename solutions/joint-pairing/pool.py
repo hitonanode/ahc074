@@ -10,7 +10,6 @@ from pathlib import Path
 import numpy as np
 from optimize import Design, Engine, Matcher, guard_windows, groups_for, save_candidate, weights
 
-
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('design');ap.add_argument('--out',required=True)
     ap.add_argument('--lib',default='/mnt/data/libjoint.so');ap.add_argument('--linear',type=int,default=8);ap.add_argument('--nonlinear',type=int,default=4)
