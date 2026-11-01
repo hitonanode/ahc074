@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""保存済みの計測結果から日本語の報告書を再生成する。解法は実行しない。"""
+from pathlib import Path
+import json
+import statistics
+
+HERE = Path(__file__).resolve().parent
+
+
+def read(path):
+    return json.loads((HERE / path).read_text())
+
+
+speed = read('speed-summary.json')
+profile = read('profile-summary.json')
+equality = read('equality-summary.json')
+trace = read('trace-summary.json')
+scope = read('scope-check.json')
+overall = speed['overall']
+
+lines = [f'''# assign_windows 高速化の報告
+
+## 1. 要約
+
+**目標の 2 倍を達成した。割り当て段は {overall['speedup']:.2f} 倍速くなり、時間は元版の {overall['ratio'] * 100:.2f}%（{(1-overall['ratio']) * 100:.2f}% 削減）になった。**
+
+最終版は `main.cpp`。改良元は `solutions/imp-gla/main.cpp`。seed 0・3・7・15 の各 7 回、合計 28 組を元版→最終版の順で交互に実行した。`map_end_sec` の全 28 回の中央値は、元版 **{overall['reference_median']:.6f} 秒**、最終版 **{overall['candidate_median']:.6f} 秒**。対応する実行の時間比の中央値も {overall['median_paired_ratio']:.6f} だった。すべて `CLOCK_SCALE=1.1` 適用済みの秒数。
+
+- 指定条件 `MAP_ITERS=30000 GOPT_STEPS=6800 ANNEAL_ITERS=2000000 CLIMB_ITERS=20000`、seed **0〜15 の全 16 件で stdout が全バイト一致**。紙 192 枚の模様と 1024 注文すべての操作を比較した。1 版あたり計 {sum(x['bytes'] for x in equality):,} byte。全件で `fast_requests=0`、補助紙数も両版で同じ、WA なし。
+- 診断用コピーでは、候補目的値・現在の目的値・温度・進捗の `double` ビット列と RNG 状態の逐次ハッシュ／要素数も **16/16 一致**。1 版あたり計 {sum(x['trace_values'] for x in trace):,} 要素を照合した。
+- 関係の圧縮、転置によるキー共通化、閉包、キャッシュの結果を、元の `closure8` と `PosetSums` に照合した。対向する辺を持たない **3^15 = 14,348,907 通りすべて**と、対向辺も含む追加の乱数 1,000,000 通りで不一致ゼロ（非巡回は 3,781,503 通り）。
+- GCC 13.3.0 と Clang 18.1.3 で C++23 / `-O2` / `-DCLOCK_SCALE=1.1` のビルドを確認。`-march=native` は使っていない。
+
+変更は `WindowPairs` から `assign_windows` までと、その説明コメントだけ。`PosetSums` 本体、`Design`、`Solver`、`main` は元版とバイト一致する。既存ファイルの変更、`pahcer_run.py` の実行、git の commit・push・stash・checkout は行っていない。実験ファイルもこのディレクトリ内だけに作成した。
+
+## 2. 時間の内訳
+
+診断用コピーの `propose`、`matching_cost`、`apply_move` に `__rdtsc()` の計測器を入れた。seed 0・3、各 5 回の交互実行。各回のサイクル比に、その回の `assign_windows` の経過秒（`CLOCK_SCALE` 適用済み）を掛けて秒換算し、中央値を取った。独立に取った中央値なので各行の和は全体の中央値と厳密には一致しない。
+
+| 区間 | 元版の秒 | 元版の割合 | 最終版の秒 | 最終版の割合 | 時間削減 |
+|---|---:|---:|---:|---:|---:|''']
+for field, label in [('profile_propose_ticks', 'propose（関係更新・閉包等）'),
+                     ('profile_match_ticks', 'matching_cost'),
+                     ('profile_apply_ticks', 'apply_move'), ('other', '初期化・受理判定・その他')]:
+    a, b = profile['profile-base'][field], profile['profile-main'][field]
+    lines.append(f"| {label} | {a['median_seconds']:.6f} | {a['median_percent']:.2f}% | {b['median_seconds']:.6f} | {b['median_percent']:.2f}% | {(1-b['median_seconds']/a['median_seconds'])*100:.1f}% |")
+
+lines.append(f'''
+`assign_windows` 全体の中央値は診断版で {profile['profile-base']['median_assign_sec']:.6f} → {profile['profile-main']['median_assign_sec']:.6f} 秒。**要約の速度比には計測器のない通常バイナリを用いた。** `map_end_sec` は入力読込み、共通表の初期化、その後の `Design::initialize` も含むため、関数単体より少し長い。
+
+両版でマッチングの候補は平均 {profile['profile-main']['mean_candidates']:.2f} 対、貪欲選択で走査したのは平均 {profile['profile-main']['mean_scanned']:.2f} 対。受理率も両版で同じ {profile['profile-main']['accept_fraction']*100:.4f}% だった。最終版の閉包キャッシュのヒット率は {profile['profile-main']['cache_hit_fraction']*100:.2f}%。記録: [profile-summary.json](profile-summary.json)、[診断の生データ](data/final-profile/results.json)。
+
+## 3. 変更点
+
+### 3.1 互換性と費用を一つの整数にする
+
+元の `base` / `w` は、マッチングで `w > 0` かどうかだけを判定していた。正の指数重みそのものは目的関数に入らない。この計算を省き、非互換を 0、互換を `1 + PosetSums::both_of(closure)` として保存する。関係が空の互換な対も 1 になるので区別できる。
+
+元の初期重みは有限の正数で、窓交換の係数は `exp(±0.105)`。係数の指数の累積は実際の汎用窓内の不一致数の変化と対応し、窓数の範囲に収まる。固定反復数内の丸め誤差を考慮してもゼロ／非有限にはならない。したがって `w > 0` は互換性と同値であり、省いた重みの丸めが受理判定に影響することはない。
+
+費用の整数値 `2340 * hd + 5 * rel + 144 * distance` と、最後の `double(total) / (need * 3600) + (need - matched) * 10.0` は同じ。距離上限 26、温度式、乱数生成と呼出し順、受理判定は変更していない。改善のための早期棄却も追加していない。
+
+### 3.2 関係表現と完全一致を確認するキャッシュ
+
+15 組それぞれの順方向を bit `e`、逆方向を bit `16+e` に保存する。対向する辺は `r & (r >> 16)` で判定でき、8×8 行列の転置を SIMD で作る計算が不要になる。必要なときだけ 4 個の 256 要素表で元の行列に戻し、6 紙分の閉包計算を展開して実行する。
+
+閉包と費用は 262144 エントリ、約 2 MiB の直接対応キャッシュに保存する。キーが完全一致した場合だけ使用し、衝突は再計算する。関係の転置は `both(r) = one(r) + one(transpose(r))` の和を変えないため、転置同士のキーを共通化する。共通の `PosetSums` は変更していない。
+
+### 3.3 窓ごとのビット集合を前計算する
+
+各窓について「商品が異なり、先の商品が 0 の対」「異なり、先の商品が 1 の対」を、対の番号をビットとする二つの集合で持つ。変更する組の窓の集合を OR すれば、各対に必要な順方向と逆方向が得られる。極性に応じて二つの集合を入れ替えるため、元の `(au ^ pol)` による判定と一致する。
+
+4 対の方向を 256 エントリの表で展開して現在の関係へ差し込む。これにより各手で全対のバーコードを読み直す量を減らす。1 組だけを変える手はテンプレートで分け、同じ組を二度計算しない。候補関係は元版と同じものを計算する。
+
+### 3.4 SIMD 更新と閉包参照を別々に走査する
+
+最初の SIMD 走査で関係を更新し、閉包の再計算が必要な対を番号順に集める。次の走査でキャッシュを参照し、最後に互換な対だけを列挙する。SIMD のループ内でキャッシュ関数を呼び出さなくなり、レジスタの退避・復元や分岐の負担を減らせた。受理時は現在の配列と候補配列を交換する。
+
+### 3.5 マッチングに渡す対と累積和の範囲を減らす
+
+互換な対の一覧だけから鍵を作り、全約 3400 対の再走査を避ける。関数単位の `target("popcnt")` で鍵の popcount を処理する。基数ソートは下位 8 bit の 256 バケツと、実際に使った上位桁の範囲の累積和に変更する。頂点の使用済み判定は 256 byte の配列にする。
+
+一覧は元の対の番号順で、二段のソートはいずれも安定。したがって**同じ鍵の対の順序も一致**し、貪欲法が選ぶ 70 対、整数合計、浮動小数点の目的値が同じになる。キーの最大値は `2340*26 + 5*4380 + 144*26 = 86484` で、17 bit に収まる。
+
+### 3.6 試して採用しなかったもの
+
+以下は seed 0、MAP_ITERS=120000、GOPT_STEPS=27200、各 5 回の交互実行。各試行時の負荷が異なるため、行をまたぐ絶対時間の大小では判断しない。
+
+| 試行 | その試行の基準中央値 | 候補中央値 | 判断・記録 |
+|---|---:|---:|---|
+| 上位桁で分け、使うバケツ内だけ挿入ソート | 第 4 版 1.020290 秒 | 1.162660 秒 | 不採用。互換な対の約 89% を走査するので部分ソートの節約が小さい。`data/stage5-speed/` |
+| 変わらない辺で矛盾する SIMD ブロックを飛ばし、受理時に関係を再構築 | 第 5 版 1.087080 秒 | 1.350150 秒 | 不採用。分岐と再構築を加える形では遅くなった。`data/stage6-speed/` |
+| キャッシュを 1048576 エントリに拡大 | 第 4 版 0.972081 秒 | 1.084110 秒 | 不採用。262144 エントリまでの拡大は採用。`data/cache-size/` |
+| 転置を同一視した全 7174454 関係の衝突しない密なキャッシュ | 第 4 版 0.969005 秒 | 1.138840 秒 | 不採用。約 14 MiB の表はこの計測では遅かった。`data/dense-speed/` |
+
+## 4. 計測の手順と生データ
+
+### 4.1 ビルドと実行
+
+作業ディレクトリは `/home/sato/ahc074/.claude/worktrees/clean-base-optimization-1b199f`。CPU は Core Ultra 9 285K。比較は逐次実行し、別のジョブによる負荷変動を受けるため交互実行の中央値で判断した。探索中も同時プロセス数は 8 個以内に抑えた。
+
+```sh
+g++ -std=c++23 -O2 -DCLOCK_SCALE=1.1 solutions/imp-gla/main.cpp -o solutions/astra-assign/base
+g++ -std=c++23 -O2 -DCLOCK_SCALE=1.1 solutions/astra-assign/main.cpp -o solutions/astra-assign/main
+clang++ -std=c++23 -O2 -DCLOCK_SCALE=1.1 solutions/astra-assign/main.cpp -o solutions/astra-assign/main-clang
+
+python3 solutions/astra-assign/measure.py --binaries base main --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 --repeats 1 --label final-equal --check --map 30000 --gopt 6800 --anneal 2000000 --climb 20000
+python3 solutions/astra-assign/measure.py --binaries base main --seeds 0,3,7,15 --repeats 7 --label final-speed --map 120000 --gopt 27200 --anneal 1024 --climb -1
+```
+
+`measure.py` は `/home/sato/ahc074/tools/target/release/tester <binary> < tools/in/<seed>.txt` を呼び、stdout・stderr・設定・結果を `data/<label>/` に保存する。`--check` は SHA-256 に加えて全バイトを直接比較する。既存記録を上書きしないので再実行時は新しい `--label` を指定する。
+
+**速度用の 12 万回の試験では後続段階の時刻制限が発動しうるため、最終スコアや stdout の一致の評価には使わない。** 元版の固定反復数の環境変数も、補助紙生成の打切りや Solver の軽量モードへの時刻切替までは止めていない。この既存仕様は変更していない。出力一致は指定された通常の固定回数で確認し、時刻切替が起きていないこともログで確認した。
+
+### 4.2 速度の生データ
+
+各行は `base` の直後に `main` を実行した一組。単位は倍率適用済み秒。元の stderr と全メトリクスは [data/final-speed/results.json](data/final-speed/results.json)、集計は [speed-summary.json](speed-summary.json)。
+
+| seed | 回 | 元版 map_end_sec | 最終版 map_end_sec |
+|---:|---:|---:|---:|''')
+for item in speed['seeds']:
+    for repeat, (a, b) in enumerate(zip(item['base'], item['main']), 1):
+        lines.append(f"| {item['seed']} | {repeat} | {a:.6f} | {b:.6f} |")
+lines.append('''
+| seed | 元版中央値 | 最終版中央値 | 最終版 / 元版 | 速度倍率 |
+|---:|---:|---:|---:|---:|''')
+for item in speed['seeds']:
+    lines.append(f"| {item['seed']} | {item['base_median']:.6f} | {item['main_median']:.6f} | {item['ratio_of_medians']:.4f} | {item['speedup']:.3f} 倍 |")
+
+lines.append('''
+### 4.3 一致の確認結果
+
+全行で stdout が一致した。SHA-256 は両版共通の先頭 12 桁を表示。完全なハッシュと検査結果は [equality-summary.json](equality-summary.json)、全実行メトリクスは [data/final-equal/results.json](data/final-equal/results.json)。
+
+| seed | 両版の Score | stdout byte | SHA-256 先頭 |
+|---:|---:|---:|---|''')
+for item in equality:
+    lines.append(f"| {item['seed']} | {item['score']} | {item['bytes']} | `{item['sha256'][:12]}` |")
+
+lines.append(f'''
+追加検査:
+
+- `trace.py` で作った診断用コピーを同じ 16 ケースで実行。stdout に加え、逐次ハッシュと要素数を照合した。記録: [trace-summary.json](trace-summary.json)、[data/final-trace/results.json](data/final-trace/results.json)。64 bit のハッシュ照合であり、全出力の直接バイト比較とは別の補助検査。
+- `verify_relations.cpp` を同じ GCC オプションでコンパイルして実行。全関係と乱数関係の照合結果: [verify-relations.txt](verify-relations.txt)。
+- Clang 版も指定条件の seed 0・15 をテスターで実行し、元の GCC 版との全出力一致を確認。記録: [data/final-clang/results.json](data/final-clang/results.json)。
+- 時間内訳は `profile.py` で作ったコピーを同じビルドオプションでコンパイルし、`--binaries profile-base profile-main --seeds 0,3 --repeats 5 --map 120000 --gopt 27200 --anneal 1024 --climb -1` で計測した。生のサイクル数は [data/final-profile/results.json](data/final-profile/results.json)。
+- 変更範囲とソースの同定: [scope-check.json](scope-check.json)。元版 SHA-256 `{scope['reference_sha256']}`、最終版 `{scope['candidate_sha256']}`。
+
+計測用バイナリと大きな stdout / stderr は `.gitignore` に含めた。ローカルのファイル自体は残している。各 JSON とこの報告書に設定、時間、スコア、ハッシュがある。提出用の `main.cpp` に計測器や診断用の分岐はない。
+
+## 5. さらに速くするための残りの案
+
+1. **閉包キャッシュの複数候補化と先読み。** 最終版でも propose が約 71% を占め、キャッシュの約 16% がミスする。同じ容量の 2-way キャッシュ、または `pending` の次の数個のキーの先読みを試す余地がある。大きな密な表への置換は今回遅かったので、容量だけを増やす方針は慎重に比べる。
+2. **関係と rel の 32 bit 化。** 値は 32 bit に収まる。4 対ずつの方向展開を 8 対ずつにまとめ、配列転送と互換な対の抽出をさらに減らせる可能性がある。追加の pack / unpack の費用を含めた計測が必要。
+3. **鍵のハンドル距離成分の差分更新。** 受理率は約 0.7% なので、受理時に全対のハンドル距離を更新し、候補時は窓交換による ±1 だけを足す形を試せる。現在は互換な約 178 対しか鍵を作らないため、効果は限定的かもしれない。
+
+これらは未実装・未計測。採用する場合も、乱数・受理式・同値キーの順序を維持し、同じ 16 ケースの全出力と逐次ハッシュの一致を再確認する。
+''')
+(HERE / 'REPORT.md').write_text('\n'.join(lines))
