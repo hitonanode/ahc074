@@ -32,8 +32,8 @@
 // Requests (Solver::process): every combination of the plan options is simulated on a copy of the
 // state and the plan of least cost (moves + 0.8 per paper left out of its column + 0.6 times the
 // expected cost of the next request) is kept. Safety nets: retries with fewer generic windows, a
-// design with one white and one black sheet per window, and a light plan once 1.55 s of CPU time is
-// used.
+// design with one white and one black sheet per window, and a light plan from 1.70 s on (scaled,
+// as every clock reading).
 #include <algorithm>
 #include <array>
 #include <cassert>
