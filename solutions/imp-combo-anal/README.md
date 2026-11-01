@@ -11,3 +11,4 @@
   - 注文の紙 D を一番上へ（to_top）、汎用層のすぐ下へ（below_generic）。
   - 深い位置への移動（deep:*）。内訳は、前の注文で一番上だった紙を戻す（prev_top_back）、D より前に D と同じ列を掘る（dig_D_column）、それ以外を D の前（other_before_D）と後（after_D）に分けたもの。
 - あわせて、D のハンドル窓の穴の数（D_handle_holes）と、D の列の紙の数（D_column_size_x）の平均も出す。
+- holes.py RUN [SEED_FROM SEED_TO]: 注文の前の状態で D を一番上に置いたと仮定し、D のハンドル窓の穴のうち、見える紙の色が要求と違うものを数える（wrong_holes_before）。
