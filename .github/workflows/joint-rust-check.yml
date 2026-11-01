@@ -1,0 +1,51 @@
+name: Joint pairing official tester cross-check
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths: ['.github/workflows/joint-rust-check.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    if: github.head_ref == 'research/joint-pairing-20261101'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Build research code and official tester
+        run: |
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/pip install numpy==2.3.5 scipy==1.17.0
+          g++ -std=c++23 -O2 -DCLOCK_SCALE=1.1 solutions/joint-pairing/main.cpp -o /tmp/driver
+          g++ -std=c++23 -O2 -DCLOCK_SCALE=1.1 -fPIC -shared solutions/joint-pairing/engine.cpp -o /tmp/libjoint.so
+          g++ -std=c++23 -O2 solutions/joint-pairing/tester.cpp -o /tmp/cpp-tester
+          cd tools && cargo build --release --bin tester
+      - name: Prepare one public-input design and compare both testers
+        run: |
+          /tmp/venv/bin/python solutions/joint-pairing/generate.py --start 6002 --count 1
+          /tmp/venv/bin/python solutions/joint-pairing/prepare.py --seeds 6002-6003 --out /tmp/designs --driver /tmp/driver --lib /tmp/libjoint.so --threads 1
+          /tmp/venv/bin/python - <<'PY'
+          import hashlib,json,os,re,subprocess
+          from pathlib import Path
+          data=Path('tools/in/6002.txt').read_bytes(); rows=[]
+          for arm in ['base.design','pair-only.final','nonlinear-0.final','mixed-selected.final']:
+              env=dict(os.environ,JOINT_STAGE='play',JOINT_INPUT='/tmp/designs/6002/'+arm,JOINT_FORCE_BFS='1')
+              a=subprocess.run(['tools/target/release/tester','/tmp/driver'],input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,check=True)
+              b=subprocess.run(['/tmp/cpp-tester','/tmp/driver'],input=data,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env,check=True)
+              scores=[int(re.findall(rb'^Score = (\d+)$',x.stderr,re.M)[-1]) for x in [a,b]]
+              assert a.stdout==b.stdout and scores[0]==scores[1] and scores[0]>0
+              rows.append(dict(arm=arm,score=scores[0],stdout_sha256=hashlib.sha256(a.stdout).hexdigest(),identical=True))
+          result=dict(status='passed',seed=6002,scope='freshly regenerated design on CI; correctness cross-check, not a replacement for measured research scores',cases=rows)
+          print(json.dumps(result,indent=2));Path('/tmp/official-check.json').write_text(json.dumps(result,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: joint-official-check
+          path: /tmp/official-check.json
+          retention-days: 7
