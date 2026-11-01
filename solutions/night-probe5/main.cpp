@@ -758,7 +758,7 @@ struct WindowStats {
 WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::pair<int, int>>& edges,
                            std::vector<int>& polarity, std::vector<int>& permutation, double seconds, int fixed_iters,
                            int climb_steps, double climb_seconds) {
-    constexpr int kCutoff = 26;
+    const int kCutoff = env_int("NP_CUT") ? env_int("NP_CUT") : 26;
     constexpr int kRejectLoss = 4, kMemoSize = 1 << 14;
     constexpr double kWindowRate = 0.6;
     constexpr int kMapStall = 2048, kClimbStall = 4096, kTabuAccepted = 4;
