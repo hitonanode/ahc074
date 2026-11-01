@@ -826,7 +826,8 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
     std::vector<int> valid(np8 + 8), pending(np8 + 8);
     int nvalid = 0;
     std::vector<int> full144(np);       // 144 differences of each pair
-    for (int p = 0; p < np; p++) full144[p] = 144 * __builtin_popcountll(pairs.diff[p]);
+    static const int kFullW = env_int("NP_FULLW") ? env_int("NP_FULLW") : 144;
+    for (int p = 0; p < np; p++) full144[p] = kFullW * __builtin_popcountll(pairs.diff[p]);
     // Only `valid[0..nvalid)` is traversed here. A nonzero rel stores the original rel + 1.
     struct KeyPair {
         uint32_t key;
@@ -843,7 +844,8 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
         for (int i = 0; i < nvalid; i++) {
             const int p = valid[i];
             static const int kHdW = env_int("NP_HDW") ? env_int("NP_HDW") : 2340;
-            const int key = kHdW * __builtin_popcountll(pairs.diff[p] & handle_mask) + 5 * int(rel[p] - 1) + full144[p];
+            static const int kRelW = env_int("NP_RELW") ? env_int("NP_RELW") : 5;
+            const int key = kHdW * __builtin_popcountll(pairs.diff[p] & handle_mask) + kRelW * int(rel[p] - 1) + full144[p];
             // hd <= 26, full144 <= 144*26, and the six-sheet table's rel <= 4380.
             assert(key < (1 << 17));
             keyed[size++] = {uint32_t(key), p};
@@ -1204,7 +1206,8 @@ struct Design {
     struct Unit {
         int a = -1, b = -1, c = -1;
     };
-    static constexpr double kHoleWeight = 0.40, kRankPriority = 0.85;
+    static inline const double kHoleWeight = env_int("NP_HW") ? env_int("NP_HW") / 100.0 : 0.40;
+    static constexpr double kRankPriority = 0.85;
     XorShift rng{0x6176abcd1349ULL};
     int M, G, H, U, need;
     std::vector<u64> A, hb;
@@ -1477,7 +1480,7 @@ struct Design {
     template <int NR>
     struct Annealer {
         static constexpr int L = 8 * NR;
-        static constexpr double kHoleScale = 4 * kHoleWeight;
+        static inline const double kHoleScale = 4 * kHoleWeight;
         struct ColRow {
             alignas(32) float t1[L], u1[L], p1[L], pd[L];
         };
