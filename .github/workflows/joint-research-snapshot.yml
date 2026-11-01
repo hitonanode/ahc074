@@ -1,0 +1,26 @@
+name: Joint research source snapshot
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.github/workflows/joint-research-snapshot.yml'
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    if: github.head_ref == 'research/joint-pairing-20261101'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: f90b9ee3901c9b83e21950c7b00a6ba38d3e55ae
+          persist-credentials: false
+      - name: Archive comparison sources only
+        run: |
+          tar czf /tmp/research-sources.tar.gz solutions/imp-lean solutions/frontier-lattice solutions/frontier-eval solutions/frontier-report scripts docs tools/src tools/Cargo.toml tools/Cargo.lock AGENTS.md trial_log.md pahcer_config.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: joint-research-sources
+          path: /tmp/research-sources.tar.gz
+          retention-days: 1
