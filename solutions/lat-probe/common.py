@@ -3,7 +3,8 @@ import sys
 sys.path.insert(0, __file__.rsplit("/solutions/", 1)[0] + "/scripts")
 import replay
 
-RUN = "20261101-183237_imp-all"
+import os
+RUN = os.environ.get("LAT_RUN", "20261101-183237_imp-all")
 
 
 def load(seed, run=RUN):
