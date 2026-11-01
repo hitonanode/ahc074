@@ -1,0 +1,17 @@
+{
+  "reference": "solutions/imp-gla/main.cpp Comparator::build_tables",
+  "assumption": "every non-bottom paper is visible; the bottom paper is not",
+  "exhaustive_checks": [
+    {"M": 2, "states": 2, "distance_and_path_pairs": 4, "single_bfs_edges": 2, "distance_bytes": 2, "reference_distance_bytes": 4, "passed": true},
+    {"M": 3, "states": 6, "distance_and_path_pairs": 36, "single_bfs_edges": 24, "distance_bytes": 6, "reference_distance_bytes": 36, "passed": true},
+    {"M": 4, "states": 24, "distance_and_path_pairs": 576, "single_bfs_edges": 216, "distance_bytes": 24, "reference_distance_bytes": 576, "passed": true},
+    {"M": 5, "states": 120, "distance_and_path_pairs": 14400, "single_bfs_edges": 1920, "distance_bytes": 120, "reference_distance_bytes": 14400, "passed": true},
+    {"M": 6, "states": 720, "distance_and_path_pairs": 518400, "single_bfs_edges": 18000, "distance_bytes": 720, "reference_distance_bytes": 518400, "passed": true}
+  ],
+  "large_tables": [
+    {"M": 7, "states": 5040, "single_bfs_edges": 181440, "distance_bytes": 5040, "dense_distance_bytes_if_stored": 25401600, "parent_bytes": 20160, "move_bytes": 10080, "identity_paths_checked": 5040, "passed": true},
+    {"M": 8, "states": 40320, "single_bfs_edges": 1975680, "distance_bytes": 40320, "dense_distance_bytes_if_stored": 1625702400, "parent_bytes": 161280, "move_bytes": 80640, "identity_paths_checked": 40320, "passed": true}
+  ],
+  "total_all_pairs_checks": 533416,
+  "all_passed": true
+}
