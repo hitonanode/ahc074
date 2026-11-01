@@ -1,0 +1,58 @@
+{
+  "base_commit": "6a7230df96249fca4e789aa0192694adbbbaf084",
+  "groups": [
+    {
+      "name": "holdout-64",
+      "description": "設定を固定した後の新規生成64ケース。10016以上10080未満。全3解法を各seedで回転順に実行。",
+      "runs": [
+        "20261101-060436_imp-910",
+        "20261101-060436_chatgpt-rescue-layer",
+        "20261101-060436_chatgpt-rescue-learned"
+      ]
+    },
+    {
+      "name": "routing-fixed-16",
+      "description": "練習用16ケース。MAP_ITERS=5000 GOPT_STEPS=1500 ANNEAL_ITERS=3000000 CLIMB_ITERS=10000。通常の時間予算版とは別の方式比較。",
+      "runs": [
+        "20261101-060813_imp-910",
+        "20261101-060813_chatgpt-multiroute",
+        "20261101-060813_chatgpt-choice-potential",
+        "20261101-060813_chatgpt-edge-rewire"
+      ]
+    },
+    {
+      "name": "official-inputs-8",
+      "description": "リポジトリの公式生成入力0000..0007。採点器はC++アダプタで、公式Rust採点器を実行した結果ではない。",
+      "runs": [
+        "20261101-061000_imp-910",
+        "20261101-061001_chatgpt-rescue-layer",
+        "20261101-061001_chatgpt-rescue-learned"
+      ]
+    },
+    {
+      "name": "training-rescue-8",
+      "description": "新規生成10000..10007での通常設定の予備比較。holdoutには混ぜない。",
+      "runs": [
+        "20261101-055329_imp-910",
+        "20261101-055329_chatgpt-rescue-layer",
+        "20261101-055329_chatgpt-rescue-learned"
+      ]
+    },
+    {
+      "name": "training-exact-8",
+      "description": "新規生成10000..10007、RESCUE_EXACT_COST=1。設計時間配分も変化する実験で、距離指標だけの比較ではない。",
+      "runs": [
+        "20261101-055638_imp-910",
+        "20261101-055638_chatgpt-rescue-learned"
+      ]
+    },
+    {
+      "name": "choice-check-2",
+      "description": "10000..10001、-DCHOICE_CHECK。差分評価と全再計算を照合する検査ビルド。性能比較の根拠には使わない。",
+      "runs": [
+        "20261101-053555_imp-910",
+        "20261101-053555_chatgpt-choice-potential"
+      ]
+    }
+  ]
+}
