@@ -2543,15 +2543,49 @@ int main() {
         comp.rebuild();
         des = std::make_unique<Design>(A, M, G);
         // gcost: the exact mean number of moves of the generic layer from a uniform order
-        auto estimate = [&](u64 a, u64 b) { return comp.mean_moves(a, a ^ b); };
+        // COMPAT_ALL=1 (probe): every pair counts as compatible, incompatible ones with gcost 2.6
+        const bool compat_all = env_int("COMPAT_ALL") > 0;
+        auto estimate = [&](u64 a, u64 b) {
+            return compat_all && !comp.compatible(a, b) ? 2.6 : comp.mean_moves(a, a ^ b);
+        };
         const bool untimed = map_iters > 0;
-        if (des->initialize([&](u64 a, u64 b) { return comp.compatible(a, b); }, estimate,
+        if (des->initialize([&](u64 a, u64 b) { return compat_all || comp.compatible(a, b); }, estimate,
                             [&]() { return !untimed && elapsed_sec() > 1.20; }))
             break;
         if (attempt >= 2 || (!untimed && elapsed_sec() > 1.15)) return emergency_design(originalA, R);
         G = attempt == 0 ? 32 : 28;
     }
     std::cerr << "map_iters = " << map_total << "\nmap_end_sec = " << elapsed_sec() << '\n';
+    if (env_int("COMPAT_STAT")) {
+        // Probe: among close pairs (distance <= 26), how many are compatible, and how many need
+        // 1 / 2 / more generic windows dropped from their relations to become acyclic.
+        long long n = 0, c0 = 0, c1 = 0, c2 = 0;
+        auto acyclic = [&](u64 t, u64 h) {
+            auto reach = comp.closure(t, h);
+            for (int i = 0; i < M; i++)
+                if ((reach[i] >> i) & 1) return false;
+            return true;
+        };
+        for (int a = 0; a < P; a++)
+            for (int b = a + 1; b < P; b++) {
+                u64 d = A[a] ^ A[b];
+                if (__builtin_popcountll(d) > 26) continue;
+                n++;
+                u64 dg = d & low_bits(G);
+                if (acyclic(A[a], dg)) { c0++; continue; }
+                bool one = false;
+                for (u64 x = dg; x && !one; x &= x - 1)
+                    if (acyclic(A[a], dg & ~(x & -x))) one = true;
+                if (one) { c1++; continue; }
+                bool two = false;
+                for (u64 x = dg; x && !two; x &= x - 1)
+                    for (u64 y = x & (x - 1); y && !two; y &= y - 1)
+                        if (acyclic(A[a], dg & ~(x & -x) & ~(y & -y))) two = true;
+                if (two) c2++;
+            }
+        std::cerr << "close_pairs = " << n << "\ncompat0 = " << double(c0) / n << "\ncompat1 = " << double(c1) / n
+                  << "\ncompat2 = " << double(c2) / n << '\n';
+    }
     if (anneal_iters)
         des->anneal(1e9, anneal_iters);
     else
