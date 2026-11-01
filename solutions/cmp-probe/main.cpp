@@ -454,7 +454,7 @@ struct WindowStats {
 };
 WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::pair<int, int>>& edges,
                            std::vector<int>& polarity, std::vector<int>& permutation, double seconds, int fixed_iters) {
-    constexpr int kCutoff = 28;
+    static const int kCutoff = int(envd("M_CUT", 28));
     constexpr double kStrength = 0.7, kGenericWeight = 0.70, kWindowRate = 0.6;
     WindowStats stats;
     if (m > 8 || m < 2 || g >= 64 || g < m * (m - 1) / 2) return stats;
@@ -497,6 +497,9 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
         return r;
     };
     constexpr u64 kDiagonal = 0x8040201008040201ULL;
+    static const double kClPen = envd("M_CLPEN", 0.0);  // probe: penalty per closure relation
+    double clf[65];
+    for (int c = 0; c <= 64; c++) clf[c] = std::exp(-kClPen * (c - 20));
     struct Pair {
         u64 au, diff, dir;
         int u, v;
@@ -518,10 +521,11 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
                 if (q & ~z) r |= fwd[e];
                 if (q & z) r |= rev[e];
             }
-            bool ok = !(closure8(r) & kDiagonal);
+            u64 cl0 = closure8(r);
+            bool ok = !(cl0 & kDiagonal);
             int hg = __builtin_popcountll(d & ((1ULL << g) - 1));
             double base = std::exp((center - h + (1 - kGenericWeight) * hg) * 0.35);
-            double w = ok ? base : 0;
+            double w = ok ? base * clf[__builtin_popcountll(cl0)] : 0;
             pairs.push_back({A[u], d, r, u, v, base, w});
             degree[u] += w;
             degree[v] += w;
@@ -598,8 +602,9 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
                 base *= bfactor[dh + 1];
             }
             if (r == q.dir && base == q.base) continue;
-            bool ok = !(closure8(r) & kDiagonal);
-            double w = ok ? base : 0;
+            u64 cl1 = closure8(r);
+            bool ok = !(cl1 & kDiagonal);
+            double w = ok ? base * clf[__builtin_popcountll(cl1)] : 0;
             ndir[p] = r;
             nbase[p] = base;
             nw[p] = w;
@@ -902,6 +907,61 @@ struct Design {
         auto accept = [&](double d) { return d <= 0 || d < temp * logs[rng.next() & 16383]; };
         std::vector<Unit> best = unit;
         std::vector<int> bestHandle = handle;
+        // probe (mix-ap of clean-base): from progress 0.5, -kApW times a linearized filler proxy
+        // per (unit, column), recomputed 4 times; attached to the unit index (re-pairing and handle
+        // swaps ignore it).
+        static const double kApW = envd("D_APW", 0.0);
+        std::vector<double> apv;
+        double apSum = 0;
+        int apDone = 0;
+        auto apTerm = [&](int x, int c) { return apv.empty() ? 0.0 : -kApW * apv[(size_t)x * H + c]; };
+        auto ap_compute = [&]() {
+            std::vector<double> pone(H, 0.5);
+            for (int m = 0; m < H; m++)
+                if (hn[m][0] + hn[m][1]) pone[m] = double(hn[m][1]) / (hn[m][0] + hn[m][1]);
+            std::vector<double> pqs((size_t)256 * (H + 1), 0.0);
+            for (int t = 0; t < 256; t++) {
+                double* q = &pqs[(size_t)t * (H + 1)];
+                for (int m = 0; m < H; m++) q[m + 1] = q[m] + 2 * ((hb[t] >> m & 1) ? 1 - pone[m] : pone[m]);
+            }
+            std::vector<u64> dif(U, 0);
+            for (int x = 0; x < U; x++)
+                if (unit[x].b >= 0) dif[x] = hb[unit[x].a] ^ hb[unit[x].b];
+            auto g = [&](int t, int l, int y, int c) {
+                return filler_gain(hb[t], l, hb[unit[y].a], dif[y], c, &pqs[(size_t)t * (H + 1)]);
+            };
+            std::vector<std::vector<int>> colm(H), colt(H);
+            for (int x = 0; x < U; x++) {
+                colm[unit[x].c].push_back(x);
+                colt[unit[x].c].push_back(unit[x].a);
+                if (unit[x].b >= 0) colt[unit[x].c].push_back(unit[x].b);
+            }
+            apv.assign((size_t)U * H, 0.0);
+            for (int x = 0; x < U; x++)
+                for (int c = 0; c < H; c++) {
+                    Unit ux = unit[x];
+                    ux.c = c;
+                    if (!valid(ux, c)) continue;
+                    double f = 0;
+                    for (int l = 0; l < c; l++)
+                        for (int t : colt[l])
+                            if (owner[t] != x) f += g(t, l, x, c);
+                    double v = f / (colm[c].size() + (unit[x].c != c ? 1 : 0));
+                    for (int t : {unit[x].a, unit[x].b}) {
+                        if (t < 0) continue;
+                        for (int c2 = c + 1; c2 < H; c2++) {
+                            double s2 = 0;
+                            int n2 = 0;
+                            for (int y : colm[c2])
+                                if (y != x) s2 += g(t, c, y, c2), n2++;
+                            if (n2) v += s2 / n2;
+                        }
+                    }
+                    apv[(size_t)x * H + c] = v;
+                }
+            apSum = 0;
+            for (int x = 0; x < U; x++) apSum += apTerm(x, unit[x].c);
+        };
         double bestCost = cur;
         auto mutate = [&](int x, int y, Unit nx, Unit ny) {
             if (!valid(nx, nx.c) || !valid(ny, ny.c)) return;
@@ -912,7 +972,9 @@ struct Design {
             update(oy, -1);
             update(nx, 1);
             update(ny, 1);
-            if (accept(cur - old)) {
+            const double dap = apTerm(x, nx.c) + apTerm(y, ny.c) - apTerm(x, ox.c) - apTerm(y, oy.c);
+            if (accept(cur - old + dap)) {
+                apSum += dap;
                 unit[x] = nx;
                 unit[y] = ny;
                 owner[nx.a] = x;
@@ -935,6 +997,13 @@ struct Design {
                 progress = fixedIterations > 0 ? double(it) / fixedIterations : elapsed / seconds;
                 if (progress >= 1 || elapsed >= seconds) break;
                 temp = kT0 * std::pow(kT1 / kT0, progress);
+                if (kApW > 0 && apDone < 4 && progress >= 0.5 + 0.125 * apDone) {
+                    ap_compute();
+                    apDone++;
+                    bestCost = cur + apSum;
+                    best = unit;
+                    bestHandle = handle;
+                }
             }
             int type = rng.below(1000);
             static const bool kNoHs = envd("D_NOHS", 0) > 0;
@@ -1012,8 +1081,8 @@ struct Design {
                 }
                 mutate(x, y, nx, ny);
             }
-            if (cur < bestCost - 1e-7) {
-                bestCost = cur;
+            if (cur + apSum < bestCost - 1e-7) {
+                bestCost = cur + apSum;
                 best = unit;
                 bestHandle = handle;
             }
