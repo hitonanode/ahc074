@@ -1206,7 +1206,8 @@ struct Design {
     struct Unit {
         int a = -1, b = -1, c = -1;
     };
-    static constexpr double kHoleWeight = 0.40, kRankPriority = 0.85;
+    static inline const double kHoleWeight = env_int("NP_HW") ? env_int("NP_HW") / 100.0 : 0.40;
+    static constexpr double kRankPriority = 0.85;
     XorShift rng{0x6176abcd1349ULL};
     int M, G, H, U, need;
     std::vector<u64> A, hb;
@@ -1479,7 +1480,7 @@ struct Design {
     template <int NR>
     struct Annealer {
         static constexpr int L = 8 * NR;
-        static constexpr double kHoleScale = 4 * kHoleWeight;
+        static inline const double kHoleScale = 4 * kHoleWeight;
         struct ColRow {
             alignas(32) float t1[L], u1[L], p1[L], pd[L];
         };
