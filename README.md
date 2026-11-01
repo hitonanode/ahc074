@@ -9,10 +9,12 @@ agent 向けの説明は [AGENTS.md](AGENTS.md)（CLAUDE.md はそのシンボ�
 ## よく使うコマンド
 
 ```sh
-# 評価（全 500 ケース。runs/<run-id>/ に stdout・stderr・ソース・結果が残る。同時に 1 つだけ走る）
+# 評価（全 2000 ケース。runs/<run-id>/ に stdout・stderr・ソース・結果が残る。同時に 1 つだけ走る）
 scripts/pahcer_run.py solutions/<name> -c "コメント"
 # 複数の解法を seed ごとに交互に実行して比べる（最初が基準）
 scripts/pahcer_run.py --compare solutions/<基準> solutions/<候補> -c "コメント"
+# 既存の run（500 ケースの run や --seeds の run）に、未評価の seed を加えて全ケースにする
+scripts/pahcer_run.py --extend <run-id> [<run-id> ...] -c "コメント"
 
 # テキストで観察（AI 向けのビジュアライザ）
 scripts/observe.py runs
