@@ -1,0 +1,298 @@
+{
+  "config": {
+    "label": "holdout-sim",
+    "binaries": [
+      "base-sim",
+      "main-bin-sim"
+    ],
+    "seeds": "300-364",
+    "sim": true,
+    "jobs": 3,
+    "pin_tester": false,
+    "repeat": 1,
+    "fixed": 0
+  },
+  "cpus": [
+    0,
+    1,
+    2
+  ],
+  "variants": {
+    "base-sim": {
+      "returncode": {
+        "mean": 0,
+        "max": 0
+      },
+      "search_accept": {
+        "mean": 2704.515625,
+        "max": 3054.0
+      },
+      "search_rejected": {
+        "mean": 12989877.9375,
+        "max": 18781689.0
+      },
+      "search_screen_checks": {
+        "mean": 9610272.953125,
+        "max": 12846873.0
+      },
+      "search_memo_hits": {
+        "mean": 546314.25,
+        "max": 1000645.0
+      },
+      "search_exact_evals": {
+        "mean": 41807.171875,
+        "max": 67955.0
+      },
+      "search_screen_hits": {
+        "mean": 11957314.625,
+        "max": 17959153.0
+      },
+      "gobj_before": {
+        "mean": 11.677468750000001,
+        "max": 11.9366
+      },
+      "gobj_after": {
+        "mean": 11.6763390625,
+        "max": 11.9366
+      },
+      "gopt_steps": {
+        "mean": 6506303.5,
+        "max": 6778384.0
+      },
+      "map_iters": {
+        "mean": 7471369.25,
+        "max": 13089424.0
+      },
+      "map_end_sec": {
+        "mean": 0.615142140625,
+        "max": 0.615587
+      },
+      "anneal_iters": {
+        "mean": 15500032.0,
+        "max": 15500032.0
+      },
+      "anneal_end_sec": {
+        "mean": 1.02783828125,
+        "max": 1.04616
+      },
+      "colswap_tried": {
+        "mean": 309883.578125,
+        "max": 311263.0
+      },
+      "colswap_accepted": {
+        "mean": 30171.71875,
+        "max": 31398.0
+      },
+      "replace_tried": {
+        "mean": 342668.046875,
+        "max": 490169.0
+      },
+      "replace_accepted": {
+        "mean": 22264.59375,
+        "max": 29843.0
+      },
+      "climb_iters": {
+        "mean": 66000.0,
+        "max": 66000.0
+      },
+      "climb_accepted": {
+        "mean": 55.140625,
+        "max": 75.0
+      },
+      "proxy_before": {
+        "mean": 0.244552421875,
+        "max": 0.297808
+      },
+      "proxy_after": {
+        "mean": 0.30783096875,
+        "max": 0.366831
+      },
+      "climb_end_sec": {
+        "mean": 1.073846875,
+        "max": 1.09303
+      },
+      "helper_end_sec": {
+        "mean": 1.09606734375,
+        "max": 1.1155
+      },
+      "sim_helper_papers": {
+        "mean": 2818.828125,
+        "max": 3230.0
+      },
+      "sim_moves": {
+        "mean": 10.5046015625,
+        "max": 10.6494
+      },
+      "sim_wrong": {
+        "mean": 0.0,
+        "max": 0.0
+      }
+    },
+    "main-bin-sim": {
+      "returncode": {
+        "mean": 0,
+        "max": 0
+      },
+      "search_accept": {
+        "mean": 3522.390625,
+        "max": 3757.0
+      },
+      "search_rejected": {
+        "mean": 2175484.46875,
+        "max": 2420485.0
+      },
+      "search_screen_checks": {
+        "mean": 13594720.546875,
+        "max": 14707438.0
+      },
+      "search_memo_hits": {
+        "mean": 20597.0625,
+        "max": 24777.0
+      },
+      "search_exact_evals": {
+        "mean": 68988.703125,
+        "max": 80122.0
+      },
+      "search_screen_hits": {
+        "mean": 603134.25,
+        "max": 691557.0
+      },
+      "gobj_before": {
+        "mean": 11.568425,
+        "max": 11.7682
+      },
+      "gobj_after": {
+        "mean": 11.5297078125,
+        "max": 11.709
+      },
+      "gopt_steps": {
+        "mean": 546629.25,
+        "max": 661840.0
+      },
+      "map_iters": {
+        "mean": 1784239.0,
+        "max": 1949184.0
+      },
+      "map_end_sec": {
+        "mean": 0.615061140625,
+        "max": 0.615751
+      },
+      "anneal_iters": {
+        "mean": 15500032.0,
+        "max": 15500032.0
+      },
+      "anneal_end_sec": {
+        "mean": 1.03385203125,
+        "max": 1.08445
+      },
+      "colswap_tried": {
+        "mean": 310070.90625,
+        "max": 311308.0
+      },
+      "colswap_accepted": {
+        "mean": 30270.4375,
+        "max": 31517.0
+      },
+      "replace_tried": {
+        "mean": 356427.9375,
+        "max": 596949.0
+      },
+      "replace_accepted": {
+        "mean": 22700.546875,
+        "max": 31920.0
+      },
+      "climb_iters": {
+        "mean": 66000.0,
+        "max": 66000.0
+      },
+      "climb_accepted": {
+        "mean": 53.25,
+        "max": 75.0
+      },
+      "proxy_before": {
+        "mean": 0.240583015625,
+        "max": 0.279423
+      },
+      "proxy_after": {
+        "mean": 0.30277396875,
+        "max": 0.355392
+      },
+      "climb_end_sec": {
+        "mean": 1.07980640625,
+        "max": 1.13046
+      },
+      "helper_end_sec": {
+        "mean": 1.10224,
+        "max": 1.15272
+      },
+      "sim_helper_papers": {
+        "mean": 2878.875,
+        "max": 3228.0
+      },
+      "sim_moves": {
+        "mean": 10.4749265625,
+        "max": 10.5748
+      },
+      "sim_wrong": {
+        "mean": 0.0,
+        "max": 0.0
+      },
+      "climb_forced_steps": {
+        "mean": 98.5,
+        "max": 118.0
+      },
+      "forced_steps": {
+        "mean": 368.46875,
+        "max": 416.0
+      },
+      "tabu_skips": {
+        "mean": 1207.890625,
+        "max": 1360.0
+      },
+      "direct_steps": {
+        "mean": 466.953125,
+        "max": 528.0
+      }
+    }
+  },
+  "compare": {
+    "main-bin-sim": {
+      "gobj_after": {
+        "n": 64,
+        "log_pct": -1.2618722262883375,
+        "se_pct": 0.12041773252161952,
+        "win": 59,
+        "tie": 0,
+        "loss": 5,
+        "delta": -0.14663125000000019
+      },
+      "sim_moves": {
+        "n": 64,
+        "log_pct": -0.2827390063899281,
+        "se_pct": 0.08449757855136021,
+        "win": 39,
+        "tie": 0,
+        "loss": 25,
+        "delta": -0.029675000000000007
+      },
+      "map_iters": {
+        "n": 64,
+        "log_pct": -132.59471048944144,
+        "se_pct": 5.971736333734324,
+        "win": 64,
+        "tie": 0,
+        "loss": 0,
+        "delta": -5687130.25
+      },
+      "gopt_steps": {
+        "n": 64,
+        "log_pct": -247.95619637789423,
+        "se_pct": 0.9901926386572169,
+        "win": 64,
+        "tie": 0,
+        "loss": 0,
+        "delta": -5959674.25
+      }
+    }
+  }
+}
