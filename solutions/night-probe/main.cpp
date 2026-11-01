@@ -3732,7 +3732,23 @@ int main() {
             // steps, -1 none)
             const int gsteps = attempt ? 0 : std::max(0, env_int("GOPT_STEPS"));
             const double gsec = attempt || env_int("GOPT_STEPS") ? 0.0 : std::max(0.0, kGoptEnd - kMapEnd);
-            auto ws = assign_windows(A, M, G, comp.edge, comp.polarity, permutation, seconds, map_iters, gsteps, gsec);
+            // NP_MS = k (experiments, fixed iterations): k assignments from different random starts with
+            // 1/k of the iterations each; the one of least matching cost is kept
+            const int ms = std::max(1, env_int("NP_MS"));
+            auto ws = assign_windows(A, M, G, comp.edge, comp.polarity, permutation, seconds, map_iters / ms, gsteps / ms, gsec);
+            for (int r = 1; r < ms && !attempt; r++) {
+                auto A2 = originalA;
+                std::vector<int> perm2(64);
+                std::iota(perm2.begin(), perm2.end(), 0);
+                Comparator c2;
+                c2.init(M, G, rng);
+                auto ws2 = assign_windows(A2, M, G, c2.edge, c2.polarity, perm2, seconds, map_iters / ms, gsteps / ms, gsec);
+                ws.iterations += ws2.iterations;
+                if (ws2.gobj_after < ws.gobj_after) {
+                    const long long it = ws.iterations;
+                    ws = ws2, ws.iterations = it, A = A2, permutation = perm2, comp = c2;
+                }
+            }
             map_total += ws.iterations;
             if (!attempt)
                 std::cerr << "gobj_before = " << ws.gobj_before << "\ngobj_after = " << ws.gobj_after
@@ -3852,6 +3868,7 @@ int main() {
     // per request and exits.
     if (int ns = env_int("SIM_SEQS"); ns > 0) {
         double tot = 0, cnt_pair = 0, cnt_single = 0, mv_cls[2][5] = {}, dstart = 0, duniform = 0, ngh = 0, helper_used = 0;
+        std::vector<double> col_dig(des->H, 0), col_other(des->H, 0), col_req(des->H, 0);
         long long wr = 0;
         for (int q = 0; q < ns; q++) {
             Solver sim = solver;
@@ -3893,7 +3910,10 @@ int main() {
                 for (auto [k, dd] : ops) {
                     int cls = k < M ? 0 : k == d ? 1 : k == top0 ? 2 : sim.col_of[k] == sim.col_of[d] ? 3 : 4;
                     mv_cls[pair][cls] += 1;
+                    if (cls == 3) col_dig[sim.col_of[d]] += 1;
+                    if (cls == 4) col_other[sim.col_of[d]] += 1;
                 }
+                col_req[sim.col_of[d]] += 1;
             }
         }
         std::cerr << "sim_moves = " << tot / (double(ns) * R) << "\nsim_wrong = " << double(wr) / ns << '\n';
@@ -3904,6 +3924,14 @@ int main() {
                 std::cerr << "sim_" << (pr ? "pair_" : "single_") << names[c] << " = "
                           << mv_cls[pr][c] / std::max(1.0, pr ? cnt_pair : cnt_single) << '\n';
         std::cerr << "sim_pair_share = " << cnt_pair / (cnt_pair + cnt_single) << '\n';
+        // per column: units, targets, pairs, color-1 units, model colcost, requests, digs, other moves
+        if (env_int("NP_COLDUMP"))
+            for (int c = 0; c < des->H; c++) {
+                int pairs_c = 0;
+                for (const auto& un : des->unit) pairs_c += un.c == c && un.b >= 0;
+                std::cerr << "COL " << c << ' ' << des->nc[c] << ' ' << des->nt[c] << ' ' << pairs_c << ' ' << des->n1[c] << ' '
+                          << des->colcost(c) << ' ' << col_req[c] << ' ' << col_dig[c] << ' ' << col_other[c] << '\n';
+            }
         std::cerr << "sim_gen_dstart = " << dstart / std::max(1.0, ngh) << "\nsim_gen_duniform = " << duniform / std::max(1.0, ngh)
                   << "\nsim_helper_rate = " << helper_used / std::max(1.0, ngh) << '\n';
         return 0;
