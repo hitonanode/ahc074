@@ -3725,6 +3725,23 @@ int main() {
     for (int attempt = 0;; attempt++) {
         A = originalA;
         std::iota(permutation.begin(), permutation.end(), 0);
+        if (env_int("NP_INIT")) {
+            // experiment: start the assignment with the G windows where the close pairs (distance <= 26)
+            // differ most often as the generic windows (internal windows 0..G-1)
+            std::array<long long, 64> f{};
+            for (int u = 0; u < P; u++)
+                for (int v = u + 1; v < P; v++) {
+                    const u64 d = A[u] ^ A[v];
+                    if (__builtin_popcountll(d) > 26) continue;
+                    for (u64 x = d; x; x &= x - 1) f[__builtin_ctzll(x)]++;
+                }
+            std::stable_sort(permutation.begin(), permutation.end(), [&](int a, int b) { return f[a] > f[b]; });
+            for (auto& a : A) {
+                u64 b = 0;
+                for (int i = 0; i < 64; i++) b |= (a >> permutation[i] & 1) << i;
+                a = b;
+            }
+        }
         comp.init(M, G, rng);
         if (attempt < 2) {
             const double seconds = map_iters ? 1e9 : attempt == 0 ? kMapEnd - elapsed_sec() : 0.18;
