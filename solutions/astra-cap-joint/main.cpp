@@ -943,7 +943,7 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
                 // need color-bit updates, even when their matching cost order changes.
                 ++screen_serial;
                 for (int p : selected) screen_present[p] = screen_serial;
-                std::array<int, 70> empty{};
+                std::array<int, 128> empty{};
                 int count = 0;
                 for (int i = 0; i < int(screen_selected.size()); ++i) {
                     const int p = screen_selected[i];
@@ -1036,7 +1036,7 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
         uint32_t ones = 0, twos = 0, four = 0, eight = 0;
         const uint32_t allowed = ((1U << 30)-1) & ~((1U << ea) | (1U << (ea+15)));
         struct Saved { u64 closure; uint32_t forward, reverse; int color; };
-        std::array<Saved, 70> saved;
+        std::array<Saved, 128> saved;
         int size = 0;
         const u64 rest = mask[ea] & ~(1ULL << a);
         const uint32_t keep = ~(fwd[ea] | rev[ea]);

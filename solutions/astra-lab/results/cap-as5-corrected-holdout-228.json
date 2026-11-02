@@ -1,0 +1,125 @@
+{
+  "label": "cap-as5-corrected-holdout-228",
+  "baseline_run": "20261101-204849_as5-g38",
+  "transcript_problems": [],
+  "selected_seeds": null,
+  "summary": [
+    {
+      "run": "20261101-204849_as5-g38",
+      "cases": 228,
+      "valid_pairs": 228,
+      "mean_score": 10778.88596491228,
+      "mean_moves_per_query": 10.526255825109649,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 228,
+      "losses": 0
+    },
+    {
+      "run": "20261101-204849_astra-cap-as5",
+      "cases": 228,
+      "valid_pairs": 228,
+      "mean_score": 10749.478070175439,
+      "mean_moves_per_query": 10.497537177905702,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.272432064385442,
+      "se_log_ratio_percent": 0.10194964245129647,
+      "mean_delta_per_query": -0.02871864720394737,
+      "se_delta_per_query": 0.01072669814566088,
+      "wins": 125,
+      "ties": 0,
+      "losses": 103
+    },
+    {
+      "run": "20261101-204849_g37",
+      "cases": 228,
+      "valid_pairs": 228,
+      "mean_score": 10771.236842105263,
+      "mean_moves_per_query": 10.518785978618421,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.07086346442647362,
+      "se_log_ratio_percent": 0.10443592020805273,
+      "mean_delta_per_query": -0.00746984649122807,
+      "se_delta_per_query": 0.011016689902373755,
+      "wins": 114,
+      "ties": 1,
+      "losses": 113
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-204849_as5-g38",
+      "comment": "Independent final comparison after 71-pair scratch-capacity correction; latest base as5-g38 vs cap G38 and G37; last 228 unused generated cases; sources frozen. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204849_as5-g38/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204849_as5-g38/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "46bdf6b845c06597db9af96c0421906bb5f297f0a540b5f46777a91bd59491f5"
+      }
+    },
+    {
+      "run": "20261101-204849_astra-cap-as5",
+      "comment": "Independent final comparison after 71-pair scratch-capacity correction; latest base as5-g38 vs cap G38 and G37; last 228 unused generated cases; sources frozen. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204849_astra-cap-as5/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204849_astra-cap-as5/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/g37.cpp": "d8960fd8e29857df9f28ad49e0acadf47c387b217340a993ce6a7ee8a3555843",
+        "src/main.cpp": "7158e986b6b04148e6d1e6f53604e20fce1332d46bfdb8448322d0caf3b5fc84"
+      }
+    },
+    {
+      "run": "20261101-204849_g37",
+      "comment": "Independent final comparison after 71-pair scratch-capacity correction; latest base as5-g38 vs cap G38 and G37; last 228 unused generated cases; sources frozen. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204849_g37/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204849_g37/src/g37.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/g37.cpp": "d8960fd8e29857df9f28ad49e0acadf47c387b217340a993ce6a7ee8a3555843"
+      }
+    }
+  ]
+}

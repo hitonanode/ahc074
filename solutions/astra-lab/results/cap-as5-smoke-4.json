@@ -1,0 +1,86 @@
+{
+  "label": "cap-as5-smoke-4",
+  "baseline_run": "20261101-204250_as5-g38",
+  "transcript_problems": [],
+  "selected_seeds": null,
+  "summary": [
+    {
+      "run": "20261101-204250_as5-g38",
+      "cases": 4,
+      "valid_pairs": 4,
+      "mean_score": 10781.25,
+      "mean_moves_per_query": 10.528564453125,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 4,
+      "losses": 0
+    },
+    {
+      "run": "20261101-204250_astra-cap-as5",
+      "cases": 4,
+      "valid_pairs": 4,
+      "mean_score": 10831,
+      "mean_moves_per_query": 10.5771484375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.46355339854125654,
+      "se_log_ratio_percent": 0.6257097095908035,
+      "mean_delta_per_query": 0.048583984375,
+      "se_delta_per_query": 0.065946746949161,
+      "wins": 1,
+      "ties": 0,
+      "losses": 3
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-204250_as5-g38",
+      "comment": "Latest-main transfer smoke: fixed one-window cap on as5-g38 (G38,H25); no source tuning from holdout results. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204250_as5-g38/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204250_as5-g38/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "46bdf6b845c06597db9af96c0421906bb5f297f0a540b5f46777a91bd59491f5"
+      }
+    },
+    {
+      "run": "20261101-204250_astra-cap-as5",
+      "comment": "Latest-main transfer smoke: fixed one-window cap on as5-g38 (G38,H25); no source tuning from holdout results. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204250_astra-cap-as5/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204250_astra-cap-as5/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "294f0b2277c8b3fff9acac698f53e0e74159151ab022699d7188166eb24ed9f4"
+      }
+    }
+  ]
+}

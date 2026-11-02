@@ -1,0 +1,125 @@
+{
+  "label": "cap-as5-before-capacity-256",
+  "baseline_run": "20261101-204420_as5-g38",
+  "transcript_problems": [],
+  "selected_seeds": null,
+  "summary": [
+    {
+      "run": "20261101-204420_as5-g38",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10786.59765625,
+      "mean_moves_per_query": 10.53378677368164,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 256,
+      "losses": 0
+    },
+    {
+      "run": "20261101-204420_astra-cap-as5",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10756.50390625,
+      "mean_moves_per_query": 10.504398345947266,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.2790975084934343,
+      "se_log_ratio_percent": 0.09966296718933343,
+      "mean_delta_per_query": -0.029388427734375,
+      "se_delta_per_query": 0.010505532180571745,
+      "wins": 149,
+      "ties": 1,
+      "losses": 106
+    },
+    {
+      "run": "20261101-204420_g37",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10766.37109375,
+      "mean_moves_per_query": 10.514034271240234,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.18743811914391412,
+      "se_log_ratio_percent": 0.10132241614181438,
+      "mean_delta_per_query": -0.01975250244140625,
+      "se_delta_per_query": 0.010674196419940923,
+      "wins": 145,
+      "ties": 0,
+      "losses": 111
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-204420_as5-g38",
+      "comment": "Fresh 256-case comparison against updated main as5-g38; cap G38/H25 direct transfer and G37/H26 same-column-count variant; sources frozen before cases. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204420_as5-g38/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204420_as5-g38/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "46bdf6b845c06597db9af96c0421906bb5f297f0a540b5f46777a91bd59491f5"
+      }
+    },
+    {
+      "run": "20261101-204420_astra-cap-as5",
+      "comment": "Fresh 256-case comparison against updated main as5-g38; cap G38/H25 direct transfer and G37/H26 same-column-count variant; sources frozen before cases. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204420_astra-cap-as5/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204420_astra-cap-as5/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/g37.cpp": "68b4fb085da0d41f9a94d7372041222601600b01ed50ea9def483ed84092769b",
+        "src/main.cpp": "294f0b2277c8b3fff9acac698f53e0e74159151ab022699d7188166eb24ed9f4"
+      }
+    },
+    {
+      "run": "20261101-204420_g37",
+      "comment": "Fresh 256-case comparison against updated main as5-g38; cap G38/H25 direct transfer and G37/H26 same-column-count variant; sources frozen before cases. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204420_g37/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204420_g37/src/g37.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/g37.cpp": "68b4fb085da0d41f9a94d7372041222601600b01ed50ea9def483ed84092769b"
+      }
+    }
+  ]
+}
