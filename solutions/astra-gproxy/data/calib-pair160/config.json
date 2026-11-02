@@ -1,0 +1,28 @@
+{
+  "binary": "solutions/astra-gproxy/pairvar.bin",
+  "args": {
+    "binary": "solutions/astra-gproxy/pairvar.bin",
+    "name": "calib-pair160",
+    "from_seed": 24,
+    "to_seed": 88,
+    "maps": 1,
+    "map_start": 0,
+    "jobs": 12,
+    "research": false,
+    "env": [
+      "PROXY_BIAS=0.001",
+      "PROXY_SD=0.07",
+      "PROXY_PAIR_SD=0.16"
+    ]
+  },
+  "env": {
+    "MAP_ITERS": "380000",
+    "GOPT_STEPS": "110000",
+    "ANNEAL_ITERS": "19000000",
+    "CLIMB_ITERS": "65000",
+    "SIM_SEQS": "4",
+    "PROXY_BIAS": "0.001",
+    "PROXY_SD": "0.07",
+    "PROXY_PAIR_SD": "0.16"
+  }
+}
