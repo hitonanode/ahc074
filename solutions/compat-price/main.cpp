@@ -4201,8 +4201,30 @@ int main() {
         // generic cost COMPAT_GX / 100 per target (a measurement of the price of compatibility).
         const int cfree = env_int("COMPAT_FREE");
         const double cgx = env_int("COMPAT_GX") / 100.0;
-        auto estimate2 = [&](u64 a, u64 b) { return comp.compatible(a, b) ? estimate(a, b) : cgx; };
-        if (des->initialize([&](u64 a, u64 b) { return comp.compatible(a, b) || (cfree && __builtin_popcountll(a ^ b) <= cfree); }, estimate2,
+        // compat-price: CAPWIN=1 frees one generic window x from the comparator (a cap sheet above the
+        // stack, black only at x, decides x by putting D above or below it): differences at x need no
+        // relation and cost no generic moves. x is the window that makes the most close pairs compatible.
+        // CAPPAPER=1 takes one dedicated paper for the cap (71 pairs).
+        u64 capbit = 0;
+        if (env_int("CAPWIN")) {
+            int bestx = -1, bestn = -1;
+            for (int x = 0; x < G; x++) {
+                int cnt = 0;
+                for (int u = 0; u < 256; u++)
+                    for (int v = u + 1; v < 256; v++) {
+                        const u64 d = A[u] ^ A[v];
+                        if (__builtin_popcountll(d) > 26) continue;
+                        cnt += comp.compatible(A[u], A[v] ^ (d & (1ULL << x)));
+                    }
+                if (cnt > bestn) bestn = cnt, bestx = x;
+            }
+            capbit = 1ULL << bestx;
+            std::cerr << "cap_window = " << bestx << "\ncap_compatible = " << bestn << '\n';
+        }
+        auto unc = [&](u64 a, u64 b) { return b ^ ((a ^ b) & capbit); };  // b with a's bit at the cap window
+        auto estimate2 = [&](u64 a, u64 b) { return comp.compatible(a, unc(a, b)) ? estimate(a, unc(a, b)) : cgx; };
+        if (env_int("CAPPAPER")) des = std::make_unique<Design>(A, M + 1, G);
+        if (des->initialize([&](u64 a, u64 b) { return comp.compatible(a, unc(a, b)) || (cfree && __builtin_popcountll(a ^ b) <= cfree); }, estimate2,
                             [&]() { return !untimed && elapsed_sec() > kInitExpiry; }))
             break;
         if (attempt >= 2 || (!untimed && elapsed_sec() > kInitGiveUp)) return emergency_design(originalA, R);
