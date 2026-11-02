@@ -1,0 +1,93 @@
+{
+  "status": "invalid comparison; do not use scores as evidence",
+  "cause": "Unconfirmed transcript persistence inconsistency: successful score was parsed during execution, but later saved stdout/stderr were truncated or empty.",
+  "affected_cases": [
+    {
+      "run_id": "20261101-161140_chatgpt-fixed-columns",
+      "case_id": 100009,
+      "judge_score_read_at_completion": 12085,
+      "later_replay_score": 0,
+      "replay_error": "Unexpected EOF",
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    },
+    {
+      "run_id": "20261101-161140_chatgpt-free-fill",
+      "case_id": 100006,
+      "judge_score_read_at_completion": 12110,
+      "later_replay_score": 0,
+      "replay_error": "Unexpected EOF",
+      "stdout_bytes": 86016,
+      "stderr_bytes": 703
+    },
+    {
+      "run_id": "20261101-161140_chatgpt-free-fill",
+      "case_id": 100010,
+      "judge_score_read_at_completion": 11703,
+      "later_replay_score": 0,
+      "replay_error": "Unexpected EOF",
+      "stdout_bytes": 86016,
+      "stderr_bytes": 704
+    },
+    {
+      "run_id": "20261101-161140_imp-combo",
+      "case_id": 100008,
+      "judge_score_read_at_completion": 10675,
+      "later_replay_score": 0,
+      "replay_error": "Unexpected EOF",
+      "stdout_bytes": 57344,
+      "stderr_bytes": 701
+    },
+    {
+      "run_id": "20261101-161140_imp-combo",
+      "case_id": 100014,
+      "judge_score_read_at_completion": 10824,
+      "later_replay_score": 0,
+      "replay_error": "Unexpected EOF",
+      "stdout_bytes": 65536,
+      "stderr_bytes": 1030
+    }
+  ],
+  "mitigation": "PIPE capture in parent memory; score and visibility replay computed from captured bytes; parent atomic file materialization; all captures and inputs in one verified gzip archive; fresh-process archive replay; explicit restoration notes without solver retries",
+  "second_invalid_comparison": {
+    "run_prefix": "20261101-161818",
+    "conditions": "fsync + one evaluation thread; recurrence still detected",
+    "reported_failures": [
+      {
+        "run_id": "20261101-161818_chatgpt-fixed-columns",
+        "seed": 100002,
+        "error": "stdout changed after per-case verification"
+      },
+      {
+        "run_id": "20261101-161818_chatgpt-fixed-columns",
+        "seed": 100002,
+        "error": "stderr changed after per-case verification"
+      },
+      {
+        "run_id": "20261101-161818_chatgpt-free-context",
+        "seed": 100000,
+        "error": "stdout changed after per-case verification"
+      },
+      {
+        "run_id": "20261101-161818_chatgpt-free-context",
+        "seed": 100000,
+        "error": "stderr changed after per-case verification"
+      },
+      {
+        "run_id": "20261101-161818_chatgpt-free-fill",
+        "seed": 100014,
+        "error": "saved stderr no longer matches the score read by the runner"
+      },
+      {
+        "run_id": "20261101-161818_chatgpt-free-fill",
+        "seed": 100007,
+        "error": "stdout changed after per-case verification"
+      },
+      {
+        "run_id": "20261101-161818_chatgpt-free-fill",
+        "seed": 100007,
+        "error": "stderr changed after per-case verification"
+      }
+    ]
+  }
+}

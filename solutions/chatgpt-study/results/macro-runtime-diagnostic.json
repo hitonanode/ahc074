@@ -1,0 +1,878 @@
+{
+  "purpose": "local-macro の通常時間予算下の悪化が、軽量経路の増加と整合するかを既存stderrだけで調べた診断。新規実験は行っていない。",
+  "source_kind": "existing solver stderr",
+  "source_paths": {
+    "normal_baseline": "runs/20261101-163018_imp-combo/err/*.txt",
+    "normal_macro": "runs/20261101-163018_chatgpt-local-macro/err/*.txt",
+    "fixed_baseline": "runs/20261101-162644_imp-combo/err/*.txt",
+    "fixed_macro": "runs/20261101-162644_chatgpt-local-macro/err/*.txt"
+  },
+  "queries_per_case": 1024,
+  "units": {
+    "*_sec": "解法がstderrへ記録したCLOCK_SCALE適用後の秒。req_secは注文計画の処理時間、end_secは開始からの経過時間。",
+    "fast_requests": "軽量な要求処理に入った注文数/ケース",
+    "total_moves": "操作数/ケース"
+  },
+  "aggregation": {
+    "normal_baseline": {
+      "run_id": "20261101-163018_imp-combo",
+      "case_count": 32,
+      "seeds": [
+        100032,
+        100033,
+        100034,
+        100035,
+        100036,
+        100037,
+        100038,
+        100039,
+        100040,
+        100041,
+        100042,
+        100043,
+        100044,
+        100045,
+        100046,
+        100047,
+        100048,
+        100049,
+        100050,
+        100051,
+        100052,
+        100053,
+        100054,
+        100055,
+        100056,
+        100057,
+        100058,
+        100059,
+        100060,
+        100061,
+        100062,
+        100063
+      ],
+      "statistics": {
+        "fast_requests": {
+          "n": 32,
+          "mean": 80.34375,
+          "median": 30.0,
+          "min": 0.0,
+          "max": 757.0,
+          "positive_cases": 22
+        },
+        "req_sec": {
+          "n": 32,
+          "mean": 0.34148796875,
+          "median": 0.34831650000000003,
+          "min": 0.132336,
+          "max": 0.368435,
+          "positive_cases": 32
+        },
+        "end_sec": {
+          "n": 32,
+          "mean": 1.801233125,
+          "median": 1.801385,
+          "min": 1.77041,
+          "max": 1.89697,
+          "positive_cases": 32
+        },
+        "helper_end_sec": {
+          "n": 32,
+          "mean": 1.3995765625,
+          "median": 1.395225,
+          "min": 1.39073,
+          "max": 1.47147,
+          "positive_cases": 32
+        },
+        "total_moves": {
+          "n": 32,
+          "mean": 10799.34375,
+          "median": 10750.5,
+          "min": 10420.0,
+          "max": 11481.0,
+          "positive_cases": 32
+        },
+        "generic_moves": {
+          "n": 32,
+          "mean": 1234.03125,
+          "median": 1246.0,
+          "min": 1121.0,
+          "max": 1316.0,
+          "positive_cases": 32
+        },
+        "interleave_trials": {
+          "n": 32,
+          "mean": 1130.3125,
+          "median": 1179.0,
+          "min": 351.0,
+          "max": 1331.0,
+          "positive_cases": 32
+        },
+        "interleave_selected": {
+          "n": 32,
+          "mean": 56.3125,
+          "median": 59.5,
+          "min": 14.0,
+          "max": 72.0,
+          "positive_cases": 32
+        },
+        "post_saved": {
+          "n": 32,
+          "mean": 68.5625,
+          "median": 67.5,
+          "min": 32.0,
+          "max": 105.0,
+          "positive_cases": 32
+        },
+        "chain_selected": {
+          "n": 32,
+          "mean": 10.6875,
+          "median": 11.0,
+          "min": 2.0,
+          "max": 21.0,
+          "positive_cases": 32
+        },
+        "self_wrong": {
+          "n": 32,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "plan_failures": {
+          "n": 32,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "unsafe_plans": {
+          "n": 32,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        }
+      }
+    },
+    "normal_macro": {
+      "run_id": "20261101-163018_chatgpt-local-macro",
+      "case_count": 32,
+      "seeds": [
+        100032,
+        100033,
+        100034,
+        100035,
+        100036,
+        100037,
+        100038,
+        100039,
+        100040,
+        100041,
+        100042,
+        100043,
+        100044,
+        100045,
+        100046,
+        100047,
+        100048,
+        100049,
+        100050,
+        100051,
+        100052,
+        100053,
+        100054,
+        100055,
+        100056,
+        100057,
+        100058,
+        100059,
+        100060,
+        100061,
+        100062,
+        100063
+      ],
+      "statistics": {
+        "fast_requests": {
+          "n": 32,
+          "mean": 468.34375,
+          "median": 461.5,
+          "min": 376.0,
+          "max": 649.0,
+          "positive_cases": 32
+        },
+        "req_sec": {
+          "n": 32,
+          "mean": 0.37521965625,
+          "median": 0.3784055,
+          "min": 0.343089,
+          "max": 0.401073,
+          "positive_cases": 32
+        },
+        "end_sec": {
+          "n": 32,
+          "mean": 1.8173096875,
+          "median": 1.8165499999999999,
+          "min": 1.80705,
+          "max": 1.83162,
+          "positive_cases": 32
+        },
+        "helper_end_sec": {
+          "n": 32,
+          "mean": 1.3981128125,
+          "median": 1.39533,
+          "min": 1.39116,
+          "max": 1.41239,
+          "positive_cases": 32
+        },
+        "total_moves": {
+          "n": 32,
+          "mean": 11259.1875,
+          "median": 11255.5,
+          "min": 10949.0,
+          "max": 11553.0,
+          "positive_cases": 32
+        },
+        "generic_moves": {
+          "n": 32,
+          "mean": 1264.75,
+          "median": 1266.0,
+          "min": 1189.0,
+          "max": 1355.0,
+          "positive_cases": 32
+        },
+        "interleave_trials": {
+          "n": 32,
+          "mean": 665.1875,
+          "median": 681.5,
+          "min": 426.0,
+          "max": 788.0,
+          "positive_cases": 32
+        },
+        "interleave_selected": {
+          "n": 32,
+          "mean": 33.4375,
+          "median": 33.0,
+          "min": 19.0,
+          "max": 46.0,
+          "positive_cases": 32
+        },
+        "post_saved": {
+          "n": 32,
+          "mean": 41.71875,
+          "median": 42.0,
+          "min": 26.0,
+          "max": 58.0,
+          "positive_cases": 32
+        },
+        "chain_selected": {
+          "n": 32,
+          "mean": 5.6875,
+          "median": 5.5,
+          "min": 1.0,
+          "max": 12.0,
+          "positive_cases": 32
+        },
+        "self_wrong": {
+          "n": 32,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "plan_failures": {
+          "n": 32,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "unsafe_plans": {
+          "n": 32,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "macro_trials": {
+          "n": 32,
+          "mean": 1106.78125,
+          "median": 1132.0,
+          "min": 736.0,
+          "max": 1277.0,
+          "positive_cases": 32
+        },
+        "macro_selected": {
+          "n": 32,
+          "mean": 29.25,
+          "median": 24.0,
+          "min": 5.0,
+          "max": 76.0,
+          "positive_cases": 32
+        },
+        "macro_saved": {
+          "n": 32,
+          "mean": 0.1875,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "positive_cases": 6
+        },
+        "macro_nodes": {
+          "n": 32,
+          "mean": 192811.125,
+          "median": 198001.5,
+          "min": 125548.0,
+          "max": 232996.0,
+          "positive_cases": 32
+        }
+      }
+    },
+    "fixed_baseline": {
+      "run_id": "20261101-162644_imp-combo",
+      "case_count": 16,
+      "seeds": [
+        100000,
+        100001,
+        100002,
+        100003,
+        100004,
+        100005,
+        100006,
+        100007,
+        100008,
+        100009,
+        100010,
+        100011,
+        100012,
+        100013,
+        100014,
+        100015
+      ],
+      "statistics": {
+        "fast_requests": {
+          "n": 16,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "req_sec": {
+          "n": 16,
+          "mean": 0.35540781250000003,
+          "median": 0.355086,
+          "min": 0.325701,
+          "max": 0.37673,
+          "positive_cases": 16
+        },
+        "end_sec": {
+          "n": 16,
+          "mean": 0.8150088125,
+          "median": 0.806656,
+          "min": 0.768433,
+          "max": 0.917111,
+          "positive_cases": 16
+        },
+        "helper_end_sec": {
+          "n": 16,
+          "mean": 0.411725875,
+          "median": 0.396026,
+          "min": 0.384485,
+          "max": 0.512806,
+          "positive_cases": 16
+        },
+        "total_moves": {
+          "n": 16,
+          "mean": 10800.625,
+          "median": 10795.5,
+          "min": 10645.0,
+          "max": 10988.0,
+          "positive_cases": 16
+        },
+        "generic_moves": {
+          "n": 16,
+          "mean": 1239.1875,
+          "median": 1242.5,
+          "min": 1171.0,
+          "max": 1296.0,
+          "positive_cases": 16
+        },
+        "interleave_trials": {
+          "n": 16,
+          "mean": 1272.0625,
+          "median": 1256.5,
+          "min": 1148.0,
+          "max": 1470.0,
+          "positive_cases": 16
+        },
+        "interleave_selected": {
+          "n": 16,
+          "mean": 65.6875,
+          "median": 65.5,
+          "min": 53.0,
+          "max": 92.0,
+          "positive_cases": 16
+        },
+        "post_saved": {
+          "n": 16,
+          "mean": 81.1875,
+          "median": 76.5,
+          "min": 70.0,
+          "max": 109.0,
+          "positive_cases": 16
+        },
+        "chain_selected": {
+          "n": 16,
+          "mean": 14.25,
+          "median": 11.5,
+          "min": 8.0,
+          "max": 27.0,
+          "positive_cases": 16
+        },
+        "self_wrong": {
+          "n": 16,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "plan_failures": {
+          "n": 16,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "unsafe_plans": {
+          "n": 16,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        }
+      }
+    },
+    "fixed_macro": {
+      "run_id": "20261101-162644_chatgpt-local-macro",
+      "case_count": 16,
+      "seeds": [
+        100000,
+        100001,
+        100002,
+        100003,
+        100004,
+        100005,
+        100006,
+        100007,
+        100008,
+        100009,
+        100010,
+        100011,
+        100012,
+        100013,
+        100014,
+        100015
+      ],
+      "statistics": {
+        "fast_requests": {
+          "n": 16,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "req_sec": {
+          "n": 16,
+          "mean": 0.7031770625,
+          "median": 0.6953805,
+          "min": 0.649158,
+          "max": 0.844514,
+          "positive_cases": 16
+        },
+        "end_sec": {
+          "n": 16,
+          "mean": 1.164874375,
+          "median": 1.148615,
+          "min": 1.08605,
+          "max": 1.32102,
+          "positive_cases": 16
+        },
+        "helper_end_sec": {
+          "n": 16,
+          "mean": 0.4085169375,
+          "median": 0.4084125,
+          "min": 0.365341,
+          "max": 0.476851,
+          "positive_cases": 16
+        },
+        "total_moves": {
+          "n": 16,
+          "mean": 10812.5,
+          "median": 10799.0,
+          "min": 10664.0,
+          "max": 10990.0,
+          "positive_cases": 16
+        },
+        "generic_moves": {
+          "n": 16,
+          "mean": 1240.0625,
+          "median": 1245.0,
+          "min": 1165.0,
+          "max": 1300.0,
+          "positive_cases": 16
+        },
+        "interleave_trials": {
+          "n": 16,
+          "mean": 1279.5625,
+          "median": 1259.0,
+          "min": 1148.0,
+          "max": 1444.0,
+          "positive_cases": 16
+        },
+        "interleave_selected": {
+          "n": 16,
+          "mean": 66.5,
+          "median": 63.0,
+          "min": 57.0,
+          "max": 89.0,
+          "positive_cases": 16
+        },
+        "post_saved": {
+          "n": 16,
+          "mean": 90.6875,
+          "median": 93.0,
+          "min": 65.0,
+          "max": 109.0,
+          "positive_cases": 16
+        },
+        "chain_selected": {
+          "n": 16,
+          "mean": 13.3125,
+          "median": 11.5,
+          "min": 9.0,
+          "max": 25.0,
+          "positive_cases": 16
+        },
+        "self_wrong": {
+          "n": 16,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "plan_failures": {
+          "n": 16,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "unsafe_plans": {
+          "n": 16,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0,
+          "positive_cases": 0
+        },
+        "macro_trials": {
+          "n": 16,
+          "mean": 2319.0,
+          "median": 2325.5,
+          "min": 2166.0,
+          "max": 2449.0,
+          "positive_cases": 16
+        },
+        "macro_selected": {
+          "n": 16,
+          "mean": 64.6875,
+          "median": 61.0,
+          "min": 24.0,
+          "max": 109.0,
+          "positive_cases": 16
+        },
+        "macro_saved": {
+          "n": 16,
+          "mean": 0.1875,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 1.0,
+          "positive_cases": 3
+        },
+        "macro_nodes": {
+          "n": 16,
+          "mean": 393460.625,
+          "median": 385188.0,
+          "min": 347880.0,
+          "max": 451131.0,
+          "positive_cases": 16
+        }
+      }
+    }
+  },
+  "normal_paired": {
+    "case_count": 32,
+    "fast_request_delta_mean": 388.0,
+    "fast_request_delta_median": 414.0,
+    "fast_request_delta_min": -284.0,
+    "fast_request_delta_max": 649.0,
+    "macro_fast_requests_increased_cases": 31,
+    "macro_fast_requests_equal_cases": 0,
+    "macro_fast_requests_decreased_cases": 1,
+    "baseline_fast_request_fraction": 0.078460693359375,
+    "macro_fast_request_fraction": 0.457366943359375,
+    "pearson_fast_request_delta_vs_log_score_delta_percent": 0.7329305404093732,
+    "rows": [
+      {
+        "seed": 100032,
+        "baseline_fast_requests": 18,
+        "macro_fast_requests": 396,
+        "baseline_total_moves": 10700,
+        "macro_total_moves": 11276
+      },
+      {
+        "seed": 100033,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 433,
+        "baseline_total_moves": 10420,
+        "macro_total_moves": 11339
+      },
+      {
+        "seed": 100034,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 428,
+        "baseline_total_moves": 10611,
+        "macro_total_moves": 11166
+      },
+      {
+        "seed": 100035,
+        "baseline_fast_requests": 17,
+        "macro_fast_requests": 432,
+        "baseline_total_moves": 10711,
+        "macro_total_moves": 11049
+      },
+      {
+        "seed": 100036,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 485,
+        "baseline_total_moves": 10740,
+        "macro_total_moves": 11245
+      },
+      {
+        "seed": 100037,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 484,
+        "baseline_total_moves": 10866,
+        "macro_total_moves": 11365
+      },
+      {
+        "seed": 100038,
+        "baseline_fast_requests": 50,
+        "macro_fast_requests": 426,
+        "baseline_total_moves": 10721,
+        "macro_total_moves": 11095
+      },
+      {
+        "seed": 100039,
+        "baseline_fast_requests": 1,
+        "macro_fast_requests": 463,
+        "baseline_total_moves": 10626,
+        "macro_total_moves": 11136
+      },
+      {
+        "seed": 100040,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 505,
+        "baseline_total_moves": 10751,
+        "macro_total_moves": 11256
+      },
+      {
+        "seed": 100041,
+        "baseline_fast_requests": 67,
+        "macro_fast_requests": 412,
+        "baseline_total_moves": 10930,
+        "macro_total_moves": 11253
+      },
+      {
+        "seed": 100042,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 413,
+        "baseline_total_moves": 10701,
+        "macro_total_moves": 11390
+      },
+      {
+        "seed": 100043,
+        "baseline_fast_requests": 13,
+        "macro_fast_requests": 460,
+        "baseline_total_moves": 10771,
+        "macro_total_moves": 11276
+      },
+      {
+        "seed": 100044,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 649,
+        "baseline_total_moves": 10965,
+        "macro_total_moves": 11488
+      },
+      {
+        "seed": 100045,
+        "baseline_fast_requests": 160,
+        "macro_fast_requests": 594,
+        "baseline_total_moves": 11019,
+        "macro_total_moves": 11480
+      },
+      {
+        "seed": 100046,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 478,
+        "baseline_total_moves": 10746,
+        "macro_total_moves": 11190
+      },
+      {
+        "seed": 100047,
+        "baseline_fast_requests": 86,
+        "macro_fast_requests": 448,
+        "baseline_total_moves": 10871,
+        "macro_total_moves": 11396
+      },
+      {
+        "seed": 100048,
+        "baseline_fast_requests": 112,
+        "macro_fast_requests": 503,
+        "baseline_total_moves": 10657,
+        "macro_total_moves": 11395
+      },
+      {
+        "seed": 100049,
+        "baseline_fast_requests": 76,
+        "macro_fast_requests": 436,
+        "baseline_total_moves": 10834,
+        "macro_total_moves": 11168
+      },
+      {
+        "seed": 100050,
+        "baseline_fast_requests": 133,
+        "macro_fast_requests": 451,
+        "baseline_total_moves": 10873,
+        "macro_total_moves": 11215
+      },
+      {
+        "seed": 100051,
+        "baseline_fast_requests": 134,
+        "macro_fast_requests": 430,
+        "baseline_total_moves": 10837,
+        "macro_total_moves": 11430
+      },
+      {
+        "seed": 100052,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 471,
+        "baseline_total_moves": 10593,
+        "macro_total_moves": 11178
+      },
+      {
+        "seed": 100053,
+        "baseline_fast_requests": 109,
+        "macro_fast_requests": 444,
+        "baseline_total_moves": 10695,
+        "macro_total_moves": 11290
+      },
+      {
+        "seed": 100054,
+        "baseline_fast_requests": 26,
+        "macro_fast_requests": 482,
+        "baseline_total_moves": 10664,
+        "macro_total_moves": 11346
+      },
+      {
+        "seed": 100055,
+        "baseline_fast_requests": 14,
+        "macro_fast_requests": 376,
+        "baseline_total_moves": 10617,
+        "macro_total_moves": 11032
+      },
+      {
+        "seed": 100056,
+        "baseline_fast_requests": 75,
+        "macro_fast_requests": 491,
+        "baseline_total_moves": 10852,
+        "macro_total_moves": 11355
+      },
+      {
+        "seed": 100057,
+        "baseline_fast_requests": 50,
+        "macro_fast_requests": 425,
+        "baseline_total_moves": 10851,
+        "macro_total_moves": 11073
+      },
+      {
+        "seed": 100058,
+        "baseline_fast_requests": 168,
+        "macro_fast_requests": 378,
+        "baseline_total_moves": 10867,
+        "macro_total_moves": 10949
+      },
+      {
+        "seed": 100059,
+        "baseline_fast_requests": 0,
+        "macro_fast_requests": 501,
+        "baseline_total_moves": 10614,
+        "macro_total_moves": 11343
+      },
+      {
+        "seed": 100060,
+        "baseline_fast_requests": 34,
+        "macro_fast_requests": 485,
+        "baseline_total_moves": 10750,
+        "macro_total_moves": 11191
+      },
+      {
+        "seed": 100061,
+        "baseline_fast_requests": 155,
+        "macro_fast_requests": 517,
+        "baseline_total_moves": 11022,
+        "macro_total_moves": 11255
+      },
+      {
+        "seed": 100062,
+        "baseline_fast_requests": 316,
+        "macro_fast_requests": 618,
+        "baseline_total_moves": 11223,
+        "macro_total_moves": 11553
+      },
+      {
+        "seed": 100063,
+        "baseline_fast_requests": 757,
+        "macro_fast_requests": 473,
+        "baseline_total_moves": 11481,
+        "macro_total_moves": 11121
+      }
+    ]
+  },
+  "fixed_paired": {
+    "case_count": 16,
+    "baseline_fast_requests_all_zero": true,
+    "macro_fast_requests_all_zero": true,
+    "mean_req_sec_ratio_macro_over_baseline": 1.9785076122939755,
+    "mean_req_sec_difference": 0.34776925
+  },
+  "interpretation": "設計反復固定では要求処理時間が約1.98倍になり、通常時間予算では軽量経路が平均388注文/ケース増えている。追加マクロ探索が時間枠を消費し、既存の強い要求処理を省く注文が増えたという説明と整合する。",
+  "limitations": [
+    "スコア差全体を時間要因と方策要因へ因果分解したものではない。",
+    "通常実行では設計の探索回数と計算機負荷にも差がある。",
+    "macro_saved は局所段の上界との差であり、計画全体で最終採用されたスコア改善量ではない。"
+  ]
+}

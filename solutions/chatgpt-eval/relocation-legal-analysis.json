@@ -1,0 +1,4116 @@
+{
+  "definition": "Exact final permutation preserved. K-LCS is an unrestricted lower bound; gaps are potential, not guaranteed legal savings.",
+  "reports": [
+    {
+      "run_id": "20261101-160151_imp-combo",
+      "cases": 4,
+      "totals": {
+        "queries": 4096,
+        "actual_moves": 43413,
+        "distinct_moved": 43388,
+        "unrestricted_moves": 34543,
+        "duplicate_moves": 25,
+        "distinct_excess": 8845,
+        "gap": 8870,
+        "queries_with_gap": 3094,
+        "queries_with_duplicate": 25,
+        "initially_hidden_moved": 25577,
+        "lcs_witness_blocked_queries": 3024,
+        "lcs_witness_blocked_papers": 5428,
+        "unblocked_lcs_gap": 79,
+        "accessibility_search_states": 5861487,
+        "visibility_forced_extra": 8705,
+        "remaining_gap_after_visibility": 165,
+        "accessibility_complete_queries": 3094,
+        "synthesis_search_states": 316209,
+        "synthesis_failed_queries": 129,
+        "limited_queries": 18,
+        "synthesis_limited_queries": 18,
+        "synthesized_savings": 17,
+        "synthesized_queries": 9
+      },
+      "per_query": {
+        "actual_moves": 10.598876953125,
+        "distinct_moved": 10.5927734375,
+        "unrestricted_moves": 8.433349609375,
+        "duplicate_moves": 0.006103515625,
+        "distinct_excess": 2.159423828125,
+        "gap": 2.16552734375,
+        "queries_with_gap": 0.75537109375,
+        "queries_with_duplicate": 0.006103515625,
+        "initially_hidden_moved": 6.244384765625,
+        "lcs_witness_blocked_queries": 0.73828125,
+        "lcs_witness_blocked_papers": 1.3251953125,
+        "unblocked_lcs_gap": 0.019287109375,
+        "accessibility_search_states": 1431.027099609375,
+        "visibility_forced_extra": 2.125244140625,
+        "remaining_gap_after_visibility": 0.040283203125,
+        "accessibility_complete_queries": 0.75537109375,
+        "synthesis_search_states": 77.199462890625,
+        "synthesis_failed_queries": 0.031494140625,
+        "limited_queries": 0.00439453125,
+        "synthesis_limited_queries": 0.00439453125,
+        "synthesized_savings": 0.004150390625,
+        "synthesized_queries": 0.002197265625
+      },
+      "gap_histogram": {
+        "0": 1002,
+        "1": 949,
+        "2": 682,
+        "3": 682,
+        "4": 272,
+        "5": 154,
+        "6": 117,
+        "7": 93,
+        "8": 58,
+        "9": 43,
+        "10": 35,
+        "11": 9
+      },
+      "case_records": [
+        {
+          "seed": 100000,
+          "queries": 1024,
+          "actual_moves": 10916,
+          "distinct_moved": 10906,
+          "unrestricted_moves": 8835,
+          "duplicate_moves": 10,
+          "distinct_excess": 2071,
+          "gap": 2081,
+          "queries_with_gap": 757,
+          "queries_with_duplicate": 10,
+          "initially_hidden_moved": 6328,
+          "lcs_witness_blocked_queries": 736,
+          "lcs_witness_blocked_papers": 1341,
+          "unblocked_lcs_gap": 24,
+          "accessibility_search_states": 1395418,
+          "visibility_forced_extra": 2034,
+          "remaining_gap_after_visibility": 47,
+          "accessibility_complete_queries": 757,
+          "synthesis_search_states": 86163,
+          "synthesis_failed_queries": 34,
+          "limited_queries": 7,
+          "synthesis_limited_queries": 7,
+          "synthesized_savings": 5,
+          "synthesized_queries": 3
+        },
+        {
+          "seed": 100001,
+          "queries": 1024,
+          "actual_moves": 10874,
+          "distinct_moved": 10871,
+          "unrestricted_moves": 8654,
+          "duplicate_moves": 3,
+          "distinct_excess": 2217,
+          "gap": 2220,
+          "queries_with_gap": 777,
+          "queries_with_duplicate": 3,
+          "initially_hidden_moved": 6341,
+          "lcs_witness_blocked_queries": 762,
+          "lcs_witness_blocked_papers": 1373,
+          "unblocked_lcs_gap": 18,
+          "accessibility_search_states": 1443115,
+          "visibility_forced_extra": 2179,
+          "remaining_gap_after_visibility": 41,
+          "accessibility_complete_queries": 777,
+          "synthesis_search_states": 81158,
+          "synthesis_failed_queries": 31,
+          "limited_queries": 6,
+          "synthesis_limited_queries": 6,
+          "synthesized_savings": 4,
+          "synthesized_queries": 1
+        },
+        {
+          "seed": 100002,
+          "queries": 1024,
+          "actual_moves": 10872,
+          "distinct_moved": 10866,
+          "unrestricted_moves": 8584,
+          "duplicate_moves": 6,
+          "distinct_excess": 2282,
+          "gap": 2288,
+          "queries_with_gap": 799,
+          "queries_with_duplicate": 6,
+          "initially_hidden_moved": 6383,
+          "lcs_witness_blocked_queries": 780,
+          "lcs_witness_blocked_papers": 1365,
+          "unblocked_lcs_gap": 22,
+          "accessibility_search_states": 1444624,
+          "visibility_forced_extra": 2245,
+          "remaining_gap_after_visibility": 43,
+          "accessibility_complete_queries": 799,
+          "synthesis_search_states": 102023,
+          "synthesis_failed_queries": 36,
+          "synthesized_savings": 5,
+          "synthesized_queries": 2,
+          "limited_queries": 2,
+          "synthesis_limited_queries": 2
+        },
+        {
+          "seed": 100003,
+          "queries": 1024,
+          "actual_moves": 10751,
+          "distinct_moved": 10745,
+          "unrestricted_moves": 8470,
+          "duplicate_moves": 6,
+          "distinct_excess": 2275,
+          "gap": 2281,
+          "queries_with_gap": 761,
+          "queries_with_duplicate": 6,
+          "initially_hidden_moved": 6525,
+          "lcs_witness_blocked_queries": 746,
+          "lcs_witness_blocked_papers": 1349,
+          "unblocked_lcs_gap": 15,
+          "accessibility_search_states": 1578330,
+          "visibility_forced_extra": 2247,
+          "remaining_gap_after_visibility": 34,
+          "accessibility_complete_queries": 761,
+          "synthesis_search_states": 46865,
+          "synthesis_failed_queries": 28,
+          "limited_queries": 3,
+          "synthesis_limited_queries": 3,
+          "synthesized_savings": 3,
+          "synthesized_queries": 3
+        }
+      ],
+      "largest_gap_examples": [
+        {
+          "seed": 100000,
+          "query": 123,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            188
+          ],
+          "ops": [
+            [
+              183,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              188,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 521,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            191
+          ],
+          "ops": [
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              191,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 697,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            184
+          ],
+          "ops": [
+            [
+              183,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 876,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            188
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              188,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 106,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            183
+          ],
+          "ops": [
+            [
+              184,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              183,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 526,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 2,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            177
+          ],
+          "ops": [
+            [
+              168,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              169,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              177,
+              0
+            ],
+            [
+              184,
+              183
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 530,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 2,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            177
+          ],
+          "ops": [
+            [
+              168,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              169,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              177,
+              0
+            ],
+            [
+              182,
+              183
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 997,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 2,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            184
+          ],
+          "ops": [
+            [
+              110,
+              109
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              184,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100003,
+          "query": 190,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            183
+          ],
+          "ops": [
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              183,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 110,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            153
+          ],
+          "ops": [
+            [
+              147,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              154,
+              157
+            ],
+            [
+              155,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              148,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              153,
+              0
+            ],
+            [
+              180,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 128,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            160
+          ],
+          "ops": [
+            [
+              159,
+              168
+            ],
+            [
+              158,
+              168
+            ],
+            [
+              161,
+              168
+            ],
+            [
+              162,
+              168
+            ],
+            [
+              163,
+              168
+            ],
+            [
+              164,
+              168
+            ],
+            [
+              165,
+              168
+            ],
+            [
+              166,
+              168
+            ],
+            [
+              167,
+              168
+            ],
+            [
+              168,
+              168
+            ],
+            [
+              160,
+              0
+            ],
+            [
+              183,
+              182
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 135,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            174
+          ],
+          "ops": [
+            [
+              169,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              174,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 164,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            154
+          ],
+          "ops": [
+            [
+              151,
+              157
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              155,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              148,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              154,
+              0
+            ],
+            [
+              183,
+              182
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 288,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            173
+          ],
+          "ops": [
+            [
+              170,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              169,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              173,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 319,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            173
+          ],
+          "ops": [
+            [
+              170,
+              179
+            ],
+            [
+              169,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              173,
+              0
+            ],
+            [
+              181,
+              182
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 380,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            190
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 507,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            176
+          ],
+          "ops": [
+            [
+              169,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              176,
+              0
+            ],
+            [
+              180,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 883,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            119,
+            161
+          ],
+          "ops": [
+            [
+              181,
+              182
+            ],
+            [
+              158,
+              159
+            ],
+            [
+              161,
+              137
+            ],
+            [
+              120,
+              126
+            ],
+            [
+              117,
+              126
+            ],
+            [
+              118,
+              126
+            ],
+            [
+              121,
+              126
+            ],
+            [
+              122,
+              126
+            ],
+            [
+              124,
+              126
+            ],
+            [
+              123,
+              126
+            ],
+            [
+              125,
+              126
+            ],
+            [
+              126,
+              126
+            ],
+            [
+              119,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 31,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            176,
+            177
+          ],
+          "ops": [
+            [
+              169,
+              179
+            ],
+            [
+              168,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              176,
+              169
+            ],
+            [
+              177,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 139,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            156
+          ],
+          "ops": [
+            [
+              146,
+              156
+            ],
+            [
+              150,
+              156
+            ],
+            [
+              148,
+              156
+            ],
+            [
+              149,
+              156
+            ],
+            [
+              151,
+              156
+            ],
+            [
+              152,
+              156
+            ],
+            [
+              153,
+              156
+            ],
+            [
+              155,
+              156
+            ],
+            [
+              154,
+              156
+            ],
+            [
+              147,
+              156
+            ],
+            [
+              156,
+              0
+            ],
+            [
+              157,
+              158
+            ],
+            [
+              181,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 170,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            185,
+            186
+          ],
+          "ops": [
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              185,
+              181
+            ],
+            [
+              186,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 392,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            158
+          ],
+          "ops": [
+            [
+              159,
+              167
+            ],
+            [
+              157,
+              167
+            ],
+            [
+              161,
+              167
+            ],
+            [
+              160,
+              167
+            ],
+            [
+              167,
+              167
+            ],
+            [
+              163,
+              167
+            ],
+            [
+              162,
+              167
+            ],
+            [
+              164,
+              167
+            ],
+            [
+              166,
+              167
+            ],
+            [
+              165,
+              167
+            ],
+            [
+              158,
+              0
+            ],
+            [
+              181,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 484,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            155
+          ],
+          "ops": [
+            [
+              148,
+              156
+            ],
+            [
+              146,
+              156
+            ],
+            [
+              150,
+              156
+            ],
+            [
+              156,
+              156
+            ],
+            [
+              147,
+              156
+            ],
+            [
+              149,
+              156
+            ],
+            [
+              151,
+              156
+            ],
+            [
+              153,
+              156
+            ],
+            [
+              152,
+              156
+            ],
+            [
+              154,
+              156
+            ],
+            [
+              155,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 543,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            190,
+            187
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              190,
+              181
+            ],
+            [
+              187,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 635,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            167
+          ],
+          "ops": [
+            [
+              157,
+              167
+            ],
+            [
+              161,
+              167
+            ],
+            [
+              159,
+              167
+            ],
+            [
+              160,
+              167
+            ],
+            [
+              162,
+              167
+            ],
+            [
+              163,
+              167
+            ],
+            [
+              164,
+              167
+            ],
+            [
+              165,
+              167
+            ],
+            [
+              166,
+              167
+            ],
+            [
+              158,
+              167
+            ],
+            [
+              167,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 704,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            188,
+            189
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              181
+            ],
+            [
+              189,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 99,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            165
+          ],
+          "ops": [
+            [
+              160,
+              168
+            ],
+            [
+              159,
+              168
+            ],
+            [
+              161,
+              168
+            ],
+            [
+              158,
+              168
+            ],
+            [
+              166,
+              168
+            ],
+            [
+              167,
+              168
+            ],
+            [
+              168,
+              168
+            ],
+            [
+              162,
+              168
+            ],
+            [
+              163,
+              168
+            ],
+            [
+              164,
+              168
+            ],
+            [
+              165,
+              0
+            ],
+            [
+              177,
+              179
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 262,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            179
+          ],
+          "ops": [
+            [
+              169,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              179,
+              0
+            ],
+            [
+              182,
+              191
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 374,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            178
+          ],
+          "ops": [
+            [
+              173,
+              179
+            ],
+            [
+              169,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              178,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 632,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            177
+          ],
+          "ops": [
+            [
+              169,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              177,
+              0
+            ],
+            [
+              180,
+              181
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "run_id": "20261101-160151_imp-combo-2",
+      "cases": 4,
+      "totals": {
+        "queries": 4096,
+        "actual_moves": 43435,
+        "distinct_moved": 43407,
+        "unrestricted_moves": 34569,
+        "duplicate_moves": 28,
+        "distinct_excess": 8838,
+        "gap": 8866,
+        "queries_with_gap": 3136,
+        "queries_with_duplicate": 28,
+        "initially_hidden_moved": 25393,
+        "lcs_witness_blocked_queries": 3077,
+        "lcs_witness_blocked_papers": 5364,
+        "unblocked_lcs_gap": 66,
+        "accessibility_search_states": 5985876,
+        "visibility_forced_extra": 8715,
+        "remaining_gap_after_visibility": 151,
+        "accessibility_complete_queries": 3136,
+        "synthesis_search_states": 303949,
+        "synthesis_failed_queries": 120,
+        "limited_queries": 16,
+        "synthesis_limited_queries": 16,
+        "synthesized_savings": 13,
+        "synthesized_queries": 6
+      },
+      "per_query": {
+        "actual_moves": 10.604248046875,
+        "distinct_moved": 10.597412109375,
+        "unrestricted_moves": 8.439697265625,
+        "duplicate_moves": 0.0068359375,
+        "distinct_excess": 2.15771484375,
+        "gap": 2.16455078125,
+        "queries_with_gap": 0.765625,
+        "queries_with_duplicate": 0.0068359375,
+        "initially_hidden_moved": 6.199462890625,
+        "lcs_witness_blocked_queries": 0.751220703125,
+        "lcs_witness_blocked_papers": 1.3095703125,
+        "unblocked_lcs_gap": 0.01611328125,
+        "accessibility_search_states": 1461.3955078125,
+        "visibility_forced_extra": 2.127685546875,
+        "remaining_gap_after_visibility": 0.036865234375,
+        "accessibility_complete_queries": 0.765625,
+        "synthesis_search_states": 74.206298828125,
+        "synthesis_failed_queries": 0.029296875,
+        "limited_queries": 0.00390625,
+        "synthesis_limited_queries": 0.00390625,
+        "synthesized_savings": 0.003173828125,
+        "synthesized_queries": 0.00146484375
+      },
+      "gap_histogram": {
+        "0": 960,
+        "1": 994,
+        "2": 724,
+        "3": 643,
+        "4": 273,
+        "5": 146,
+        "6": 117,
+        "7": 79,
+        "8": 68,
+        "9": 54,
+        "10": 30,
+        "11": 8
+      },
+      "case_records": [
+        {
+          "seed": 100000,
+          "queries": 1024,
+          "actual_moves": 10996,
+          "distinct_moved": 10990,
+          "unrestricted_moves": 8888,
+          "duplicate_moves": 6,
+          "distinct_excess": 2102,
+          "gap": 2108,
+          "queries_with_gap": 774,
+          "queries_with_duplicate": 6,
+          "initially_hidden_moved": 6252,
+          "lcs_witness_blocked_queries": 753,
+          "lcs_witness_blocked_papers": 1275,
+          "unblocked_lcs_gap": 24,
+          "accessibility_search_states": 1383626,
+          "visibility_forced_extra": 2068,
+          "remaining_gap_after_visibility": 40,
+          "accessibility_complete_queries": 774,
+          "synthesis_search_states": 70719,
+          "synthesis_failed_queries": 27,
+          "limited_queries": 9,
+          "synthesis_limited_queries": 9,
+          "synthesized_savings": 4,
+          "synthesized_queries": 1
+        },
+        {
+          "seed": 100001,
+          "queries": 1024,
+          "actual_moves": 10679,
+          "distinct_moved": 10671,
+          "unrestricted_moves": 8350,
+          "duplicate_moves": 8,
+          "distinct_excess": 2321,
+          "gap": 2329,
+          "queries_with_gap": 778,
+          "queries_with_duplicate": 8,
+          "initially_hidden_moved": 6420,
+          "lcs_witness_blocked_queries": 771,
+          "lcs_witness_blocked_papers": 1369,
+          "unblocked_lcs_gap": 7,
+          "accessibility_search_states": 1689016,
+          "visibility_forced_extra": 2291,
+          "remaining_gap_after_visibility": 38,
+          "accessibility_complete_queries": 778,
+          "synthesis_search_states": 96400,
+          "synthesis_failed_queries": 32,
+          "limited_queries": 4,
+          "synthesis_limited_queries": 4,
+          "synthesized_savings": 1,
+          "synthesized_queries": 1
+        },
+        {
+          "seed": 100002,
+          "queries": 1024,
+          "actual_moves": 10688,
+          "distinct_moved": 10682,
+          "unrestricted_moves": 8564,
+          "duplicate_moves": 6,
+          "distinct_excess": 2118,
+          "gap": 2124,
+          "queries_with_gap": 794,
+          "queries_with_duplicate": 6,
+          "initially_hidden_moved": 6249,
+          "lcs_witness_blocked_queries": 779,
+          "lcs_witness_blocked_papers": 1373,
+          "unblocked_lcs_gap": 15,
+          "accessibility_search_states": 1313666,
+          "visibility_forced_extra": 2091,
+          "remaining_gap_after_visibility": 33,
+          "accessibility_complete_queries": 794,
+          "synthesis_search_states": 79718,
+          "synthesis_failed_queries": 30,
+          "synthesized_savings": 2,
+          "synthesized_queries": 2,
+          "limited_queries": 1,
+          "synthesis_limited_queries": 1
+        },
+        {
+          "seed": 100003,
+          "queries": 1024,
+          "actual_moves": 11072,
+          "distinct_moved": 11064,
+          "unrestricted_moves": 8767,
+          "duplicate_moves": 8,
+          "distinct_excess": 2297,
+          "gap": 2305,
+          "queries_with_gap": 790,
+          "queries_with_duplicate": 8,
+          "initially_hidden_moved": 6472,
+          "lcs_witness_blocked_queries": 774,
+          "lcs_witness_blocked_papers": 1347,
+          "unblocked_lcs_gap": 20,
+          "accessibility_search_states": 1599568,
+          "visibility_forced_extra": 2265,
+          "remaining_gap_after_visibility": 40,
+          "accessibility_complete_queries": 790,
+          "synthesis_search_states": 57112,
+          "synthesis_failed_queries": 31,
+          "synthesized_savings": 6,
+          "synthesized_queries": 2,
+          "limited_queries": 2,
+          "synthesis_limited_queries": 2
+        }
+      ],
+      "largest_gap_examples": [
+        {
+          "seed": 100000,
+          "query": 374,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            187
+          ],
+          "ops": [
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              187,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 550,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            182
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              182,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 751,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            185
+          ],
+          "ops": [
+            [
+              182,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              185,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 928,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            191
+          ],
+          "ops": [
+            [
+              182,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              191,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100003,
+          "query": 286,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            184
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              184,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100003,
+          "query": 409,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            188
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100003,
+          "query": 509,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 1,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            191
+          ],
+          "ops": [
+            [
+              180,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              191,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100003,
+          "query": 1016,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 2,
+          "gap": 11,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            191
+          ],
+          "ops": [
+            [
+              32,
+              29
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              191,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 79,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            151
+          ],
+          "ops": [
+            [
+              148,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              154,
+              157
+            ],
+            [
+              155,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              151,
+              0
+            ],
+            [
+              169,
+              170
+            ],
+            [
+              181,
+              182
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 127,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            191
+          ],
+          "ops": [
+            [
+              185,
+              191
+            ],
+            [
+              180,
+              190
+            ],
+            [
+              181,
+              190
+            ],
+            [
+              183,
+              190
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              191,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 391,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            186,
+            187
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              186,
+              181
+            ],
+            [
+              187,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 477,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            186,
+            189
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              186,
+              181
+            ],
+            [
+              189,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 576,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            179
+          ],
+          "ops": [
+            [
+              169,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              179,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 674,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            168
+          ],
+          "ops": [
+            [
+              159,
+              168
+            ],
+            [
+              160,
+              168
+            ],
+            [
+              162,
+              168
+            ],
+            [
+              158,
+              168
+            ],
+            [
+              164,
+              168
+            ],
+            [
+              165,
+              168
+            ],
+            [
+              167,
+              168
+            ],
+            [
+              166,
+              168
+            ],
+            [
+              161,
+              168
+            ],
+            [
+              163,
+              168
+            ],
+            [
+              168,
+              0
+            ],
+            [
+              169,
+              170
+            ],
+            [
+              180,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 724,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            179
+          ],
+          "ops": [
+            [
+              169,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              179,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 763,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            153
+          ],
+          "ops": [
+            [
+              148,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              154,
+              157
+            ],
+            [
+              155,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              153,
+              0
+            ],
+            [
+              158,
+              161
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 935,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            154
+          ],
+          "ops": [
+            [
+              129,
+              127
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              148,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              155,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              154,
+              0
+            ],
+            [
+              180,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100000,
+          "query": 985,
+          "moves": 14,
+          "distinct": 14,
+          "lower_bound": 4,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            154
+          ],
+          "ops": [
+            [
+              16,
+              17
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              148,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              155,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              154,
+              0
+            ],
+            [
+              158,
+              161
+            ],
+            [
+              180,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 561,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            187,
+            188
+          ],
+          "ops": [
+            [
+              180,
+              191
+            ],
+            [
+              181,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              186,
+              191
+            ],
+            [
+              191,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              187,
+              181
+            ],
+            [
+              188,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 671,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            176
+          ],
+          "ops": [
+            [
+              169,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              176,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 848,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            177
+          ],
+          "ops": [
+            [
+              172,
+              179
+            ],
+            [
+              169,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              176,
+              179
+            ],
+            [
+              171,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              177,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 983,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            148
+          ],
+          "ops": [
+            [
+              172,
+              171
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              155,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              154,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              148,
+              0
+            ],
+            [
+              162,
+              160
+            ]
+          ]
+        },
+        {
+          "seed": 100001,
+          "query": 990,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            148
+          ],
+          "ops": [
+            [
+              181,
+              183
+            ],
+            [
+              182,
+              7
+            ],
+            [
+              153,
+              158
+            ],
+            [
+              147,
+              158
+            ],
+            [
+              151,
+              158
+            ],
+            [
+              149,
+              158
+            ],
+            [
+              155,
+              158
+            ],
+            [
+              150,
+              158
+            ],
+            [
+              157,
+              158
+            ],
+            [
+              152,
+              158
+            ],
+            [
+              154,
+              158
+            ],
+            [
+              156,
+              158
+            ],
+            [
+              148,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 60,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            154
+          ],
+          "ops": [
+            [
+              181,
+              180
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              148,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              155,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              154,
+              0
+            ],
+            [
+              160,
+              159
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 158,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            155
+          ],
+          "ops": [
+            [
+              171,
+              172
+            ],
+            [
+              148,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              154,
+              157
+            ],
+            [
+              155,
+              0
+            ],
+            [
+              181,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 281,
+          "moves": 14,
+          "distinct": 14,
+          "lower_bound": 4,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            155
+          ],
+          "ops": [
+            [
+              171,
+              172
+            ],
+            [
+              160,
+              158
+            ],
+            [
+              148,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              154,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              155,
+              0
+            ],
+            [
+              181,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 346,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            186,
+            191
+          ],
+          "ops": [
+            [
+              181,
+              191
+            ],
+            [
+              184,
+              191
+            ],
+            [
+              180,
+              191
+            ],
+            [
+              182,
+              191
+            ],
+            [
+              183,
+              191
+            ],
+            [
+              188,
+              191
+            ],
+            [
+              185,
+              191
+            ],
+            [
+              187,
+              191
+            ],
+            [
+              190,
+              191
+            ],
+            [
+              186,
+              182
+            ],
+            [
+              189,
+              191
+            ],
+            [
+              191,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 384,
+          "moves": 12,
+          "distinct": 12,
+          "lower_bound": 2,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            155
+          ],
+          "ops": [
+            [
+              171,
+              172
+            ],
+            [
+              148,
+              157
+            ],
+            [
+              149,
+              157
+            ],
+            [
+              147,
+              157
+            ],
+            [
+              157,
+              157
+            ],
+            [
+              151,
+              157
+            ],
+            [
+              152,
+              157
+            ],
+            [
+              154,
+              157
+            ],
+            [
+              153,
+              157
+            ],
+            [
+              156,
+              157
+            ],
+            [
+              150,
+              157
+            ],
+            [
+              155,
+              0
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 683,
+          "moves": 13,
+          "distinct": 13,
+          "lower_bound": 3,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            167
+          ],
+          "ops": [
+            [
+              160,
+              168
+            ],
+            [
+              158,
+              168
+            ],
+            [
+              162,
+              168
+            ],
+            [
+              159,
+              168
+            ],
+            [
+              161,
+              168
+            ],
+            [
+              168,
+              168
+            ],
+            [
+              164,
+              168
+            ],
+            [
+              163,
+              168
+            ],
+            [
+              166,
+              168
+            ],
+            [
+              165,
+              168
+            ],
+            [
+              167,
+              0
+            ],
+            [
+              169,
+              172
+            ],
+            [
+              181,
+              181
+            ]
+          ]
+        },
+        {
+          "seed": 100002,
+          "query": 811,
+          "moves": 11,
+          "distinct": 11,
+          "lower_bound": 1,
+          "gap": 10,
+          "duplicate": 0,
+          "blocked_in_one_lcs": [
+            176
+          ],
+          "ops": [
+            [
+              171,
+              179
+            ],
+            [
+              172,
+              179
+            ],
+            [
+              169,
+              179
+            ],
+            [
+              170,
+              179
+            ],
+            [
+              179,
+              179
+            ],
+            [
+              178,
+              179
+            ],
+            [
+              173,
+              179
+            ],
+            [
+              174,
+              179
+            ],
+            [
+              175,
+              179
+            ],
+            [
+              177,
+              179
+            ],
+            [
+              176,
+              0
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
