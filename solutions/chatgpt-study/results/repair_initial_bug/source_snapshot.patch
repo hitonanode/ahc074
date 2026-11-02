@@ -1,0 +1,78 @@
+--- a/solutions/chatgpt-joint-repair/main.cpp
++++ b/solutions/chatgpt-joint-repair/main.cpp
+@@ -857,10 +857,7 @@
+     long long repair_evaluations = 0, repair_work_limits = 0, repair_time_limits = 0, repair_augmentations = 0;
+     constexpr int max_repair_evaluations = 4096;
+     constexpr double max_repair_seconds = 0.002;
+-    // Exhausting the available augmentations is a valid partial construction;
+-    // exhausting the compute budget is a rejected, unfinished proposal.
+-    enum class Completion { full, partial, stopped };
+-    auto complete = [&](State& st, bool augment, bool bounded) -> Completion {
++    auto complete = [&](State& st, bool augment, bool bounded) {
+         auto mate = mate_of(st);
+         const unsigned serial = ++repair_serial;
+         const double deadline = bounded && fixed_iters <= 0 ? elapsed_sec() + max_repair_seconds : 1e100;
+@@ -911,7 +908,7 @@
+             const Edge& e = all[p];
+             if (mate[e.u] >= 0 || mate[e.v] >= 0) continue;
+             const Pick edge = candidate(p);
+-            if (stopped) return Completion::stopped;
++            if (stopped) return false;
+             if (edge.cost >= 0) free_edges.push_back(edge);
+         }
+         std::sort(free_edges.begin(), free_edges.end(), [](const Pick& a, const Pick& b) {
+@@ -932,16 +929,16 @@
+             for (int i = 0; i < st.size; ++i) {
+                 if (bounded && (i & 7) == 0 && elapsed_sec() >= deadline) {
+                     ++repair_time_limits;
+-                    return Completion::stopped;
++                    return false;
+                 }
+                 const Edge& edge = all[st.picked[i].p];
+                 for (int u : near[edge.u]) if (mate[u] < 0) {
+                     const Pick a = candidate(id[edge.u][u]);
+-                    if (stopped) return Completion::stopped;
++                    if (stopped) return false;
+                     if (a.cost < 0) continue;
+                     for (int v : near[edge.v]) if (v != u && mate[v] < 0) {
+                         const Pick b = candidate(id[edge.v][v]);
+-                        if (stopped) return Completion::stopped;
++                        if (stopped) return false;
+                         if (b.cost < 0) continue;
+                         const int delta = a.cost + b.cost - st.picked[i].cost;
+                         if (delta < gain) gain = delta, chosen = i, first = a, second = b;
+@@ -955,7 +952,7 @@
+             ++repair_augmentations;
+         }
+         st.value = value_of(st);
+-        return st.size == need ? Completion::full : Completion::partial;
++        return st.size == need;
+     };
+     complete(current, true, false);
+     const int initial_size = current.size;
+@@ -1052,20 +1049,14 @@
+                 trial.size = kept;
+                 if (trial.size < need && allow_repair) {
+                     ++coordinated;
+-                    const Completion completion = complete(trial, true, true);
+-                    repaired = completion == Completion::full;
+-                    // Preserve full cardinality once attained, but allow a
+-                    // valid nondecreasing partial matching during construction.
+-                    // A budget stop never has a complete objective evaluation.
+-                    if (completion == Completion::stopped || trial.size < current.size) {
+-                        ++invalid_proposals; continue;
+-                    }
++                    repaired = complete(trial, true, true);
++                    // A budget-interrupted or incomplete completion is never
++                    // accepted as a transition from a feasible matching.
++                    if (!repaired || trial.size < current.size) { ++invalid_proposals; continue; }
+                 }
+             } else {
+                 ++pair_trials;
+-                if (!current.size) {
+-                    if (complete(trial, true, true) == Completion::stopped) continue;
+-                }
++                if (!current.size) { if (!complete(trial, true, true)) continue; }
+                 else if (kind < 780) {
+                     const int i = rng.below(current.size);
+                     const Edge& e = all[current.picked[i].p];

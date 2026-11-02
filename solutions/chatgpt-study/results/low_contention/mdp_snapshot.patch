@@ -1,0 +1,14 @@
+--- a/solutions/chatgpt-transition/main.cpp
++++ b/solutions/chatgpt-transition/main.cpp
+@@ -2627,10 +2627,7 @@
+         if (!score_generic_future || future.empty()) return 0.0;
+         std::vector<int> local;
+         local.reserve(M);
+-        for (int x : order) if (x < M) {
+-            local.push_back(x);
+-            if (int(local.size()) == M) break;
+-        }
++        for (int x : order) if (x < M) local.push_back(x);
+         return future[comparator.order_index(local)];
+     }
+ 
