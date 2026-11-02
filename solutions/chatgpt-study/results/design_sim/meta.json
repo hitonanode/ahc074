@@ -1,0 +1,131 @@
+{
+  "created_utc": "2026-11-02T00:52:56.588563+00:00",
+  "purpose": "common-request simulation; no query deadline; not a 2-second result",
+  "baseline_remote_commit": "dee23c8fce0eba04e513478629402f20b843e9f0",
+  "seeds": [
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284,
+    285,
+    286,
+    287
+  ],
+  "workers": 3,
+  "environment": {
+    "MAP_ITERS": "0",
+    "GOPT_STEPS": "0",
+    "ANNEAL_ITERS": "4000000",
+    "CLIMB_ITERS": "20000",
+    "SIM_SEQS": "8"
+  },
+  "request_generator": "mt19937_64(1000003 * (sequence_index+1)); consecutive duplicates excluded",
+  "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "sources": {
+    "imp-combo": {
+      "path": "solutions/imp-combo/main.cpp",
+      "sha256": "c0d8fe37e63b60487f453608db11272d83ef0705217be1bcbef115ed18a56c8f",
+      "generated_sha256": "78ceec3c698fc2dd8c06b15ca2d63a802a19ed8151d36d24d2a4589b6fd92080",
+      "edits": [
+        "kHelperGiveUp 1.55 -> 1e9",
+        "Emit 64-bit design fingerprint and 12-digit simulation means",
+        "Emit decomposed design-model costs and mean handle-hole count"
+      ],
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-DSIM_HARNESS",
+        "/workspace/scratch/ad7b3a7a8084/ahc074/runs/chatgpt-design-sim-v2-32x8/src/imp-combo.cpp",
+        "-o",
+        "/workspace/scratch/ad7b3a7a8084/ahc074/runs/chatgpt-design-sim-v2-32x8/bin/imp-combo"
+      ]
+    },
+    "chatgpt-match": {
+      "path": "solutions/chatgpt-match/main.cpp",
+      "sha256": "109df28e7bde7f79dd25970509a6c0bfe3151d397f8b12feb2a83efb7249e1a0",
+      "generated_sha256": "a21ec169165705d005e78da9550732aca50bda3f710a80fc0f40b5d36e3b2bc7",
+      "edits": [
+        "kHelperGiveUp 1.55 -> 1e9",
+        "Emit 64-bit design fingerprint and 12-digit simulation means",
+        "Emit decomposed design-model costs and mean handle-hole count"
+      ],
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-DSIM_HARNESS",
+        "/workspace/scratch/ad7b3a7a8084/ahc074/runs/chatgpt-design-sim-v2-32x8/src/chatgpt-match.cpp",
+        "-o",
+        "/workspace/scratch/ad7b3a7a8084/ahc074/runs/chatgpt-design-sim-v2-32x8/bin/chatgpt-match"
+      ]
+    },
+    "chatgpt-spectrum": {
+      "path": "solutions/chatgpt-spectrum/main.cpp",
+      "sha256": "be6afb3cddc0d9dc9abd4a7f373ade62f266d3ac39e8445529a513263d0c2116",
+      "generated_sha256": "698b85a4b94b6d533488979609209e64b8e8bd4cddd1fd4dc756f56e5d4056bd",
+      "edits": [
+        "kHelperGiveUp 1.55 -> 1e9",
+        "Emit 64-bit design fingerprint and 12-digit simulation means",
+        "Emit decomposed design-model costs and mean handle-hole count"
+      ],
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-DSIM_HARNESS",
+        "/workspace/scratch/ad7b3a7a8084/ahc074/runs/chatgpt-design-sim-v2-32x8/src/chatgpt-spectrum.cpp",
+        "-o",
+        "/workspace/scratch/ad7b3a7a8084/ahc074/runs/chatgpt-design-sim-v2-32x8/bin/chatgpt-spectrum"
+      ]
+    },
+    "chatgpt-joint-repair": {
+      "path": "solutions/chatgpt-joint-repair/main.cpp",
+      "sha256": "ca7bd3bf658da3b534d4b25000832c2748bd3b008a535b39552afdc668909e0a",
+      "generated_sha256": "0f9699371aa48ea81b0e9bc7b5e18085a63fb8dfdee8d31877ff89751ffd8d74",
+      "edits": [
+        "kHelperGiveUp 1.55 -> 1e9",
+        "Emit 64-bit design fingerprint and 12-digit simulation means",
+        "Emit decomposed design-model costs and mean handle-hole count"
+      ],
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-DSIM_HARNESS",
+        "/workspace/scratch/ad7b3a7a8084/ahc074/runs/chatgpt-design-sim-v2-32x8/src/chatgpt-joint-repair.cpp",
+        "-o",
+        "/workspace/scratch/ad7b3a7a8084/ahc074/runs/chatgpt-design-sim-v2-32x8/bin/chatgpt-joint-repair"
+      ]
+    }
+  }
+}
