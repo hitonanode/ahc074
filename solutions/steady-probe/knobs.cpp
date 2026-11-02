@@ -13,7 +13,7 @@
 //   the environment: ABSENT_COST, IMB40, GEN_BOTTOM, RANK20, HOLEW,
 //   CLIMB_COLOR, MOVE2, INIT_BAL, HELPER_KEEP, CAP_BELOW,
 //   TOPPEN, ENDW, FCOST, FMAX, RELEVEL, STAY, CDEPTH, BEAM, FCHARGE (solver constants), HDW, GCW,
-//   FCHARGE_ABOVE, CANON_FIX, MAP_SEED (no helper cutoff with fixed iterations).
+//   FCHARGE_ABOVE, CANON_FIX, MAP_SEED, ABSENT_NEXT (no helper cutoff with fixed iterations).
 // as6-majtop: as6-cap38p0 printing each column with the majority color of the hole demand at its
 //   handle on top and the other color second (the initial order matches the steady state) (README).
 // Windows: G = 38 generic windows, the cap window 63 and H = 25 handle windows h_0..h_24 (which physical windows is a
@@ -109,6 +109,7 @@ int g_init_bal = 1;     // Design::initialize balances the colors of the columns
 int g_helper_keep = 0;  // 1: try_helpers returns only the old fillers in or above the generic layer
 int g_cap_below = 0;    // 1: a request black at the cap window always lifts D just below the cap
 unsigned long long g_map_seed = 0;  // MAP_SEED: varies the window assignment's random numbers only
+double g_absent_next = -1;  // ABSENT_NEXT: adaptive_next_cost of a hole of a color absent from the column
 int g_canon_fix = 0;    // 1: canonicalize raises the level of a filler through empty columns (CANON_FIX)
 double g_gcw = 1.0;     // the weight of the generic cost of a pair in the design model (GCW)
 int g_hdw = 1800;       // the weight of a pair's handle difference in the window assignment (HDW, < 4000)
@@ -2821,8 +2822,10 @@ struct Solver {
         }
         for (int c = 0; c < H; c++)
             for (int color = 0; color < 2; color++) {
-                int fixes = available[c][color] ? 0 : first[c][color];
-                if (fixes < 0) fixes = rank[c];
+                double fixes = available[c][color] ? 0 : first[c][color];
+                // steady-probe ABSENT_NEXT (>= 0): a hole of a color the column has no paper of (an empty
+                // column: a deeper paper shows there) costs a filler, not the digs of the whole column
+                if (fixes < 0) fixes = g_absent_next >= 0 ? g_absent_next : rank[c];
                 cost += adaptive_holes[c][color] * fixes;
             }
         return cost;
@@ -4431,6 +4434,7 @@ int main() {
     if (const char* e = std::getenv("HDW")) g_hdw = std::atoi(e);
     if (const char* e = std::getenv("GCW")) g_gcw = std::atof(e);
     if (const char* e = std::getenv("CANON_FIX")) g_canon_fix = std::atoi(e);
+    if (const char* e = std::getenv("ABSENT_NEXT")) g_absent_next = std::atof(e);
     if (const char* e = std::getenv("MAP_SEED")) g_map_seed = std::strtoull(e, nullptr, 10);
     if (const char* e = std::getenv("FCHARGE_ABOVE")) Solver::kFillerChargeAbove = std::atof(e);
     if (const char* e = std::getenv("TOPPEN")) Solver::kTopPenalty = std::atof(e);
