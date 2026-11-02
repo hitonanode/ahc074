@@ -1,0 +1,14 @@
+{
+  "main_sha256": "a872e1993c32f559e79a58c566dae3cad23a586c5083ce98a03e8496ca281276",
+  "verify_sha256": "1c9003e46d3efe83194ebe96ede4373056d799831bbeed8d70674a09f0d557f7",
+  "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "compile_flags": [
+    "-std=c++23",
+    "-O2",
+    "-DCLOCK_SCALE=1.1"
+  ],
+  "verification_command": "./solutions/astra-privategate/verify",
+  "verification_stdout": "legal_edges=36600 bottom_private_edges=1200 exact_goal_sets=1200 failures=0\n",
+  "verification_stderr": "witness_graph_diameter = 5\nactual_graph_diameter = 5\n",
+  "full_contest_evaluation": "Paired 16-case pilot (20261101-195719) and independent 500-case holdout (20261101-195822) completed with unchanged main.cpp; all replay scores agreed, E=0 and WA=0. Holdout mean log score delta versus astra-search4: +0.819650% +/- 0.089496% standard error, so this version is not adopted. See REPORT.md. Structural checks are not contest scores."
+}

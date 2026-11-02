@@ -1,0 +1,308 @@
+{
+  "run_prefix": "20261101-195822",
+  "seeds": [
+    1000,
+    1499
+  ],
+  "case_count": 500,
+  "comparisons": {
+    "astra-search4": {
+      "n": 500,
+      "mean_log_percent": 0.8196500367229842,
+      "standard_error_percent": 0.08949641373283859,
+      "wins": 159,
+      "ties": 0,
+      "losses": 341
+    },
+    "astra-earlytable": {
+      "n": 500,
+      "mean_log_percent": 1.2052816796721515,
+      "standard_error_percent": 0.09008608736918504,
+      "wins": 133,
+      "ties": 0,
+      "losses": 367
+    }
+  },
+  "solver": {
+    "astra-search4": {
+      "mean_score": 10922.634,
+      "mean_moves_per_query": 10.666634765625,
+      "E": 0,
+      "G": {
+        "n": 500,
+        "mean": 36.0,
+        "min": 36.0,
+        "max": 36.0
+      },
+      "generic_moves": {
+        "n": 500,
+        "mean": 1255.31,
+        "min": 1063.0,
+        "max": 1448.0
+      },
+      "total_moves": {
+        "n": 500,
+        "mean": 10922.634,
+        "min": 10458.0,
+        "max": 11650.0
+      },
+      "anneal_iters": {
+        "n": 500,
+        "mean": 12845431.808,
+        "min": 4937728.0,
+        "max": 16128512.0
+      },
+      "end_sec": {
+        "n": 500,
+        "mean": 1.80535686,
+        "min": 1.72606,
+        "max": 1.89956
+      },
+      "fast_requests": {
+        "n": 500,
+        "mean": 187.502,
+        "min": 0.0,
+        "max": 808.0
+      },
+      "plan_failures": {
+        "n": 500,
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "unsafe_plans": {
+        "n": 500,
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "G_counts": {
+        "36": 500
+      },
+      "max_real_seconds": 1.7963531000004878,
+      "wa_seeds": [],
+      "non_generic_moves": {
+        "n": 500,
+        "mean": 9667.324
+      }
+    },
+    "astra-earlytable": {
+      "mean_score": 10880.616,
+      "mean_moves_per_query": 10.6256015625,
+      "E": 0,
+      "G": {
+        "n": 500,
+        "mean": 36.0,
+        "min": 36.0,
+        "max": 36.0
+      },
+      "generic_moves": {
+        "n": 500,
+        "mean": 1249.784,
+        "min": 1088.0,
+        "max": 1406.0
+      },
+      "total_moves": {
+        "n": 500,
+        "mean": 10880.616,
+        "min": 10508.0,
+        "max": 11621.0
+      },
+      "anneal_iters": {
+        "n": 500,
+        "mean": 12479320.576,
+        "min": 5135616.0,
+        "max": 15837184.0
+      },
+      "end_sec": {
+        "n": 500,
+        "mean": 1.80043772,
+        "min": 1.69534,
+        "max": 1.87905
+      },
+      "fast_requests": {
+        "n": 500,
+        "mean": 143.658,
+        "min": 0.0,
+        "max": 751.0
+      },
+      "plan_failures": {
+        "n": 500,
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "unsafe_plans": {
+        "n": 500,
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "G_counts": {
+        "36": 500
+      },
+      "max_real_seconds": 1.753133350997814,
+      "wa_seeds": [],
+      "non_generic_moves": {
+        "n": 500,
+        "mean": 9630.832
+      }
+    },
+    "astra-privategate": {
+      "mean_score": 11012.656,
+      "mean_moves_per_query": 10.754546875,
+      "E": 0,
+      "G": {
+        "n": 500,
+        "mean": 36.0,
+        "min": 36.0,
+        "max": 36.0
+      },
+      "private_initial_matching_size": {
+        "n": 500,
+        "mean": 68.382,
+        "min": 62.0,
+        "max": 70.0
+      },
+      "private_initial_matching_cost": {
+        "n": 500,
+        "mean": 3.28142284,
+        "min": 2.86589,
+        "max": 3.49002
+      },
+      "private_initial_close_pairs": {
+        "n": 500,
+        "mean": 141.642,
+        "min": 108.0,
+        "max": 181.0
+      },
+      "private_initial_pair_breaks": {
+        "n": 500,
+        "mean": 18.256,
+        "min": 11.0,
+        "max": 30.0
+      },
+      "private_design_attempts": {
+        "n": 500,
+        "mean": 1.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "decoder_accepted": {
+        "n": 500,
+        "mean": 2.174,
+        "min": 0.0,
+        "max": 9.0
+      },
+      "decoder_nonlinear_windows": {
+        "n": 500,
+        "mean": 0.334,
+        "min": 0.0,
+        "max": 4.0
+      },
+      "decoder_initial_close_pairs": {
+        "n": 500,
+        "mean": 200.038,
+        "min": 156.0,
+        "max": 258.0
+      },
+      "decoder_final_close_pairs": {
+        "n": 500,
+        "mean": 142.192,
+        "min": 109.0,
+        "max": 184.0
+      },
+      "decoder_gained_close_pairs": {
+        "n": 500,
+        "mean": 13.838,
+        "min": 0.0,
+        "max": 59.0
+      },
+      "decoder_lost_close_pairs": {
+        "n": 500,
+        "mean": 71.684,
+        "min": 35.0,
+        "max": 136.0
+      },
+      "decoder_final_selected_gained": {
+        "n": 500,
+        "mean": 4.946,
+        "min": 0.0,
+        "max": 22.0
+      },
+      "generic_moves": {
+        "n": 500,
+        "mean": 1269.12,
+        "min": 1115.0,
+        "max": 1456.0
+      },
+      "total_moves": {
+        "n": 500,
+        "mean": 11012.656,
+        "min": 10570.0,
+        "max": 11813.0
+      },
+      "anneal_iters": {
+        "n": 500,
+        "mean": 10152529.408,
+        "min": 3310592.0,
+        "max": 13205504.0
+      },
+      "end_sec": {
+        "n": 500,
+        "mean": 1.79805122,
+        "min": 1.70424,
+        "max": 1.88537
+      },
+      "fast_requests": {
+        "n": 500,
+        "mean": 130.288,
+        "min": 0.0,
+        "max": 742.0
+      },
+      "plan_failures": {
+        "n": 500,
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "unsafe_plans": {
+        "n": 500,
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "decoder_proxy_before": {
+        "n": 500,
+        "valid_n": 194,
+        "sentinel_n": 306,
+        "valid_mean": 3.3701938144329895
+      },
+      "decoder_proxy_after": {
+        "n": 500,
+        "valid_n": 419,
+        "sentinel_n": 81,
+        "valid_mean": 3.381401121718377
+      },
+      "private_design_attempts_counts": {
+        "1": 500
+      },
+      "G_counts": {
+        "36": 500
+      },
+      "decoder_nonlinear_windows_counts": {
+        "0": 364,
+        "1": 108,
+        "2": 26,
+        "3": 1,
+        "4": 1
+      },
+      "max_real_seconds": 1.7749755529985123,
+      "wa_seeds": [],
+      "non_generic_moves": {
+        "n": 500,
+        "mean": 9743.536
+      }
+    }
+  }
+}
