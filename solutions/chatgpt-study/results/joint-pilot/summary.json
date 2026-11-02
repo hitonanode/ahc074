@@ -1,0 +1,303 @@
+{
+  "format": "ahc074-verified-comparison-v1",
+  "source_base_commit": "dee23c8fce0eba04e513478629402f20b843e9f0",
+  "method": "Scores and E/T replayed from verified PIPE archive bytes; pairwise joins require identical seed sets and input hashes; WAs excluded from ratios.",
+  "runs": [
+    {
+      "run_id": "20261101-162732_imp-combo",
+      "solution": "imp-combo",
+      "cases": 4,
+      "seeds": [
+        100000,
+        100001,
+        100002,
+        100003
+      ],
+      "WA": 0,
+      "mean_score": 10834.25,
+      "mean_E": 0,
+      "mean_T": 10834.25,
+      "mean_moves_per_query": 10.580322265625,
+      "mean_runtime_sec": 0.7976077102500767,
+      "max_runtime_sec": 0.8550047749999976,
+      "over_2_seconds": 0,
+      "source_base_commit": "dee23c8fce0eba04e513478629402f20b843e9f0",
+      "source_sha256": "ca7e5e94a44263cbe974b998eac43d996dffdc1c70b84134f014e12fda147c9e",
+      "source_snapshot": "runs/20261101-162732_imp-combo/src/main.cpp",
+      "source_manifest": {
+        "README.md": "4f89ce9d1785eb259aeaf2bf5c92936735fd4a412c5f7b00679d6798b4cc9154",
+        "main.cpp": "ca7e5e94a44263cbe974b998eac43d996dffdc1c70b84134f014e12fda147c9e"
+      },
+      "source_manifest_sha256": "ea98bb5707870b704db4ea7b6f9723076feffef4393c56639acaf785a5e2f83b",
+      "source_hash_validation": {
+        "compile_command_references_snapshot": true,
+        "stable_read_during_collection": true,
+        "previously_recorded_expected_hash": null
+      },
+      "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/668db10d3fff/ahc074/runs/20261101-162732_imp-combo/a.out",
+        "/workspace/scratch/668db10d3fff/ahc074/runs/20261101-162732_imp-combo/src/main.cpp"
+      ],
+      "evaluation_environment": {
+        "MAP_ITERS": "100000",
+        "GOPT_STEPS": "50000",
+        "ANNEAL_ITERS": "4000000",
+        "CLIMB_ITERS": "20000"
+      },
+      "capture_archive": {
+        "path": "runs/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "sha256": "86c1c755407036c4fbc2dbdc921b0f5082d59cb4401b60b2ecb35fd9fd8bb218",
+        "uncompressed_sha256": "0d125c0a8288937576f393c943d83f10f0ca073572e7ebbab961cba642e74a93",
+        "cases": 12,
+        "format": "ahc074-pipe-capture-v1"
+      },
+      "meta_integrity_verified": true,
+      "archive_hash_verified": true,
+      "visibility_replay_verified_cases": 4,
+      "materialized_transcripts_match": true,
+      "transcript_recoveries": [],
+      "comment": "[C++ tester port; original paired runner] PIPE verified fixed-design pilot; joint partial-demand distance with 0.10 scaled second value budget",
+      "compare_group": [
+        "20261101-162732_imp-combo",
+        "20261101-162732_chatgpt-free-lex",
+        "20261101-162732_chatgpt-free-joint"
+      ],
+      "evidence_archive": {
+        "original_archive": "runs/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "path": "solutions/chatgpt-study/evidence/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "sha256": "86c1c755407036c4fbc2dbdc921b0f5082d59cb4401b60b2ecb35fd9fd8bb218",
+        "bytes": 430730
+      }
+    },
+    {
+      "run_id": "20261101-162732_chatgpt-free-lex",
+      "solution": "chatgpt-free-lex",
+      "cases": 4,
+      "seeds": [
+        100000,
+        100001,
+        100002,
+        100003
+      ],
+      "WA": 0,
+      "mean_score": 12016.5,
+      "mean_E": 0,
+      "mean_T": 12016.5,
+      "mean_moves_per_query": 11.73486328125,
+      "mean_runtime_sec": 0.562358764749888,
+      "max_runtime_sec": 0.5953083559998049,
+      "over_2_seconds": 0,
+      "source_base_commit": "dee23c8fce0eba04e513478629402f20b843e9f0",
+      "source_sha256": "33252f482809256baf0c9e79d679b23d18237ec54fe5cce15f28a371f9b7c9cd",
+      "source_snapshot": "runs/20261101-162732_chatgpt-free-lex/src/main.cpp",
+      "source_manifest": {
+        "README.md": "44ece51a95d7e30c12184cb815bb271ff49f5b2367d372e9a81b71139b02ea5d",
+        "main.cpp": "33252f482809256baf0c9e79d679b23d18237ec54fe5cce15f28a371f9b7c9cd"
+      },
+      "source_manifest_sha256": "ad3055c2145fa2045794e47bfa1e9cbe424bf9a05d34b7b8546f3235ae67cb3b",
+      "source_hash_validation": {
+        "compile_command_references_snapshot": true,
+        "stable_read_during_collection": true,
+        "previously_recorded_expected_hash": null
+      },
+      "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/668db10d3fff/ahc074/runs/20261101-162732_chatgpt-free-lex/a.out",
+        "/workspace/scratch/668db10d3fff/ahc074/runs/20261101-162732_chatgpt-free-lex/src/main.cpp"
+      ],
+      "evaluation_environment": {
+        "MAP_ITERS": "100000",
+        "GOPT_STEPS": "50000",
+        "ANNEAL_ITERS": "4000000",
+        "CLIMB_ITERS": "20000"
+      },
+      "capture_archive": {
+        "path": "runs/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "sha256": "86c1c755407036c4fbc2dbdc921b0f5082d59cb4401b60b2ecb35fd9fd8bb218",
+        "uncompressed_sha256": "0d125c0a8288937576f393c943d83f10f0ca073572e7ebbab961cba642e74a93",
+        "cases": 12,
+        "format": "ahc074-pipe-capture-v1"
+      },
+      "meta_integrity_verified": true,
+      "archive_hash_verified": true,
+      "visibility_replay_verified_cases": 4,
+      "materialized_transcripts_match": true,
+      "transcript_recoveries": [],
+      "comment": "[C++ tester port; original paired runner] PIPE verified fixed-design pilot; joint partial-demand distance with 0.10 scaled second value budget",
+      "compare_group": [
+        "20261101-162732_imp-combo",
+        "20261101-162732_chatgpt-free-lex",
+        "20261101-162732_chatgpt-free-joint"
+      ],
+      "evidence_archive": {
+        "original_archive": "runs/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "path": "solutions/chatgpt-study/evidence/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "sha256": "86c1c755407036c4fbc2dbdc921b0f5082d59cb4401b60b2ecb35fd9fd8bb218",
+        "bytes": 430730
+      }
+    },
+    {
+      "run_id": "20261101-162732_chatgpt-free-joint",
+      "solution": "chatgpt-free-joint",
+      "cases": 4,
+      "seeds": [
+        100000,
+        100001,
+        100002,
+        100003
+      ],
+      "WA": 0,
+      "mean_score": 12205.25,
+      "mean_E": 0,
+      "mean_T": 12205.25,
+      "mean_moves_per_query": 11.919189453125,
+      "mean_runtime_sec": 0.5850881320002372,
+      "max_runtime_sec": 0.6244328470002074,
+      "over_2_seconds": 0,
+      "source_base_commit": "dee23c8fce0eba04e513478629402f20b843e9f0",
+      "source_sha256": "cc41752a6a1701ef60b1b5ca02730d4853cf1c0098d27d86c7f4452a0d3928fc",
+      "source_snapshot": "runs/20261101-162732_chatgpt-free-joint/src/main.cpp",
+      "source_manifest": {
+        "README.md": "7038f2970981b2c8c7e5b8687edd83b2f9ed274b4992b145d2e668bda83da270",
+        "main.cpp": "cc41752a6a1701ef60b1b5ca02730d4853cf1c0098d27d86c7f4452a0d3928fc"
+      },
+      "source_manifest_sha256": "3159a9f900239f0c8bbf591607bdec5362f96bed9f3250d61b2fdffc51ac7239",
+      "source_hash_validation": {
+        "compile_command_references_snapshot": true,
+        "stable_read_during_collection": true,
+        "previously_recorded_expected_hash": null
+      },
+      "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/668db10d3fff/ahc074/runs/20261101-162732_chatgpt-free-joint/a.out",
+        "/workspace/scratch/668db10d3fff/ahc074/runs/20261101-162732_chatgpt-free-joint/src/main.cpp"
+      ],
+      "evaluation_environment": {
+        "MAP_ITERS": "100000",
+        "GOPT_STEPS": "50000",
+        "ANNEAL_ITERS": "4000000",
+        "CLIMB_ITERS": "20000"
+      },
+      "capture_archive": {
+        "path": "runs/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "sha256": "86c1c755407036c4fbc2dbdc921b0f5082d59cb4401b60b2ecb35fd9fd8bb218",
+        "uncompressed_sha256": "0d125c0a8288937576f393c943d83f10f0ca073572e7ebbab961cba642e74a93",
+        "cases": 12,
+        "format": "ahc074-pipe-capture-v1"
+      },
+      "meta_integrity_verified": true,
+      "archive_hash_verified": true,
+      "visibility_replay_verified_cases": 4,
+      "materialized_transcripts_match": true,
+      "transcript_recoveries": [],
+      "comment": "[C++ tester port; original paired runner] PIPE verified fixed-design pilot; joint partial-demand distance with 0.10 scaled second value budget",
+      "compare_group": [
+        "20261101-162732_imp-combo",
+        "20261101-162732_chatgpt-free-lex",
+        "20261101-162732_chatgpt-free-joint"
+      ],
+      "evidence_archive": {
+        "original_archive": "runs/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "path": "solutions/chatgpt-study/evidence/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+        "sha256": "86c1c755407036c4fbc2dbdc921b0f5082d59cb4401b60b2ecb35fd9fd8bb218",
+        "bytes": 430730
+      }
+    }
+  ],
+  "pairwise": [
+    {
+      "a": "20261101-162732_imp-combo",
+      "b": "20261101-162732_chatgpt-free-lex",
+      "definition": "log(score_b / score_a); negative favors b; W/D/L are b versus a",
+      "status": "compared",
+      "matched_cases": 4,
+      "valid_pairs": 4,
+      "excluded_seeds_with_WA": [],
+      "mean_log_ratio_b_over_a": 0.10356147796488196,
+      "standard_error": 0.0027871925874152275,
+      "mean_log_ratio_percent": 10.356147796488196,
+      "standard_error_percent": 0.27871925874152276,
+      "geometric_score_change_percent": 10.911397733928933,
+      "wins_b": 0,
+      "draws": 0,
+      "losses_b": 4,
+      "b_better_by_two_standard_errors": false,
+      "identical_paper_design_cases": 4,
+      "evaluation_environment_identical": true,
+      "same_paired_group": true
+    },
+    {
+      "a": "20261101-162732_imp-combo",
+      "b": "20261101-162732_chatgpt-free-joint",
+      "definition": "log(score_b / score_a); negative favors b; W/D/L are b versus a",
+      "status": "compared",
+      "matched_cases": 4,
+      "valid_pairs": 4,
+      "excluded_seeds_with_WA": [],
+      "mean_log_ratio_b_over_a": 0.1191239194111275,
+      "standard_error": 0.0030402289185206496,
+      "mean_log_ratio_percent": 11.91239194111275,
+      "standard_error_percent": 0.30402289185206494,
+      "geometric_score_change_percent": 12.650950603397593,
+      "wins_b": 0,
+      "draws": 0,
+      "losses_b": 4,
+      "b_better_by_two_standard_errors": false,
+      "identical_paper_design_cases": 4,
+      "evaluation_environment_identical": true,
+      "same_paired_group": true
+    },
+    {
+      "a": "20261101-162732_chatgpt-free-lex",
+      "b": "20261101-162732_chatgpt-free-joint",
+      "definition": "log(score_b / score_a); negative favors b; W/D/L are b versus a",
+      "status": "compared",
+      "matched_cases": 4,
+      "valid_pairs": 4,
+      "excluded_seeds_with_WA": [],
+      "mean_log_ratio_b_over_a": 0.015562441446245492,
+      "standard_error": 0.001831289874909286,
+      "mean_log_ratio_percent": 1.5562441446245492,
+      "standard_error_percent": 0.1831289874909286,
+      "geometric_score_change_percent": 1.5684166866616884,
+      "wins_b": 0,
+      "draws": 0,
+      "losses_b": 4,
+      "b_better_by_two_standard_errors": false,
+      "identical_paper_design_cases": 4,
+      "evaluation_environment_identical": true,
+      "same_paired_group": true
+    }
+  ],
+  "delivery_evidence": [
+    {
+      "original_archive": "runs/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+      "path": "solutions/chatgpt-study/evidence/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+      "sha256": "86c1c755407036c4fbc2dbdc921b0f5082d59cb4401b60b2ecb35fd9fd8bb218",
+      "bytes": 430730
+    }
+  ],
+  "verified_archive_files": [
+    {
+      "path": "runs/transcript-capture-20261101-162732-af5c9e8c86.json.gz",
+      "sha256": "86c1c755407036c4fbc2dbdc921b0f5082d59cb4401b60b2ecb35fd9fd8bb218",
+      "bytes": 430730
+    }
+  ]
+}
