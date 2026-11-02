@@ -1,0 +1,114 @@
+--- as6-imb0gb/main.cpp
+
++++ astra-gproxy/main.cpp
+
+@@ -1,3 +1,8 @@
+
++// astra-gproxy: as6-imb0gb with an assignment objective predicting the final design cost.
++// Keep the pair-selection keys, and subtract 0.001 * mean((black_count - 128)^2)
++// over the 25 handles and 0.07 * stddev(conflicting_pair_count) over those handles.
++// Counts use only public target patterns and the greedy selected 71 pairs; request handling,
++// design annealing, the clocks and all random seeds are unchanged (README.md).
+ // imp-gla: solutions/imp-910 with the generic look-ahead (Solver::init_lookahead, set_generic; README).
+ // imp-seg: solutions/imp-s2hd with the design annealing in 4 segments restarted from the best state (README).
+ // astra-search4: solutions/imp-combo with a stricter screen and faster stall escapes in assign_windows (README).
+@@ -847,6 +852,22 @@
+
+     int nvalid = 0;
+     std::vector<int> full144(np);       // 144 differences of each pair
+     for (int p = 0; p < np; p++) full144[p] = 144 * __builtin_popcountll(pairs.diff[p]);
++    constexpr double proxy_bias = 0.001;
++    constexpr double proxy_sd = 0.07;
++    // Sum of squared global color imbalances for the handle mask, in eight table lookups.
++    // This is independent of matching and can be precomputed once from the public barcodes.
++    std::array<std::array<double,256>,8> bias_table{};
++    for (int b=0; b<8; ++b) {
++        std::array<double,8> weights{};
++        for (int l=0; l<8; ++l) {
++            int ones=0;
++            for (u64 a:A) ones+=(a>>(8*b+l))&1;
++            weights[l]=double((ones-128)*(ones-128))/(63-g);
++        }
++        for (int v=1; v<256; ++v)
++            bias_table[b][v]=bias_table[b][v&(v-1)]+weights[__builtin_ctz(v)];
++    }
++
+     // Only `valid[0..nvalid)` is traversed here. A nonzero rel stores the original rel + 1.
+     struct KeyPair {
+         uint32_t key;
+@@ -895,7 +916,63 @@
+
+             total += sorted[i].key;
+             if (++matched == need) break;
+         }
+-        return double(total) / (need * 3600) + (need - matched) * 10.0;
++        double bonus=0;
++        if (proxy_bias) {
++            double b2=0;
++            for (int b=0; b<8; ++b) b2+=bias_table[b][(handle_mask>>(8*b))&255];
++            bonus+=proxy_bias*b2;
++        }
++        if (proxy_sd) {
++            // Bit-sliced counters: bit j of count[k] is bit k of the number of selected
++            // pairs differing at window j. Seven lanes suffice for at most 71 pairs.
++
++            u64 count[7]{};
++            // Add eight masks at a time with carry-save addition. Each bit position is an
++            // independent counter; the carry masks are shifted in significance, never in
++            // physical bit position. This produces exactly the same seven binary planes.
++            auto csa = [](u64& high, u64& low, u64 a, u64 b, u64 c) {
++                const u64 x=a^b;
++                high=(a&b)|(x&c);
++                low=x^c;
++            };
++            const int count_n=int(candidate_selected.size());
++            int at=0;
++            for (; at+8<=count_n; at+=8) {
++                u64 twos_a,twos_b,fours_a,fours_b,eights;
++                csa(twos_a,count[0],count[0],pairs.diff[candidate_selected[at]],pairs.diff[candidate_selected[at+1]]);
++                csa(twos_b,count[0],count[0],pairs.diff[candidate_selected[at+2]],pairs.diff[candidate_selected[at+3]]);
++                csa(fours_a,count[1],count[1],twos_a,twos_b);
++                csa(twos_a,count[0],count[0],pairs.diff[candidate_selected[at+4]],pairs.diff[candidate_selected[at+5]]);
++                csa(twos_b,count[0],count[0],pairs.diff[candidate_selected[at+6]],pairs.diff[candidate_selected[at+7]]);
++                csa(fours_b,count[1],count[1],twos_a,twos_b);
++                csa(eights,count[2],count[2],fours_a,fours_b);
++                for (int b=3; b<7; ++b) {
++                    const u64 next=count[b]&eights;
++                    count[b]^=eights;
++                    eights=next;
++                }
++            }
++            for (; at<count_n; ++at) {
++                u64 carry=pairs.diff[candidate_selected[at]];
++                for (int b=0; b<7; ++b) {
++                    const u64 next=count[b]&carry;
++                    count[b]^=carry;
++                    carry=next;
++                }
++            }
++            for (u64& plane:count) plane&=handle_mask;
++            int sum=0, sq=0;
++            for (int b=0; b<7; ++b) {
++                int nbit=__builtin_popcountll(count[b]);
++                sum+=nbit<<b;
++                sq+=nbit<<(2*b);
++                for (int c=0; c<b; ++c)
++                    sq+=__builtin_popcountll(count[b]&count[c])<<(1+b+c);
++            }
++            const double mean=double(sum)/(63-g);
++            bonus+=proxy_sd*std::sqrt(std::max(0.0,double(sq)/(63-g)-mean*mean));
++        }
++        return double(total) / (need * 3600) + (need - matched) * 10.0 - bonus;
+     };
+     // A move: its windows and sheet pairs; propose changes mask / pol and evaluates the move on all
+     // the pairs (ndir, nrel, valid); apply_move keeps it, undo_move restores mask / pol.
+@@ -4408,7 +4485,7 @@
+
+             auto ws = assign_windows(A, M, G, comp.edge, comp.polarity, permutation, seconds, map_iters, gsteps, gsec);
+             map_total += ws.iterations;
+             if (!attempt)
+-                std::cerr << "gobj_before = " << ws.gobj_before << "\ngobj_after = " << ws.gobj_after
++                std::cerr << "gproxy_before = " << ws.gobj_before << "\ngproxy_after = " << ws.gobj_after
+                           << "\ngopt_steps = " << ws.climb_steps << '\n';
+         }
+         comp.rebuild();
