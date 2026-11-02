@@ -21,9 +21,16 @@ for seed in range(lo, hi):
     out = replay.parse_output(inp, replay.out_path(run, seed).read_text())
     game = replay.Game(inp, out.designs)
     generic = set(game.order[:6])
+    # sheets opaque on at most 2 windows (the cap of as6-cap38) count with the generic sheets
+    generic |= {k for k, p in enumerate(out.designs) if bin(p.opaque).count('1') <= 2}
     gmask = 0
     for k in generic: gmask |= out.designs[k].opaque
     hmask = inp.full & ~gmask if hasattr(inp, "full") else ((1 << 64) - 1) & ~gmask
+    # a window where every dedicated paper is opaque (the cap window of as6-cap38) is not a handle
+    alld = inp.full
+    for k in range(len(out.designs)):
+        if k not in generic and bin(out.designs[k].opaque).count("1") > 6: alld &= out.designs[k].opaque
+    hmask &= ~alld
     # Handle order: scanning the dedicated papers in the initial order (columns 0, 1, ...), h_j is
     # the j-th handle window to become opaque. The column of a paper is its deepest opaque handle
     # (a pair paper can also have holes on shallower handles, so counting opaque handles is wrong).
@@ -44,9 +51,11 @@ for seed in range(lo, hi):
     prev_top = None
     for r, ops in enumerate(out.queries):
         reqs += 1
-        D = None
-        for k, d in ops:
-            if k not in generic and d == 0: D = k
+        # D: the dedicated paper on top after the request (just below the cap when the cap is on top)
+        g2 = replay.Game(inp, out.designs); g2.order = list(game.order)
+        for k, d in ops: g2.move(k, d, check=False)
+        D = next(k for k in g2.order if k not in generic)
+        if not any(k == D for k, d in ops): D = None
         tot["no_target_move"] += D is None
         if D is not None:
             H = bin(hmask).count("1")
@@ -56,8 +65,8 @@ for seed in range(lo, hi):
         seen_D = False
         for k, d in ops:
             if k in generic: tot["generic"] += 1
-            elif d <= 6:
-                tot["to_top" if d == 0 else "below_generic"] += 1
+            elif k == D or d <= 6:
+                tot["to_top" if k == D else "below_generic"] += 1
                 if k == D: seen_D = True
             elif k == prev_top: tot["deep:prev_top_back"] += 1
             elif D is not None and not seen_D and col[k] == col[D]: tot["deep:dig_D_column"] += 1
