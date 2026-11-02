@@ -1,0 +1,68 @@
+{
+  "adopted_at_utc": "2026-11-02T05:09:06.117435+00:00",
+  "candidates": {
+    "main": {
+      "source": "crossweight8",
+      "source_sha256": "2796f3f9df832a0df0330ce6e8e3da3cb41b3a1186f2290c6d4489b47933e114",
+      "rate": 8,
+      "weighted": true,
+      "selection": {
+        "labels": [
+          "crossweight8-normal",
+          "select-weight8"
+        ],
+        "n": 64,
+        "replicates": 2,
+        "log_pct": -0.38620717809083405,
+        "se_pct": 0.06247063545288967,
+        "win": 49,
+        "tie": 0,
+        "loss": 15,
+        "end_max": 1.67277
+      }
+    },
+    "cand2": {
+      "source": "crossweight",
+      "source_sha256": "15c8185dcf1d8d2d9d13754e8dc4404fc5d182d1538e2b7728c448e2e3e9e82b",
+      "rate": 16,
+      "weighted": true,
+      "selection": {
+        "labels": [
+          "crossweight-normal",
+          "select-weight16"
+        ],
+        "n": 64,
+        "replicates": 2,
+        "log_pct": -0.3785381804130184,
+        "se_pct": 0.07277934093022173,
+        "win": 47,
+        "tie": 0,
+        "loss": 17,
+        "end_max": 1.66889
+      }
+    },
+    "cand3": {
+      "source": "cross16",
+      "source_sha256": "85e1247c03d764700175baeccdd4d548d92b935b5823020c0feee3e55e305e5e",
+      "rate": 16,
+      "weighted": false,
+      "selection": {
+        "labels": [
+          "cross16-normal",
+          "cross16-repeat",
+          "select16"
+        ],
+        "n": 64,
+        "replicates": 3,
+        "log_pct": -0.3765125964626159,
+        "se_pct": 0.06456692636943162,
+        "win": 51,
+        "tie": 0,
+        "loss": 13,
+        "end_max": 1.67208
+      }
+    }
+  },
+  "holdout_seeds": "300-364",
+  "note": "選定64seedの同一版の反復はseedごとに平均。順位はその推定値順で、候補間の有意な順位差はない。別64seedはこの決定後に初めて測る。"
+}
