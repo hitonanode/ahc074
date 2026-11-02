@@ -768,8 +768,9 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
     const auto start = std::chrono::steady_clock::now();
     const PosetSums& sums = PosetSums::get();
     WindowRelations relations(sums);
-    XorShift rng{0x71eb2566be932e31ULL};
-    const int n = int(A.size()), need = 256 - (192 - m);
+    XorShift rng{0x71eb2566be932e31ULL ^ (u64(env_int("MAPSEED")) * 0x9e3779b97f4a7c15ULL)};  // map-depth: MAPSEED
+    // map-depth: NEEDX more pairs in the matching of the objective (a deeper pool for the annealing)
+    const int n = int(A.size()), need = 256 - (192 - m) + env_int("NEEDX");
     std::vector<std::pair<int, int>> ep;  // the pairs of sheets
     int index[8][8];
     std::memset(index, -1, sizeof(index));
@@ -4239,7 +4240,7 @@ int main() {
     std::vector<int> permutation(64);  // original window of each internal window
     int M = 6, G = 36;
     Comparator comp;
-    std::mt19937_64 rng(779879);
+    std::mt19937_64 rng(779879 + env_int("MAPSEED"));  // map-depth: MAPSEED
     std::unique_ptr<Design> des;
     int map_total = 0;
     // A design may fail (no matching of compatible pairs, or no column with both colors): retry with
