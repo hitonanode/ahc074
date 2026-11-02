@@ -1,0 +1,28 @@
+{
+  "binary": "six-control",
+  "binary_sha256": "f937eb72a0e1a06ee633c63b6f05282681cef73ee16dc13ad97bb0687e3f76f3",
+  "fixed": {
+    "MAP_ITERS": "400000",
+    "GOPT_STEPS": "100000",
+    "ANNEAL_ITERS": "20000000",
+    "CLIMB_ITERS": "60000",
+    "MODEL_ONLY": "1",
+    "DUMP_DESIGN": "0",
+    "SIM_SEQS": "0"
+  },
+  "extra": {},
+  "seeds": [
+    24,
+    88
+  ],
+  "sim_sequences": 0,
+  "tester": false,
+  "source": "solutions/astra-decoder/six-control.cpp",
+  "source_sha256": "61966ea9723be6cf1327a4ec3f842d6be94692e92cb25a0fb6a8b8a601ab3baa",
+  "compile_flags": [
+    "-std=c++23",
+    "-O2",
+    "-DCLOCK_SCALE=1.1",
+    "-DSIM_HARNESS"
+  ]
+}

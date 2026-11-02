@@ -1,0 +1,32 @@
+{
+  "binary": "forced",
+  "binary_sha256": "17bced66e873da6f63cf2f96b3908c4bc68fbafbd298b97f5d7fe64253176c69",
+  "fixed": {
+    "MAP_ITERS": "400000",
+    "GOPT_STEPS": "100000",
+    "ANNEAL_ITERS": "20000000",
+    "CLIMB_ITERS": "60000",
+    "MODEL_ONLY": "0",
+    "DUMP_DESIGN": "0",
+    "SIM_SEQS": "4"
+  },
+  "extra": {
+    "GATE_TRIALS": "128",
+    "GATE_WITNESSES": "12",
+    "GATE_GROUP": "8"
+  },
+  "seeds": [
+    24,
+    40
+  ],
+  "sim_sequences": 4,
+  "tester": false,
+  "source": "solutions/astra-decoder/forced.cpp",
+  "source_sha256": "bd60bb1d26432c4c087a323a0e2825a73848a50211209052db8950d45f128cd2",
+  "compile_flags": [
+    "-std=c++23",
+    "-O2",
+    "-DCLOCK_SCALE=1.1",
+    "-DSIM_HARNESS"
+  ]
+}
