@@ -1,0 +1,610 @@
+{
+  "config": {
+    "label": "cached-fixed",
+    "base": "base",
+    "candidate": "cached-bin",
+    "sim": false,
+    "seeds": "24-32",
+    "fixed": 200000,
+    "pairs": 4,
+    "direct": false
+  },
+  "variants": {
+    "base": {
+      "climb_forced_steps": {
+        "mean": 73.875,
+        "min": 69.0,
+        "max": 79.0
+      },
+      "search_accept": {
+        "mean": 2895.25,
+        "min": 2463.0,
+        "max": 3304.0
+      },
+      "search_rejected": {
+        "mean": 75205.125,
+        "min": 74714.0,
+        "max": 75610.0
+      },
+      "search_screen_checks": {
+        "mean": 978628.25,
+        "min": 956930.0,
+        "max": 990608.0
+      },
+      "search_memo_hits": {
+        "mean": 508.625,
+        "min": 449.0,
+        "max": 586.0
+      },
+      "search_exact_evals": {
+        "mean": 32831.25,
+        "min": 29933.0,
+        "max": 39127.0
+      },
+      "search_screen_hits": {
+        "mean": 9426.25,
+        "min": 9155.0,
+        "max": 9735.0
+      },
+      "forced_steps": {
+        "mean": 344.75,
+        "min": 314.0,
+        "max": 365.0
+      },
+      "tabu_skips": {
+        "mean": 1292.125,
+        "min": 1158.0,
+        "max": 1392.0
+      },
+      "direct_steps": {
+        "mean": 418.0,
+        "min": 390.0,
+        "max": 444.0
+      },
+      "transfer_rows": {
+        "mean": 14590.75,
+        "min": 14361.0,
+        "max": 14818.0
+      },
+      "transfer_samples": {
+        "mean": 7547.5,
+        "min": 6965.0,
+        "max": 8288.0
+      },
+      "screen_color_pairs": {
+        "mean": 28050.75,
+        "min": 24588.0,
+        "max": 31644.0
+      },
+      "screen_refreshes": {
+        "mean": 2820.125,
+        "min": 2412.0,
+        "max": 3204.0
+      },
+      "transfer_empty": {
+        "mean": 7637.25,
+        "min": 7179.0,
+        "max": 7965.0
+      },
+      "transfer_single": {
+        "mean": 4060.0,
+        "min": 3835.0,
+        "max": 4250.0
+      },
+      "transfer_many": {
+        "mean": 2893.5,
+        "min": 2513.0,
+        "max": 3321.0
+      },
+      "window_rows": {
+        "mean": 53539.125,
+        "min": 51488.0,
+        "max": 55752.0
+      },
+      "window_samples": {
+        "mean": 23131.875,
+        "min": 20216.0,
+        "max": 28491.0
+      },
+      "gobj_before": {
+        "mean": 10.1465875,
+        "min": 10.0344,
+        "max": 10.2354
+      },
+      "gobj_after": {
+        "mean": 10.1131525,
+        "min": 9.93901,
+        "max": 10.214
+      },
+      "gopt_steps": {
+        "mean": 50000.0,
+        "min": 50000.0,
+        "max": 50000.0
+      },
+      "map_iters": {
+        "mean": 200000.0,
+        "min": 200000.0,
+        "max": 200000.0
+      },
+      "map_end_sec": {
+        "mean": 0.250689,
+        "min": 0.23045,
+        "max": 0.278677
+      },
+      "anneal_iters": {
+        "mean": 1024.0,
+        "min": 1024.0,
+        "max": 1024.0
+      },
+      "anneal_end_sec": {
+        "mean": 0.250841,
+        "min": 0.230568,
+        "max": 0.278852
+      },
+      "colswap_tried": {
+        "mean": 20.125,
+        "min": 17.0,
+        "max": 23.0
+      },
+      "colswap_accepted": {
+        "mean": 7.25,
+        "min": 2.0,
+        "max": 11.0
+      },
+      "replace_tried": {
+        "mean": 13.25,
+        "min": 6.0,
+        "max": 20.0
+      },
+      "replace_accepted": {
+        "mean": 2.375,
+        "min": 0.0,
+        "max": 6.0
+      },
+      "climb_iters": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "climb_accepted": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "proxy_before": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "proxy_after": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "climb_end_sec": {
+        "mean": 0.25084850000000003,
+        "min": 0.230574,
+        "max": 0.27886
+      },
+      "helper_end_sec": {
+        "mean": 0.274384625,
+        "min": 0.252561,
+        "max": 0.302644
+      },
+      "self_wrong": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "generic_moves": {
+        "mean": 1296.0,
+        "min": 1269.0,
+        "max": 1324.0
+      },
+      "total_moves": {
+        "mean": 11356.875,
+        "min": 11235.0,
+        "max": 11438.0
+      },
+      "G": {
+        "mean": 38.0,
+        "min": 38.0,
+        "max": 38.0
+      },
+      "plan_failures": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "fast_requests": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "post_saved": {
+        "mean": 87.75,
+        "min": 75.0,
+        "max": 99.0
+      },
+      "helper_papers": {
+        "mean": 2721.125,
+        "min": 2485.0,
+        "max": 3048.0
+      },
+      "interleave_trials": {
+        "mean": 1247.375,
+        "min": 1157.0,
+        "max": 1414.0
+      },
+      "interleave_selected": {
+        "mean": 59.25,
+        "min": 45.0,
+        "max": 70.0
+      },
+      "tail_hits": {
+        "mean": 2234.625,
+        "min": 2197.0,
+        "max": 2295.0
+      },
+      "chain_trials": {
+        "mean": 57.0,
+        "min": 45.0,
+        "max": 72.0
+      },
+      "chain_selected": {
+        "mean": 39.375,
+        "min": 28.0,
+        "max": 54.0
+      },
+      "chain_papers": {
+        "mean": 91.375,
+        "min": 61.0,
+        "max": 128.0
+      },
+      "unsafe_plans": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "req_sec": {
+        "mean": 0.237145375,
+        "min": 0.227051,
+        "max": 0.250512
+      },
+      "end_sec": {
+        "mean": 0.570267125,
+        "min": 0.537648,
+        "max": 0.592442
+      },
+      "Score": {
+        "mean": 11356.875,
+        "min": 11235.0,
+        "max": 11438.0
+      }
+    },
+    "cached-bin": {
+      "climb_forced_steps": {
+        "mean": 73.875,
+        "min": 69.0,
+        "max": 79.0
+      },
+      "search_accept": {
+        "mean": 2895.25,
+        "min": 2463.0,
+        "max": 3304.0
+      },
+      "search_rejected": {
+        "mean": 75205.125,
+        "min": 74714.0,
+        "max": 75610.0
+      },
+      "search_screen_checks": {
+        "mean": 978628.25,
+        "min": 956930.0,
+        "max": 990608.0
+      },
+      "search_memo_hits": {
+        "mean": 508.625,
+        "min": 449.0,
+        "max": 586.0
+      },
+      "search_exact_evals": {
+        "mean": 32831.25,
+        "min": 29933.0,
+        "max": 39127.0
+      },
+      "search_screen_hits": {
+        "mean": 9426.25,
+        "min": 9155.0,
+        "max": 9735.0
+      },
+      "forced_steps": {
+        "mean": 344.75,
+        "min": 314.0,
+        "max": 365.0
+      },
+      "tabu_skips": {
+        "mean": 1292.125,
+        "min": 1158.0,
+        "max": 1392.0
+      },
+      "direct_steps": {
+        "mean": 418.0,
+        "min": 390.0,
+        "max": 444.0
+      },
+      "transfer_rows": {
+        "mean": 14590.75,
+        "min": 14361.0,
+        "max": 14818.0
+      },
+      "transfer_samples": {
+        "mean": 7547.5,
+        "min": 6965.0,
+        "max": 8288.0
+      },
+      "screen_color_pairs": {
+        "mean": 28050.75,
+        "min": 24588.0,
+        "max": 31644.0
+      },
+      "screen_refreshes": {
+        "mean": 2820.125,
+        "min": 2412.0,
+        "max": 3204.0
+      },
+      "transfer_empty": {
+        "mean": 7637.25,
+        "min": 7179.0,
+        "max": 7965.0
+      },
+      "transfer_single": {
+        "mean": 4060.0,
+        "min": 3835.0,
+        "max": 4250.0
+      },
+      "transfer_many": {
+        "mean": 2893.5,
+        "min": 2513.0,
+        "max": 3321.0
+      },
+      "window_rows": {
+        "mean": 53539.125,
+        "min": 51488.0,
+        "max": 55752.0
+      },
+      "window_samples": {
+        "mean": 23131.875,
+        "min": 20216.0,
+        "max": 28491.0
+      },
+      "gobj_before": {
+        "mean": 10.1465875,
+        "min": 10.0344,
+        "max": 10.2354
+      },
+      "gobj_after": {
+        "mean": 10.1131525,
+        "min": 9.93901,
+        "max": 10.214
+      },
+      "gopt_steps": {
+        "mean": 50000.0,
+        "min": 50000.0,
+        "max": 50000.0
+      },
+      "map_iters": {
+        "mean": 200000.0,
+        "min": 200000.0,
+        "max": 200000.0
+      },
+      "map_end_sec": {
+        "mean": 0.26809475,
+        "min": 0.242033,
+        "max": 0.310928
+      },
+      "anneal_iters": {
+        "mean": 1024.0,
+        "min": 1024.0,
+        "max": 1024.0
+      },
+      "anneal_end_sec": {
+        "mean": 0.268256625,
+        "min": 0.242211,
+        "max": 0.311103
+      },
+      "colswap_tried": {
+        "mean": 20.125,
+        "min": 17.0,
+        "max": 23.0
+      },
+      "colswap_accepted": {
+        "mean": 7.25,
+        "min": 2.0,
+        "max": 11.0
+      },
+      "replace_tried": {
+        "mean": 13.25,
+        "min": 6.0,
+        "max": 20.0
+      },
+      "replace_accepted": {
+        "mean": 2.375,
+        "min": 0.0,
+        "max": 6.0
+      },
+      "climb_iters": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "climb_accepted": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "proxy_before": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "proxy_after": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "climb_end_sec": {
+        "mean": 0.26826425,
+        "min": 0.242219,
+        "max": 0.311111
+      },
+      "helper_end_sec": {
+        "mean": 0.29189025,
+        "min": 0.267268,
+        "max": 0.335282
+      },
+      "self_wrong": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "generic_moves": {
+        "mean": 1296.0,
+        "min": 1269.0,
+        "max": 1324.0
+      },
+      "total_moves": {
+        "mean": 11356.875,
+        "min": 11235.0,
+        "max": 11438.0
+      },
+      "G": {
+        "mean": 38.0,
+        "min": 38.0,
+        "max": 38.0
+      },
+      "plan_failures": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "fast_requests": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "post_saved": {
+        "mean": 87.75,
+        "min": 75.0,
+        "max": 99.0
+      },
+      "helper_papers": {
+        "mean": 2721.125,
+        "min": 2485.0,
+        "max": 3048.0
+      },
+      "interleave_trials": {
+        "mean": 1247.375,
+        "min": 1157.0,
+        "max": 1414.0
+      },
+      "interleave_selected": {
+        "mean": 59.25,
+        "min": 45.0,
+        "max": 70.0
+      },
+      "tail_hits": {
+        "mean": 2234.625,
+        "min": 2197.0,
+        "max": 2295.0
+      },
+      "chain_trials": {
+        "mean": 57.0,
+        "min": 45.0,
+        "max": 72.0
+      },
+      "chain_selected": {
+        "mean": 39.375,
+        "min": 28.0,
+        "max": 54.0
+      },
+      "chain_papers": {
+        "mean": 91.375,
+        "min": 61.0,
+        "max": 128.0
+      },
+      "unsafe_plans": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "req_sec": {
+        "mean": 0.231554125,
+        "min": 0.220493,
+        "max": 0.240273
+      },
+      "end_sec": {
+        "mean": 0.5817749999999999,
+        "min": 0.553017,
+        "max": 0.616664
+      },
+      "Score": {
+        "mean": 11356.875,
+        "min": 11235.0,
+        "max": 11438.0
+      },
+      "forbidden_partial": {
+        "mean": 46135.625,
+        "min": 44869.0,
+        "max": 47357.0
+      },
+      "forbidden_repaired": {
+        "mean": 1567249.875,
+        "min": 1483162.0,
+        "max": 1689497.0
+      }
+    }
+  },
+  "compare": {
+    "gobj_after": {
+      "n": 8,
+      "log_pct": 0.0,
+      "se_pct": 0.0,
+      "win": 0,
+      "tie": 8,
+      "loss": 0
+    },
+    "total_moves": {
+      "n": 8,
+      "log_pct": 0.0,
+      "se_pct": 0.0,
+      "win": 0,
+      "tie": 8,
+      "loss": 0
+    },
+    "map_iters": {
+      "n": 8,
+      "log_pct": 0.0,
+      "se_pct": 0.0,
+      "win": 0,
+      "tie": 8,
+      "loss": 0
+    },
+    "gopt_steps": {
+      "n": 8,
+      "log_pct": 0.0,
+      "se_pct": 0.0,
+      "win": 0,
+      "tie": 8,
+      "loss": 0
+    },
+    "search_exact_evals": {
+      "n": 8,
+      "log_pct": 0.0,
+      "se_pct": 0.0,
+      "win": 0,
+      "tie": 8,
+      "loss": 0
+    }
+  }
+}
