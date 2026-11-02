@@ -441,3 +441,17 @@ Time                      | Cases | Total Score      | Avg. Score       | Total 
 2026-11-02T17:54:09+09:00 | 2,000 |       21,278,450 |         10639.23 |  8,053.78922 |     4.02689 | 20261102-175341_as6-cap38p0 cap 方向: p0（紙 0 にキャップ）、Astra の窓探索+修復 2 候補
 2026-11-02T17:54:09+09:00 | 2,000 |       21,278,509 |         10639.25 |  8,053.79046 |     4.02690 | 20261102-175341_as6-capjoint cap 方向: p0（紙 0 にキャップ）、Astra の窓探索+修復 2 候補
 2026-11-02T17:54:09+09:00 | 2,000 |       21,282,252 |         10641.13 |  8,053.94421 |     4.02697 | 20261102-175341_as6-capswap cap 方向: p0（紙 0 にキャップ）、Astra の窓探索+修復 2 候補
+2026-11-03T01:20:49+09:00 | 2,000 |       21,278,189 |         10639.09 |  8,053.77876 |     4.02689 | 20261103-012027_as6-cap38p0 warm start (64 simulated requests) / majority color on top of each column (initial order)
+2026-11-03T01:20:49+09:00 | 2,000 |       21,237,175 |         10618.59 |  8,052.10129 |     4.02605 | 20261103-012028_as6-warm warm start (64 simulated requests) / majority color on top of each column (initial order)
+2026-11-03T01:20:49+09:00 | 2,000 |       21,229,246 |         10614.62 |  8,051.77566 |     4.02589 | 20261103-012028_as6-majtop warm start (64 simulated requests) / majority color on top of each column (initial order)
+2026-11-03T01:51:58+09:00 | 2,000 |       21,241,942 |         10620.97 |  8,052.29635 |     4.02615 | 20261103-015137_as6-majtop column cost without the balance term (imb0) / + generic layer bottom = deepest sheet (imb0gb)
+2026-11-03T01:51:58+09:00 | 2,000 |       21,152,567 |         10576.28 |  8,048.63229 |     4.02432 | 20261103-015137_as6-imb0 column cost without the balance term (imb0) / + generic layer bottom = deepest sheet (imb0gb)
+2026-11-03T01:51:58+09:00 | 2,000 |       21,144,550 |         10572.27 |  8,048.30320 |     4.02415 | 20261103-015137_as6-imb0gb column cost without the balance term (imb0) / + generic layer bottom = deepest sheet (imb0gb)
+2026-11-03T02:12:49+09:00 | 2,000 |       21,145,772 |         10572.89 |  8,048.35399 |     4.02418 | 20261103-021228_as6-imb0gb G = 37 / 39 on as6-imb0gb (no balance term)
+2026-11-03T02:12:49+09:00 | 2,000 |       21,167,954 |         10583.98 |  8,049.26428 |     4.02463 | 20261103-021228_as6-ib-g37 G = 37 / 39 on as6-imb0gb (no balance term)
+2026-11-03T02:12:49+09:00 | 2,000 |       21,155,217 |         10577.61 |  8,048.73965 |     4.02437 | 20261103-021228_as6-ib-g39 G = 37 / 39 on as6-imb0gb (no balance term)
+2026-11-03T03:25:27+09:00 | 2,000 |       21,161,915 |         10580.96 |  8,049.01878 |     4.02451 | 20261103-032506_as6-imb0gb canonicalize levels through empty columns / assignment objective + color skew and pair-difference spread (Astra)
+2026-11-03T03:25:27+09:00 | 2,000 |       21,147,163 |         10573.58 |  8,048.41077 |     4.02421 | 20261103-032506_as6-canon canonicalize levels through empty columns / assignment objective + color skew and pair-difference spread (Astra)
+2026-11-03T03:25:27+09:00 | 2,000 |       21,150,954 |         10575.48 |  8,048.56661 |     4.02428 | 20261103-032506_as6-gproxy canonicalize levels through empty columns / assignment objective + color skew and pair-difference spread (Astra)
+2026-11-03T03:33:01+09:00 | 2,000 |       21,147,886 |         10573.94 |  8,048.44257 |     4.02422 | 20261103-033246_as6-canon as6-canon + the assignment objective of as6-gproxy
+2026-11-03T03:33:01+09:00 | 2,000 |       21,153,613 |         10576.81 |  8,048.67540 |     4.02434 | 20261103-033246_as6-cg as6-canon + the assignment objective of as6-gproxy
