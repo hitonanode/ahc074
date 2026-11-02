@@ -1,0 +1,125 @@
+{
+  "label": "screening-e-32",
+  "baseline_run": "20261101-200023_astra-search4",
+  "transcript_problems": [],
+  "summary": [
+    {
+      "run": "20261101-200023_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-200023_astra-cap",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10690.53125,
+      "mean_moves_per_query": 10.439971923828125,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.18850582062249888,
+      "se_log_ratio_percent": 0.20198033601783255,
+      "mean_delta_per_query": -0.019683837890625,
+      "se_delta_per_query": 0.021123460443005546,
+      "wins": 15,
+      "ties": 0,
+      "losses": 17
+    },
+    {
+      "run": "20261101-200023_astra-post-pair",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-200023_astra-post-balanced",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.625,
+      "mean_moves_per_query": 10.4595947265625,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.0005875716854764997,
+      "se_log_ratio_percent": 0.0005875716854764996,
+      "mean_delta_per_query": -6.103515625e-05,
+      "se_delta_per_query": 6.103515625e-05,
+      "wins": 1,
+      "ties": 31,
+      "losses": 0
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-200023_astra-search4",
+      "comment": "fixed-count handle cap and final-pair decoder family ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-search4/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-200023_astra-cap",
+      "comment": "fixed-count handle cap and final-pair decoder family ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-cap/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-cap/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-200023_astra-post-pair",
+      "comment": "fixed-count handle cap and final-pair decoder family ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-post-pair/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-post-pair/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-200023_astra-post-balanced",
+      "comment": "fixed-count handle cap and final-pair decoder family ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-post-balanced/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-post-balanced/src/main.cpp"
+      ]
+    }
+  ]
+}

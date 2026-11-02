@@ -1,0 +1,67 @@
+{
+  "label": "guided-joint-normal-smoke",
+  "baseline_run": "20261101-194919_astra-search4",
+  "transcript_problems": [],
+  "summary": [
+    {
+      "run": "20261101-194919_astra-search4",
+      "cases": 8,
+      "valid_pairs": 8,
+      "mean_score": 10955.375,
+      "mean_moves_per_query": 10.6986083984375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 8,
+      "losses": 0
+    },
+    {
+      "run": "20261101-194919_astra-joint",
+      "cases": 8,
+      "valid_pairs": 8,
+      "mean_score": 11077.75,
+      "mean_moves_per_query": 10.818115234375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 1.1061309164682411,
+      "se_log_ratio_percent": 0.6799627932106191,
+      "mean_delta_per_query": 0.1195068359375,
+      "se_delta_per_query": 0.07327355575952896,
+      "wins": 2,
+      "ties": 0,
+      "losses": 6
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-194919_astra-search4",
+      "comment": "timed diagnostic of guided joint-search v2 [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194919_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194919_astra-search4/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-194919_astra-joint",
+      "comment": "timed diagnostic of guided joint-search v2 [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194919_astra-joint/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194919_astra-joint/src/main.cpp"
+      ]
+    }
+  ]
+}

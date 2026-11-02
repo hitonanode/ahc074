@@ -1,0 +1,124 @@
+{
+  "label": "cap-width-screening",
+  "baseline_run": "20261101-202048_astra-search4",
+  "transcript_problems": [],
+  "selected_seeds": null,
+  "summary": [
+    {
+      "run": "20261101-202048_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-202048_mixed",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10782.46875,
+      "mean_moves_per_query": 10.529754638671875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.6674096651166224,
+      "se_log_ratio_percent": 0.22792833013828812,
+      "mean_delta_per_query": 0.070098876953125,
+      "se_delta_per_query": 0.023926212565569406,
+      "wins": 11,
+      "ties": 0,
+      "losses": 21
+    },
+    {
+      "run": "20261101-202048_triple",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10992.78125,
+      "mean_moves_per_query": 10.735137939453125,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 2.598190292699687,
+      "se_log_ratio_percent": 0.25858108759648113,
+      "mean_delta_per_query": 0.275482177734375,
+      "se_delta_per_query": 0.02754940481520487,
+      "wins": 1,
+      "ties": 0,
+      "losses": 31
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-202048_astra-search4",
+      "comment": "Fixed cap-width and cap-color ablations: one cap with mixed two-bit or black three-bit mask, unchanged 185 dedicated sheets. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202048_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202048_astra-search4/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "4816d76e36563348b10596fb7901829ba69bffad37666d7d20fd8eed6cb31094"
+      }
+    },
+    {
+      "run": "20261101-202048_mixed",
+      "comment": "Fixed cap-width and cap-color ablations: one cap with mixed two-bit or black three-bit mask, unchanged 185 dedicated sheets. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202048_mixed/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202048_mixed/src/mixed.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/mixed.cpp": "23e4e1408636346639ee78ccc27bf0bc76f229383e609a0dd8bf3d82737b81cb"
+      }
+    },
+    {
+      "run": "20261101-202048_triple",
+      "comment": "Fixed cap-width and cap-color ablations: one cap with mixed two-bit or black three-bit mask, unchanged 185 dedicated sheets. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202048_triple/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202048_triple/src/triple.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/triple.cpp": "d73c97c4392011cae842023c055570a9328fcd93f764f5fc79520e34170c6324"
+      }
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "label": "cap-joint-screening",
+  "baseline_run": "20261101-201816_astra-search4",
+  "transcript_problems": [],
+  "selected_seeds": null,
+  "summary": [
+    {
+      "run": "20261101-201816_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-201816_astra-cap",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10690.53125,
+      "mean_moves_per_query": 10.439971923828125,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.18850582062249888,
+      "se_log_ratio_percent": 0.20198033601783255,
+      "mean_delta_per_query": -0.019683837890625,
+      "se_delta_per_query": 0.021123460443005546,
+      "wins": 15,
+      "ties": 0,
+      "losses": 17
+    },
+    {
+      "run": "20261101-201816_astra-cap-joint",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10685.5,
+      "mean_moves_per_query": 10.43505859375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.23512109541531018,
+      "se_log_ratio_percent": 0.2025336037021331,
+      "mean_delta_per_query": -0.02459716796875,
+      "se_delta_per_query": 0.021186823694635627,
+      "wins": 18,
+      "ties": 0,
+      "losses": 14
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-201816_astra-search4",
+      "comment": "Fixed screening: choose cap coordinate by exact final column/hole Design cost between four annealing segments. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201816_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201816_astra-search4/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "4816d76e36563348b10596fb7901829ba69bffad37666d7d20fd8eed6cb31094"
+      }
+    },
+    {
+      "run": "20261101-201816_astra-cap",
+      "comment": "Fixed screening: choose cap coordinate by exact final column/hole Design cost between four annealing segments. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201816_astra-cap/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201816_astra-cap/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "e0a92a370158fe6e518012e90bc26c5414977eb24715205918d59c822e0250c9"
+      }
+    },
+    {
+      "run": "20261101-201816_astra-cap-joint",
+      "comment": "Fixed screening: choose cap coordinate by exact final column/hole Design cost between four annealing segments. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201816_astra-cap-joint/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201816_astra-cap-joint/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "2509cfa1ea2e8366866be5ee33064b6350e855fb87a7bd3fdb55fd57ea29a548"
+      }
+    }
+  ]
+}

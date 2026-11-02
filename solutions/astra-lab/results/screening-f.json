@@ -1,0 +1,159 @@
+{
+  "label": "screening-f",
+  "baseline_run": "20261101-200746_astra-search4",
+  "transcript_problems": [],
+  "selected_seeds": null,
+  "summary": [
+    {
+      "run": "20261101-200746_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-200746_astra-cap-select",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10694.9375,
+      "mean_moves_per_query": 10.44427490234375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.14732407370459163,
+      "se_log_ratio_percent": 0.20764005856967505,
+      "mean_delta_per_query": -0.015380859375,
+      "se_delta_per_query": 0.021732497256614698,
+      "wins": 16,
+      "ties": 0,
+      "losses": 16
+    },
+    {
+      "run": "20261101-200746_astra-rule-stationary",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.625,
+      "mean_moves_per_query": 10.4595947265625,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.0005875716854764997,
+      "se_log_ratio_percent": 0.0005875716854764996,
+      "mean_delta_per_query": -6.103515625e-05,
+      "se_delta_per_query": 6.103515625e-05,
+      "wins": 1,
+      "ties": 31,
+      "losses": 0
+    },
+    {
+      "run": "20261101-200746_astra-rule-anneal",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-200746_astra-search4",
+      "comment": "Fixed screening: selected cap, stationary decoder, two-window simulated annealing; RULE_STEPS default 10000 balanced rules. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200746_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200746_astra-search4/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true
+      },
+      "source_sha256": {
+        "src/main.cpp": "4816d76e36563348b10596fb7901829ba69bffad37666d7d20fd8eed6cb31094"
+      }
+    },
+    {
+      "run": "20261101-200746_astra-cap-select",
+      "comment": "Fixed screening: selected cap, stationary decoder, two-window simulated annealing; RULE_STEPS default 10000 balanced rules. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200746_astra-cap-select/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200746_astra-cap-select/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true
+      },
+      "source_sha256": {
+        "src/main.cpp": "b3edb7f4df021d6260c742d809fd3b94a9e55ad947d767d505da555a2a5c0581"
+      }
+    },
+    {
+      "run": "20261101-200746_astra-rule-stationary",
+      "comment": "Fixed screening: selected cap, stationary decoder, two-window simulated annealing; RULE_STEPS default 10000 balanced rules. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200746_astra-rule-stationary/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200746_astra-rule-stationary/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true
+      },
+      "source_sha256": {
+        "src/main.cpp": "160dad4738430ce9892ec3825f848c7913004de3c721987bcfe48d4175d4eec9"
+      }
+    },
+    {
+      "run": "20261101-200746_astra-rule-anneal",
+      "comment": "Fixed screening: selected cap, stationary decoder, two-window simulated annealing; RULE_STEPS default 10000 balanced rules. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200746_astra-rule-anneal/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200746_astra-rule-anneal/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true
+      },
+      "source_sha256": {
+        "src/check.cpp": "8a5fdaf4eed6ed072a1f79a0522a7d4f580bcf1c471d6091b4b2e6ef343630cb",
+        "src/main.cpp": "101c5aa8060e46a3a3905b071b092965f2c50c4cbf6b519a827c05a07022f44a"
+      }
+    }
+  ]
+}

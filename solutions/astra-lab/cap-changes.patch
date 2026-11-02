@@ -1,0 +1,269 @@
+--- solutions/astra-search4/main.cpp
++++ solutions/astra-cap/main.cpp
+@@ -1,6 +1,6 @@
+ // imp-gla: solutions/imp-910 with the generic look-ahead (Solver::init_lookahead, set_generic; README).
+ // imp-seg: solutions/imp-s2hd with the design annealing in 4 segments restarted from the best state (README).
+-// astra-search4: solutions/imp-combo with a stricter screen and faster stall escapes in assign_windows (README).
++// astra-cap: astra-search4 with one former handle driven by a fixed black cap (README).
+ // Windows: G = 36 generic windows and H = 28 handle windows h_0..h_27 (which physical windows is a
+ // choice of the design; internally the generic windows are 0..G-1 and h_j is window G + j before
+ // the annealing reorders the handles).
+@@ -59,6 +59,9 @@
+ namespace {
+ 
+ constexpr int N = 64, K = 192, P = 256;
++constexpr int kCapWindow = 63, kCapPaper = 6;
++constexpr u64 kCapBit = 1ULL << kCapWindow;
++constexpr u64 kActiveWindows = kCapBit - 1;
+ 
+ // Every clock reading is multiplied by CLOCK_SCALE (CLAUDE.md, the clock scale): the local
+ // evaluation compiles with -DCLOCK_SCALE=1.1 so that it searches as much as the judge.
+@@ -770,7 +773,7 @@
+     const PosetSums& sums = PosetSums::get();
+     WindowRelations relations(sums);
+     XorShift rng{0x71eb2566be932e31ULL};
+-    const int n = int(A.size()), need = 256 - (192 - m);
++    const int n = int(A.size()), need = 256 - (191 - m);
+     std::vector<std::pair<int, int>> ep;  // the pairs of sheets
+     int index[8][8];
+     std::memset(index, -1, sizeof(index));
+@@ -784,7 +787,7 @@
+     std::vector<int> which(64, -1), counts(ne), order(64);
+     std::iota(order.begin(), order.end(), 0);
+     u64 pol = 0;               // window j: 1 if the first sheet of its pair is black
+-    u64 hm = ~low_bits(g);     // the handle windows (original numbering)
++    u64 hm = kActiveWindows & ~low_bits(g);  // cap is neither generic nor a handle
+     for (int e = 0; e < ne; e++) {
+         fwd[e] = 1ULL << e;
+         rev[e] = 1ULL << (16 + e);
+@@ -1086,7 +1089,7 @@
+     // The normal 36/28 split uses constant divisors; other dimensions keep
+     // the original remainder mapping. This arithmetic change preserves every draw.
+     auto generic_index = [&] { const u64 x = rng.next(); return int(g == 36 ? x % 36 : x % g); };
+-    auto handle_index = [&] { const u64 x = rng.next(); return int(g == 36 ? x % 28 : x % (64-g)); };
++    auto handle_index = [&] { const u64 x = rng.next(); return int(g == 36 ? x % 27 : x % (63-g)); };
+     auto propose = [&](Move& mv) {
+         int ia = generic_index(), ib = generic_index(), a = order[ia], b = order[ib];
+         bool swindow = rng.real() < kWindowRate;
+@@ -1320,7 +1323,7 @@
+     ++epoch;
+     mask = best_mask, pol = best_pol, order = best_order;
+     std::fill(which.begin(), which.end(), -1);
+-    hm = ~0ULL;
++    hm = kActiveWindows;
+     for (int e = 0; e < ne; e++) {
+         counts[e] = __builtin_popcountll(mask[e]);
+         hm &= ~mask[e];
+@@ -1456,7 +1459,7 @@
+     double proxy_before = 0, proxy_after = 0;
+ 
+     static int pc(u64 x) { return __builtin_popcountll(x); }
+-    Design(const std::vector<u64>& a, int m, int g) : M(m), G(g), H(64 - g), U(192 - m), need(256 - U), A(a) {
++    Design(const std::vector<u64>& a, int m, int g) : M(m), G(g), H(63 - g), U(191 - m), need(256 - U), A(a) {
+         handle.resize(H);
+         std::iota(handle.begin(), handle.end(), G);
+         hb.resize(256);
+@@ -2506,7 +2509,7 @@
+ // the comparator and the cyclic columns replaced by adaptive_insert). The generic sheets are papers
+ // 0..M-1.
+ struct Solver {
+-    int M = 6, G = 36, H = 28;
++    int M = 6, G = 36, H = 27;
+     Comparator comparator;
+     std::vector<u64> A;
+     std::vector<int> handle, hidx;  // window of h_j; handle index of each window (-1: generic)
+@@ -2813,7 +2816,18 @@
+         }
+         if (t != barrier) adaptive_insert(t, adaptive_request, barrier, 2);
+     }
+-    // Digs the column of d until d is its top, and moves d to the very top.
++    // The cap stays above the generic layer. A dedicated sheet printed white
++    // at the cap window requests black by stopping immediately below the cap;
++    // otherwise the usual top insertion shows its own (correct) printed color.
++    void move_to_target_top(int d) {
++        const bool needs_cap = (A[adaptive_request] & kCapBit) && !(paper[d].black & kCapBit);
++        if (!needs_cap) move(d, 0);
++        else {
++            const int cp = index_of(kCapPaper), dp = index_of(d);
++            move(d, cp + int(dp > cp));
++        }
++    }
++    // Digs the column of d until d is its top, and performs its cap-aware lift.
+     void lift(int d) {
+         int c = col_of[d];
+         for (int it = 0; column_top(c) != d; it++) {
+@@ -2823,7 +2837,7 @@
+             }
+             dig(c, d);
+         }
+-        move(d, 0);
++        move_to_target_top(d);
+         top_d = d;
+     }
+     // Digs column l until its handle shows `color` (until the first paper of that color is on top).
+@@ -3249,7 +3263,7 @@
+             if (cd.kind == 0 && !cd.post) place_filler(cd.c, depth_in_column(cd.idx), cd.lvl, hh);
+         if (d_out) {
+             drop_filler(d);
+-            move(d, 0);
++            move_to_target_top(d);
+             top_d = d;
+         } else {
+             lift(d);
+@@ -3728,7 +3742,7 @@
+         for (int i = 0; i < K; i++) {
+             int k = order[i];
+             if (col_of[k] < 0 || inpl[k]) continue;
+-            if (i == 0)
++            if (i == 0 || (i == 1 && order[0] == kCapPaper))
+                 ntop = k;
+             else
+                 nf.push_back({k, lv[k], col_of[k]});
+@@ -3796,7 +3810,7 @@
+     void run_interleave(int u, const Interleave::Pick& pk) {
+         const int d = ded[u], c = col_of[pk.paper], l = col_of[d];
+         const int s = interleave->state(order);
+-        for (auto [k, depth] : comparator.path(s, pk.goal)) move(k, depth);
++        for (auto [k, depth] : comparator.path(s, pk.goal)) move(k, depth + 1);
+         auto get_helper = [&](bool after_target) {
+             for (int it = 0; column_top(c) != pk.paper; it++) {
+                 if (it >= K || invalid) {
+@@ -3805,7 +3819,7 @@
+                 }
+                 dig(c, pk.paper);
+             }
+-            move(pk.paper, pk.depth + (after_target ? 1 : 0));
++            move(pk.paper, 1 + pk.depth + (after_target ? 1 : 0));
+             fillers.push_back({pk.paper, 0, c});
+         };
+         if (c < l) get_helper(false);  // digging a shallower column first does not hide D's column
+@@ -3817,7 +3831,7 @@
+     void run_interleave_pair(int u, const PairHelperPick& pk) {
+         const int d = ded[u], l = col_of[d];
+         const int s = interleave->state(order);
+-        for (auto [k, depth] : comparator.path(s, pk.goal)) move(k, depth);
++        for (auto [k, depth] : comparator.path(s, pk.goal)) move(k, depth + 1);
+         int placed = 0;
+         bool lifted = false;
+         auto get = [&](int x, int depth) {
+@@ -3830,7 +3844,7 @@
+                 }
+                 dig(c, x);
+             }
+-            move(x, depth + placed + (lifted ? 1 : 0));
++            move(x, 1 + depth + placed + (lifted ? 1 : 0));
+             fillers.push_back({x, 0, c});
+             placed++;
+         };
+@@ -3851,12 +3865,13 @@
+         const auto olds = fillers;
+         return_visible_fillers(olds, u, 1);
+         if (invalid) return;
++        if (order[0] != kCapPaper) return;
+         for (int i = 0; i < M; i++)
+-            if (order[i] >= M) return;
++            if (order[i + 1] >= M) return;
+         const State clean = save();
+         const auto clean_ops = ops;
+         const int s = interleave->state(order);
+-        std::vector<int> current(order.begin(), order.begin() + M);
++        std::vector<int> current(order.begin() + 1, order.begin() + 1 + M);
+         const int base_generic = comparator.plan(current, A[u], ~paper[d].opaque & gmask).size();
+         const auto fixes = fix_costs(u, ~paper[d].opaque & hmask);
+         // single helpers: at most 5 deep in their column, fewer generic moves than without; the 4 of
+@@ -3991,6 +4006,11 @@
+                 ord.insert(ord.begin() + dest, k);
+                 path.push_back({k, dest});
+             }
++            // Preserve the invariant needed by contiguous generic planning
++            // and the +1 offset of helper insertion. The cap itself is never
++            // an edit, so this also prevents a generic edit crossing the cap.
++            const auto cap_it = std::find(ord.begin(), ord.end(), kCapPaper);
++            for (auto it = ord.begin(); it != cap_it; ++it) if (*it < M) return false;
+             u64 covered = 0, shown = 0;
+             for (int k : ord) {
+                 shown |= paper[k].black & ~covered;
+@@ -4244,6 +4264,7 @@
+     // fewer generic windows (32, then 28, without a new assignment the third time), then fall back.
+     for (int attempt = 0;; attempt++) {
+         A = originalA;
++        for (u64& a : A) a &= kActiveWindows;
+         std::iota(permutation.begin(), permutation.end(), 0);
+         comp.init(M, G, rng);
+         if (attempt < 2) {
+@@ -4296,13 +4317,25 @@
+               << "\nproxy_before = " << des->proxy_before / P << "\nproxy_after = " << des->proxy_after / P
+               << "\nclimb_end_sec = " << elapsed_sec() << '\n';
+ 
+-    // Papers: the generic sheets, then the columns 0, 1, ... (in each column the colors alternate,
++    // Restore the cap bit only for the physical papers and online targets.
++    // Assignment never moves index 63, and all design calculations used 63 bits.
++    for (int u = 0; u < P; ++u) A[u] |= originalA[u] & kCapBit;
++    double model_col = 0.0, model_hole = 0.0, model_gc = 0.0;
++    for (int c = 0; c < des->H; ++c) model_col += des->colcost(c), model_hole += des->hcost(c);
++    for (const auto& u : des->unit) model_gc += des->gc(u);
++    std::cerr << "cap_window = " << kCapWindow
++              << "\nmodel_cost = " << (model_col + model_hole + model_gc) / P
++              << "\nmodel_col = " << model_col / P << "\nmodel_hole = " << model_hole / P
++              << "\nmodel_gc = " << model_gc / P << '\n';
++
++    // Papers: six generic sheets, the cap, then the columns 0, 1, ... (colors alternate,
+     // the more numerous first; singles before pairs within a color).
+     std::vector<Paper> papers(K);
+     std::vector<int> columns(K, -1), ded(P, -1);
+     for (int i = 0; i < M; i++) papers[i] = {comp.opq[i], comp.black[i]};
+-    u64 opaque = low_bits(G);
+-    int next = M;
++    papers[kCapPaper] = {kCapBit, kCapBit};
++    u64 opaque = low_bits(G) | kCapBit;
++    int next = M + 1;
+     for (int c = 0; c < des->H; c++) {
+         opaque |= 1ULL << des->handle[c];
+         std::array<std::vector<int>, 2> members;
+@@ -4318,7 +4351,10 @@
+             const auto& u = des->unit[x];
+             u64 mask = opaque;
+             if (u.b >= 0) mask &= ~(A[u.a] ^ A[u.b]);
+-            papers[next] = {mask, A[u.a] & mask};
++            mask |= kCapBit;
++            u64 black = A[u.a] & mask;
++            if (u.b >= 0 && ((A[u.a] ^ A[u.b]) & kCapBit)) black &= ~kCapBit;
++            papers[next] = {mask, black};
+             columns[next] = c;
+             ded[u.a] = next;
+             if (u.b >= 0) ded[u.b] = next;
+@@ -4338,7 +4374,7 @@
+     solver.hidx.assign(64, -1);
+     for (int c = 0; c < des->H; c++) solver.hidx[solver.handle[c]] = c;
+     solver.gmask = low_bits(G);
+-    solver.hmask = ~solver.gmask;
++    solver.hmask = kActiveWindows & ~solver.gmask;
+     solver.h_opq.resize(K);
+     solver.h_blk.resize(K);
+     for (int x = 0; x < K; x++) {
+@@ -4347,6 +4383,9 @@
+     }
+     solver.order.resize(K);
+     std::iota(solver.order.begin(), solver.order.end(), 0);
++    // Model the one initial legal cap move now; emit it before the first plan.
++    solver.order.erase(solver.order.begin() + kCapPaper);
++    solver.order.insert(solver.order.begin(), kCapPaper);
+     solver.init_adaptive();
+     if (M == Interleave::GM && comp.complete) {
+         solver.interleave = std::make_shared<Interleave>();
+@@ -4364,6 +4403,7 @@
+         long long wr = 0;
+         for (int q = 0; q < ns; q++) {
+             Solver sim = solver;
++            tot += 1;  // first-request cap installation
+             std::mt19937_64 rr(1000003ULL * (q + 1));
+             int prev = rr() % P;
+             for (int t = 0; t < R; t++) {
+@@ -4395,6 +4435,7 @@
+         // Safety net against a slow machine: the light plan from kFastAfter on.
+         if (t_req > kFastAfter) solver.fast_mode = true;
+         auto moves = solver.process(u);
++        if (r == 0) moves.insert(moves.begin(), {kCapPaper, 0});
+         req_sec += elapsed_sec() - t_req;
+         wrong += solver.display() != A[u];
+         output = std::to_string(moves.size()) + '\n';

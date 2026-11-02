@@ -1,0 +1,125 @@
+{
+  "label": "screening-c",
+  "baseline_run": "20261101-194444_astra-search4",
+  "transcript_problems": [],
+  "summary": [
+    {
+      "run": "20261101-194444_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-194444_astra-nonlinear",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10702.15625,
+      "mean_moves_per_query": 10.451324462890625,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.07957879022018537,
+      "se_log_ratio_percent": 0.05143340510658311,
+      "mean_delta_per_query": -0.008331298828125,
+      "se_delta_per_query": 0.005380747668713256,
+      "wins": 3,
+      "ties": 29,
+      "losses": 0
+    },
+    {
+      "run": "20261101-194444_astra-rule2",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-194444_astra-rule-sweep4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10702.15625,
+      "mean_moves_per_query": 10.451324462890625,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.07957879022018537,
+      "se_log_ratio_percent": 0.05143340510658311,
+      "mean_delta_per_query": -0.008331298828125,
+      "se_delta_per_query": 0.005380747668713256,
+      "wins": 3,
+      "ties": 29,
+      "losses": 0
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-194444_astra-search4",
+      "comment": "fixed-count nonlinear print rules with pairwise-only and four-sweep ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194444_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194444_astra-search4/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-194444_astra-nonlinear",
+      "comment": "fixed-count nonlinear print rules with pairwise-only and four-sweep ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194444_astra-nonlinear/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194444_astra-nonlinear/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-194444_astra-rule2",
+      "comment": "fixed-count nonlinear print rules with pairwise-only and four-sweep ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194444_astra-rule2/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194444_astra-rule2/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-194444_astra-rule-sweep4",
+      "comment": "fixed-count nonlinear print rules with pairwise-only and four-sweep ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194444_astra-rule-sweep4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194444_astra-rule-sweep4/src/main.cpp"
+      ]
+    }
+  ]
+}

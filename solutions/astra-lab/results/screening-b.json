@@ -1,0 +1,125 @@
+{
+  "label": "screening-b",
+  "baseline_run": "20261101-194058_astra-search4",
+  "transcript_problems": [],
+  "summary": [
+    {
+      "run": "20261101-194058_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-194058_astra-joint",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 11093.40625,
+      "mean_moves_per_query": 10.833404541015625,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 3.5038345448330253,
+      "se_log_ratio_percent": 0.31462325126719975,
+      "mean_delta_per_query": 0.373748779296875,
+      "se_delta_per_query": 0.03380931065823803,
+      "wins": 1,
+      "ties": 0,
+      "losses": 31
+    },
+    {
+      "run": "20261101-194058_astra-overlap",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10713.3125,
+      "mean_moves_per_query": 10.46221923828125,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.02417469502855736,
+      "se_log_ratio_percent": 0.01855138324426256,
+      "mean_delta_per_query": 0.0025634765625,
+      "se_delta_per_query": 0.0019485666549328544,
+      "wins": 7,
+      "ties": 17,
+      "losses": 8
+    },
+    {
+      "run": "20261101-194058_astra-sparse-exact",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10719.4375,
+      "mean_moves_per_query": 10.46820068359375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.08024349700543279,
+      "se_log_ratio_percent": 0.22516739607821826,
+      "mean_delta_per_query": 0.008544921875,
+      "se_delta_per_query": 0.023562681543247026,
+      "wins": 15,
+      "ties": 0,
+      "losses": 17
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-194058_astra-search4",
+      "comment": "fixed-count joint design, overlapping fillers, and exact sparse decoder costs [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194058_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194058_astra-search4/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-194058_astra-joint",
+      "comment": "fixed-count joint design, overlapping fillers, and exact sparse decoder costs [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194058_astra-joint/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194058_astra-joint/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-194058_astra-overlap",
+      "comment": "fixed-count joint design, overlapping fillers, and exact sparse decoder costs [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194058_astra-overlap/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194058_astra-overlap/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-194058_astra-sparse-exact",
+      "comment": "fixed-count joint design, overlapping fillers, and exact sparse decoder costs [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194058_astra-sparse-exact/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-194058_astra-sparse-exact/src/main.cpp"
+      ]
+    }
+  ]
+}

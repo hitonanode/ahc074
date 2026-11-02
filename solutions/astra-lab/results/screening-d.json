@@ -1,0 +1,125 @@
+{
+  "label": "screening-d",
+  "baseline_run": "20261101-195113_astra-search4",
+  "transcript_problems": [],
+  "summary": [
+    {
+      "run": "20261101-195113_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-195113_astra-rule-flex",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10704.34375,
+      "mean_moves_per_query": 10.453460693359375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.05915643589041723,
+      "se_log_ratio_percent": 0.05456312806043631,
+      "mean_delta_per_query": -0.006195068359375,
+      "se_delta_per_query": 0.005708387254843229,
+      "wins": 3,
+      "ties": 27,
+      "losses": 2
+    },
+    {
+      "run": "20261101-195113_astra-rule-full",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10702.59375,
+      "mean_moves_per_query": 10.451751708984375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.07529145237321022,
+      "se_log_ratio_percent": 0.05635506806173218,
+      "mean_delta_per_query": -0.007904052734375,
+      "se_delta_per_query": 0.005901123845796624,
+      "wins": 4,
+      "ties": 26,
+      "losses": 2
+    },
+    {
+      "run": "20261101-195113_staircase",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10712.875,
+      "mean_moves_per_query": 10.4617919921875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.020261128484370672,
+      "se_log_ratio_percent": 0.01423202563842748,
+      "mean_delta_per_query": 0.00213623046875,
+      "se_delta_per_query": 0.0014898564241595078,
+      "wins": 3,
+      "ties": 19,
+      "losses": 10
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-195113_astra-search4",
+      "comment": "fixed-count flexible witnesses, all 602 ternary rules, and staggered filler chains [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195113_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195113_astra-search4/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-195113_astra-rule-flex",
+      "comment": "fixed-count flexible witnesses, all 602 ternary rules, and staggered filler chains [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195113_astra-rule-flex/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195113_astra-rule-flex/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-195113_astra-rule-full",
+      "comment": "fixed-count flexible witnesses, all 602 ternary rules, and staggered filler chains [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195113_astra-rule-full/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195113_astra-rule-full/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-195113_staircase",
+      "comment": "fixed-count flexible witnesses, all 602 ternary rules, and staggered filler chains [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195113_staircase/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195113_staircase/src/staircase.cpp"
+      ]
+    }
+  ]
+}
