@@ -1,0 +1,30 @@
+{
+  "binary": "gates",
+  "binary_sha256": "5731e27e208cb08d7166eb9f5fc7121985f249de54d06f6ce010e7b8baaf9b41",
+  "fixed": {
+    "MAP_ITERS": "400000",
+    "GOPT_STEPS": "100000",
+    "ANNEAL_ITERS": "20000000",
+    "CLIMB_ITERS": "60000",
+    "MODEL_ONLY": "0",
+    "DUMP_DESIGN": "0",
+    "SIM_SEQS": "4"
+  },
+  "extra": {
+    "GATE_TRIALS": "12"
+  },
+  "seeds": [
+    24,
+    32
+  ],
+  "sim_sequences": 4,
+  "tester": false,
+  "source": "solutions/astra-decoder/gates.cpp",
+  "source_sha256": "fc48a1b90810b0b12a19de2bb2674b840f4a979d489583944bd1b12dd8f29cdf",
+  "compile_flags": [
+    "-std=c++23",
+    "-O2",
+    "-DCLOCK_SCALE=1.1",
+    "-DSIM_HARNESS"
+  ]
+}

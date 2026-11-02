@@ -1,0 +1,31 @@
+{
+  "binary": "joint-sa",
+  "binary_sha256": "00886c5b7be65e9be04da1b89d55a88c592dd5ea58bb784d83f7921d2dd9b3a3",
+  "fixed": {
+    "MAP_ITERS": "400000",
+    "GOPT_STEPS": "100000",
+    "ANNEAL_ITERS": "20000000",
+    "CLIMB_ITERS": "60000",
+    "MODEL_ONLY": "0",
+    "DUMP_DESIGN": "0",
+    "SIM_SEQS": "4"
+  },
+  "extra": {
+    "GATE_TRIALS": "128",
+    "GATE_WITNESSES": "15"
+  },
+  "seeds": [
+    24,
+    40
+  ],
+  "sim_sequences": 4,
+  "tester": false,
+  "source": "solutions/astra-decoder/joint-sa.cpp",
+  "source_sha256": "191ec68a743d6bd55a5fd22813a601458940e7eb2535a41c4daf967c54e02b25",
+  "compile_flags": [
+    "-std=c++23",
+    "-O2",
+    "-DCLOCK_SCALE=1.1",
+    "-DSIM_HARNESS"
+  ]
+}
