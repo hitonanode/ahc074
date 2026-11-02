@@ -2210,7 +2210,7 @@ struct Design {
     //              filler_gain(t, paper of y).
     // Incremental: a target outside x and y only sees the sums of the columns a and b change.
     void filler_climb(double seconds, int fixedIterations = 0) {
-        constexpr double kW = 0.3;
+        const double kW = env_int("KW") ? env_int("KW") / 100.0 : 0.3;  // map-curve: KW / 100
         auto start = std::chrono::steady_clock::now();
         std::vector<u64> diffb(U, 0);
         for (int x = 0; x < U; x++)
@@ -4157,7 +4157,7 @@ int main() {
     // stages keep their lengths; ANNT=t stretches the design annealing and the filler climb. No helper cutoff.
     const double mt = env_int("MAPT") ? env_int("MAPT") / 100.0 : 1.0, at = env_int("ANNT") ? env_int("ANNT") / 100.0 : 1.0;
     const double kMapEnd = 0.50 * mt, kGoptEnd = 0.61 * mt, kAnnealEnd = kGoptEnd + 0.695 * at,
-                 kClimbEnd = kAnnealEnd + 0.055 * at, kFastAfter = 1e9;
+                 kClimbEnd = kAnnealEnd + 0.055 * at * (env_int("CLMT") ? env_int("CLMT") / 100.0 : 1.0), kFastAfter = 1e9;
     const double kInitGiveUp = kAnnealEnd, kInitExpiry = kAnnealEnd + 0.045;
     // The helper tables (Interleave) are left unfinished (no helpers) after kHelperGiveUp.
     constexpr double kHelperGiveUp = 1e9;
