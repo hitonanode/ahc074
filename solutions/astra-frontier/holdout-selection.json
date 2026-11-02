@@ -1,0 +1,30 @@
+{
+  "recorded_at_utc": "2026-11-02T03:58:22.329782+00:00",
+  "seeds": {
+    "start": 1000,
+    "end_exclusive": 1500
+  },
+  "case_count": 500,
+  "baseline": "astra-search4",
+  "selection_cases": [
+    "pilot64:16-79",
+    "screen64:80-143",
+    "private16:144-159"
+  ],
+  "selection_rationale": {
+    "astra-earlytable": "Runtime control; same representation as baseline.",
+    "astra-sparse12": "Best gate/visibility candidate on screen64; validate selected result on unused seeds.",
+    "astra-research-escape": "Seven-sheet structural alternative; screen64 is inconclusive, evaluate development potential.",
+    "astra-privategate": "One private generic window; initial16 inconclusive, retain for mechanism test."
+  },
+  "no_candidate_source_changes_during_run": true,
+  "sources": {
+    "astra-search4": "8e268a0171efea5f2ed727d045e19f45236b84e1effcd20377933d8063812411",
+    "astra-earlytable": "4420f76fcb2c4ec08925e3ebb20f5f63f247d4f30dd1a5c1897a27a1fe3caf03",
+    "astra-sparse12": "f7219b836466c3eebcd67db97223030bbdb36de429cdc456f25f3d3db1f63bc7",
+    "astra-research-escape": "b5c2d02ee7ce49f91ea1f8865445b1f473951be43209a5ae4379ed62fde6c7c4",
+    "astra-privategate": "a872e1993c32f559e79a58c566dae3cad23a586c5083ce98a03e8496ca281276"
+  },
+  "metric": "mean of 100*log(candidate score / baseline score); paired standard error",
+  "interpretation": "500-case research comparison, not a submission adoption gate; no claim about official ranking"
+}
