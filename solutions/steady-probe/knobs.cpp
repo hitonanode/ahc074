@@ -10,7 +10,8 @@
 //   lifted paper goes above it (its own color at 63) or just below it (black at 63) (README).
 // as6-cap38p0: as6-cap38 with the cap output as paper 0, already on top: no installation move (README).
 // steady-probe/knobs.cpp: as6-majtop for fixed-iteration simulations (-DSIM_HARNESS) with knobs read from
-//   the environment: ABSENT_COST, IMB40, GEN_BOTTOM, RANK20, HOLEW (no helper cutoff with fixed iterations).
+//   the environment: ABSENT_COST, IMB40, GEN_BOTTOM, RANK20, HOLEW,
+//   CLIMB_COLOR, MOVE2, INIT_BAL, HELPER_KEEP, CAP_BELOW (no helper cutoff with fixed iterations).
 // as6-majtop: as6-cap38p0 printing each column with the majority color of the hole demand at its
 //   handle on top and the other color second (the initial order matches the steady state) (README).
 // Windows: G = 38 generic windows, the cap window 63 and H = 25 handle windows h_0..h_24 (which physical windows is a
@@ -100,6 +101,11 @@ int g_imb40 = 4;        // the balance term of the column cost, times 40 (as6-ma
 int g_gen_bottom = 0;   // 1: the bottom of the generic layer is its deepest sheet (as6-majtop: sheet 0)
 int g_rank20 = 17;      // kRankPriority times 20 (as6-majtop: 17 = 0.85)
 double g_hole_weight = 0.40;  // kHoleWeight (as6-majtop: 0.40)
+int g_climb_color = 1;  // filler_climb swaps only units with the same colors at both handles (as6-majtop: 1)
+int g_move2 = 1;        // the annealing's balanced two-unit move, 10% of the moves (as6-majtop: 1)
+int g_init_bal = 1;     // Design::initialize balances the colors of the columns (as6-majtop: 1)
+int g_helper_keep = 0;  // 1: try_helpers returns only the old fillers in or above the generic layer
+int g_cap_below = 0;    // 1: a request black at the cap window always lifts D just below the cap
 
 u64 low_bits(int n) { return n == 64 ? ~0ULL : (1ULL << n) - 1; }  // bits 0..n-1
 
@@ -1790,9 +1796,16 @@ struct Design {
             cap[best] += 2;
             tot += 2;
         }
+        // steady-probe INIT_BAL=0: fill column c with the minority color at h_c among all the targets
+        std::vector<int> gmin(H, 0);
+        for (int c = 0; c < H; c++) {
+            int ones = 0;
+            for (int t = 0; t < 256; t++) ones += hb[t] >> c & 1;
+            gmin[c] = ones < 128;
+        }
         for (int c = H - 1; c >= 0; c--)
             while (nc[c] < cap[c]) {
-                int v = 2 * n1[c] < nc[c] ? 1 : 0;
+                int v = g_init_bal ? (2 * n1[c] < nc[c] ? 1 : 0) : gmin[c];
                 if (!take(c, v, true) && !take(c, v ^ 1, true)) break;
             }
         for (auto& u : unit)
@@ -1802,7 +1815,7 @@ struct Design {
                 for (int c = 0; c < H; c++)
                     if (valid(u, c)) {
                         double q = weight(u) * (nc[c] * 0.5 + 0.5 * (H - 1 - c)) + nc[c] * 0.5 +
-                                   3 * std::abs(nc[c] + 1 - 2 * (n1[c] + color(u, c)));
+                                   (g_init_bal ? 3 * std::abs(nc[c] + 1 - 2 * (n1[c] + color(u, c))) : 0);
                         if (q < cost) cost = q, best = c;
                     }
                 if (best < 0) return false;
@@ -2352,7 +2365,7 @@ struct Design {
                     } else if (type < 750) {
                         if (nx.c == ny.c) continue;
                         std::swap(nx.c, ny.c);
-                    } else if (type < 900) {
+                    } else if (type < 900 || !g_move2) {
                         if (nx.c == ny.c || cnc[nx.c] <= 2) continue;
                         nx.c = ny.c;
                     } else {
@@ -2475,7 +2488,7 @@ struct Design {
             nx.c = b;
             ny.c = a;
             if (!valid(nx, b) || !valid(ny, a)) continue;
-            if (color(nx, b) != color(unit[y], b) || color(ny, a) != color(unit[x], a)) continue;
+            if (g_climb_color && (color(nx, b) != color(unit[y], b) || color(ny, a) != color(unit[x], a))) continue;
             double old = cur;
             Unit ox = unit[x], oy = unit[y];
             update(ox, -1);
@@ -2959,7 +2972,7 @@ struct Solver {
     // at the cap window requests black by stopping immediately below the cap;
     // otherwise the usual top insertion shows its own (correct) printed color.
     void move_to_target_top(int d) {
-        const bool needs_cap = (A[adaptive_request] & kCapBit) && !(paper[d].black & kCapBit);
+        const bool needs_cap = (A[adaptive_request] & kCapBit) && (g_cap_below || !(paper[d].black & kCapBit));
         if (!needs_cap) move(d, 0);
         else {
             const int cp = index_of(kCapPaper), dp = index_of(d);
@@ -4002,7 +4015,15 @@ struct Solver {
         invalid = false;
         if (top_d >= 0) return_paper(top_d, u, 1);
         const auto olds = fillers;
-        return_visible_fillers(olds, u, 1);
+        if (g_helper_keep) {
+            // steady-probe HELPER_KEEP: the fillers below the generic layer do not hinder the helpers
+            std::vector<Filler> above;
+            const int gb = generic_bottom();
+            for (const auto& f : olds)
+                if (index_of(f.paper) < gb) above.push_back(f);
+            return_visible_fillers(above, u, 1);
+        } else
+            return_visible_fillers(olds, u, 1);
         if (invalid) return;
         if (order[0] != kCapPaper) return;
         for (int i = 0; i < M; i++)
@@ -4375,6 +4396,11 @@ int main() {
     if (const char* e = std::getenv("GEN_BOTTOM")) g_gen_bottom = std::atoi(e);
     if (const char* e = std::getenv("RANK20")) g_rank20 = std::atoi(e);
     if (const char* e = std::getenv("HOLEW")) g_hole_weight = std::atof(e);
+    if (const char* e = std::getenv("CLIMB_COLOR")) g_climb_color = std::atoi(e);
+    if (const char* e = std::getenv("MOVE2")) g_move2 = std::atoi(e);
+    if (const char* e = std::getenv("INIT_BAL")) g_init_bal = std::atoi(e);
+    if (const char* e = std::getenv("HELPER_KEEP")) g_helper_keep = std::atoi(e);
+    if (const char* e = std::getenv("CAP_BELOW")) g_cap_below = std::atoi(e);
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
     int n, k, p, R;
