@@ -1,0 +1,154 @@
+{
+  "label": "screening-a",
+  "baseline_run": "20261101-193503_astra-search4",
+  "transcript_problems": [],
+  "summary": [
+    {
+      "run": "20261101-193503_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-193503_astra-matching",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10742,
+      "mean_moves_per_query": 10.490234375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.2923447084016058,
+      "se_log_ratio_percent": 0.21517410652333957,
+      "mean_delta_per_query": 0.03057861328125,
+      "se_delta_per_query": 0.022547079172575032,
+      "wins": 13,
+      "ties": 0,
+      "losses": 19
+    },
+    {
+      "run": "20261101-193503_astra-novel",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10715.4375,
+      "mean_moves_per_query": 10.46429443359375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0432115584908898,
+      "se_log_ratio_percent": 0.23780205673679355,
+      "mean_delta_per_query": 0.004638671875,
+      "se_delta_per_query": 0.024879826614654918,
+      "wins": 16,
+      "ties": 0,
+      "losses": 16
+    },
+    {
+      "run": "20261101-193503_astra-online",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10709.65625,
+      "mean_moves_per_query": 10.458648681640625,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.010620861690737081,
+      "se_log_ratio_percent": 0.08108230869387435,
+      "mean_delta_per_query": -0.001007080078125,
+      "se_delta_per_query": 0.008486497910536248,
+      "wins": 17,
+      "ties": 1,
+      "losses": 14
+    },
+    {
+      "run": "20261101-193503_generic-mdp",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10709.9375,
+      "mean_moves_per_query": 10.45892333984375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.007096043288240108,
+      "se_log_ratio_percent": 0.010589888307856708,
+      "mean_delta_per_query": -0.000732421875,
+      "se_delta_per_query": 0.0011093004575137982,
+      "wins": 15,
+      "ties": 6,
+      "losses": 11
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-193503_astra-search4",
+      "comment": "atomic transcripts: fixed-count comparison of four candidate mechanisms [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_astra-search4/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-193503_astra-matching",
+      "comment": "atomic transcripts: fixed-count comparison of four candidate mechanisms [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_astra-matching/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_astra-matching/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-193503_astra-novel",
+      "comment": "atomic transcripts: fixed-count comparison of four candidate mechanisms [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_astra-novel/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_astra-novel/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-193503_astra-online",
+      "comment": "atomic transcripts: fixed-count comparison of four candidate mechanisms [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_astra-online/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_astra-online/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-193503_generic-mdp",
+      "comment": "atomic transcripts: fixed-count comparison of four candidate mechanisms [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_generic-mdp/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-193503_generic-mdp/src/generic-mdp.cpp"
+      ]
+    }
+  ]
+}

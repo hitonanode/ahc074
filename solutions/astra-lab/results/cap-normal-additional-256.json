@@ -1,0 +1,86 @@
+{
+  "label": "cap-normal-additional-256",
+  "baseline_run": "20261101-202139_astra-search4",
+  "transcript_problems": [],
+  "selected_seeds": "1256-1512",
+  "summary": [
+    {
+      "run": "20261101-202139_astra-search4",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10861.59375,
+      "mean_moves_per_query": 10.607025146484375,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 256,
+      "losses": 0
+    },
+    {
+      "run": "20261101-202139_astra-cap",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10799.01171875,
+      "mean_moves_per_query": 10.545909881591797,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.5773179496939675,
+      "se_log_ratio_percent": 0.09813089292218816,
+      "mean_delta_per_query": -0.061115264892578125,
+      "se_delta_per_query": 0.010395430635970808,
+      "wins": 164,
+      "ties": 0,
+      "losses": 92
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-202139_astra-search4",
+      "comment": "Independent normal-time 256-case holdout; frozen cap and cap-joint; official time guards unchanged; no other CPU-heavy tasks scheduled. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202139_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202139_astra-search4/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "4816d76e36563348b10596fb7901829ba69bffad37666d7d20fd8eed6cb31094"
+      }
+    },
+    {
+      "run": "20261101-202139_astra-cap",
+      "comment": "Independent normal-time 256-case holdout; frozen cap and cap-joint; official time guards unchanged; no other CPU-heavy tasks scheduled. [portable=True; threads=4; fixed=None]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202139_astra-cap/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-202139_astra-cap/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": null,
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "e0a92a370158fe6e518012e90bc26c5414977eb24715205918d59c822e0250c9"
+      }
+    }
+  ]
+}

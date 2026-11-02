@@ -1,0 +1,84 @@
+{
+  "label": "cap-additional-256",
+  "baseline_run": "20261101-200023_astra-search4",
+  "transcript_problems": [],
+  "selected_seeds": "32-288",
+  "summary": [
+    {
+      "run": "20261101-200023_astra-search4",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10719.71484375,
+      "mean_moves_per_query": 10.46847152709961,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 256,
+      "losses": 0
+    },
+    {
+      "run": "20261101-200023_astra-cap",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10678.109375,
+      "mean_moves_per_query": 10.427841186523438,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.38843974926614544,
+      "se_log_ratio_percent": 0.0747332622910825,
+      "mean_delta_per_query": -0.040630340576171875,
+      "se_delta_per_query": 0.007829314399783575,
+      "wins": 165,
+      "ties": 0,
+      "losses": 91
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-200023_astra-search4",
+      "comment": "fixed-count handle cap and final-pair decoder family ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-search4/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true
+      },
+      "source_sha256": {
+        "src/main.cpp": "4816d76e36563348b10596fb7901829ba69bffad37666d7d20fd8eed6cb31094"
+      }
+    },
+    {
+      "run": "20261101-200023_astra-cap",
+      "comment": "fixed-count handle cap and final-pair decoder family ablations [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-cap/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-200023_astra-cap/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true
+      },
+      "source_sha256": {
+        "src/main.cpp": "e0a92a370158fe6e518012e90bc26c5414977eb24715205918d59c822e0250c9"
+      }
+    }
+  ]
+}

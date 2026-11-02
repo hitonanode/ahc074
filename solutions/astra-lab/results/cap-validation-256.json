@@ -1,0 +1,124 @@
+{
+  "label": "cap-validation-256",
+  "baseline_run": "20261101-201353_astra-search4",
+  "transcript_problems": [],
+  "selected_seeds": null,
+  "summary": [
+    {
+      "run": "20261101-201353_astra-search4",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10703.9140625,
+      "mean_moves_per_query": 10.453041076660156,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 256,
+      "losses": 0
+    },
+    {
+      "run": "20261101-201353_astra-cap",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10679.5703125,
+      "mean_moves_per_query": 10.429267883300781,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.22899648057906855,
+      "se_log_ratio_percent": 0.07856936694013363,
+      "mean_delta_per_query": -0.023773193359375,
+      "se_delta_per_query": 0.008233113108910646,
+      "wins": 153,
+      "ties": 3,
+      "losses": 100
+    },
+    {
+      "run": "20261101-201353_astra-cap-select",
+      "cases": 256,
+      "valid_pairs": 256,
+      "mean_score": 10676.66796875,
+      "mean_moves_per_query": 10.426433563232422,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.2561429915386595,
+      "se_log_ratio_percent": 0.07729020612717366,
+      "mean_delta_per_query": -0.026607513427734375,
+      "se_delta_per_query": 0.008092707266035512,
+      "wins": 152,
+      "ties": 2,
+      "losses": 102
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-201353_astra-search4",
+      "comment": "Fresh fixed validation after cap and selected-cap screen; 256 previously unused cases, fixed-cap and selected-cap frozen. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201353_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201353_astra-search4/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "4816d76e36563348b10596fb7901829ba69bffad37666d7d20fd8eed6cb31094"
+      }
+    },
+    {
+      "run": "20261101-201353_astra-cap",
+      "comment": "Fresh fixed validation after cap and selected-cap screen; 256 previously unused cases, fixed-cap and selected-cap frozen. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201353_astra-cap/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201353_astra-cap/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "e0a92a370158fe6e518012e90bc26c5414977eb24715205918d59c822e0250c9"
+      }
+    },
+    {
+      "run": "20261101-201353_astra-cap-select",
+      "comment": "Fresh fixed validation after cap and selected-cap screen; 256 previously unused cases, fixed-cap and selected-cap frozen. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201353_astra-cap-select/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-201353_astra-cap-select/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "b3edb7f4df021d6260c742d809fd3b94a9e55ad947d767d505da555a2a5c0581"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "compile": [
+    "g++",
+    "-std=c++23",
+    "-O2",
+    "-DCLOCK_SCALE=1.1",
+    "solutions/astra-rule-anneal/check.cpp",
+    "-o",
+    "solutions/astra-rule-anneal/check-report"
+  ],
+  "environment": {
+    "RULE_VALIDATE": "1",
+    "RULE_FULL": "1"
+  },
+  "command": [
+    "solutions/astra-rule-anneal/check-report"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "rule_best_updates = 16\nrule_two_candidates = 258\nrule_two_accepted = 0\nrule_visibility_rejected = 6\nrule_state_checks = 18\nrule_before = 267.916\nrule_after = 169.498\nrule_candidates = 1000\nrule_accepted = 17\nrule_four = 3\nrule_six = 1\nrule_nonlinear = 6\nrule_cost_sets = 6391\nrule_end_sec = 0.144621\nchecked_pairs = 6818\nchecked_paths = 292\n"
+}

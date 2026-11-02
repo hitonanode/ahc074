@@ -1,0 +1,139 @@
+{
+  "baseline_repository": "hitonanode/ahc074",
+  "baseline_commit": "bb45c289d6672ecf410f9c004f3856178645739b",
+  "baseline_path": "solutions/astra-search4/main.cpp",
+  "baseline_github_blob": "ac67aa4b7d7da8a71d6d85709c262977ea8dc22d",
+  "baseline_local_sha256": "4816d76e36563348b10596fb7901829ba69bffad37666d7d20fd8eed6cb31094",
+  "baseline_difference": "Only one extra terminal newline from materialization; full content equality ignoring final whitespace verified. No source semantics changed.",
+  "generator": "generate.py, Python Random(74000000 + case_index)",
+  "clock_scale": 1.1,
+  "compiler": "g++ 13.3.0",
+  "fixed_counts": {
+    "MAP_ITERS": 800000,
+    "GOPT_STEPS": 200000,
+    "ANNEAL_ITERS": 20000000,
+    "actual_anneal_iterations": 20000768,
+    "CLIMB_ITERS": 66000
+  },
+  "fixed_mode_caveat": "Helper timeout and online fast mode disabled in measurement copy. Not a 2-second performance claim.",
+  "checker": "Portable judge derived from tools/src/lib.rs; independent replay via scripts/replay.py with check=True.",
+  "excluded_runs": "Early non-atomic transcript pilots, including 20261101-193025 and 20261101-193119, had incomplete log publication and are not used for adoption.",
+  "integrity_checks": [
+    {
+      "runs": [
+        "20261101-200023_astra-search4",
+        "20261101-200023_astra-cap"
+      ],
+      "cases_per_run": 288,
+      "exact_score_and_legal_moves": true,
+      "display_errors": 0
+    },
+    {
+      "runs": [
+        "20261101-201353_astra-search4",
+        "20261101-201353_astra-cap",
+        "20261101-201353_astra-cap-select"
+      ],
+      "cases_per_run": 256,
+      "exact_score_and_legal_moves": true,
+      "display_errors": 0
+    },
+    {
+      "runs": [
+        "20261101-202139_astra-search4",
+        "20261101-202139_astra-cap",
+        "20261101-202139_astra-cap-joint"
+      ],
+      "seed_range": "1000-1256",
+      "cases_per_run": 256,
+      "exact_score_and_legal_moves": true,
+      "display_errors": 0
+    },
+    {
+      "runs": [
+        "20261101-202139_astra-search4",
+        "20261101-202139_astra-cap"
+      ],
+      "seed_range": "1256-1512",
+      "cases_per_run": 256,
+      "exact_score_and_legal_moves": true,
+      "display_errors": 0
+    },
+    {
+      "runs": [
+        "20261101-204849_as5-g38",
+        "20261101-204849_astra-cap-as5",
+        "20261101-204849_g37"
+      ],
+      "seed_range": "1772-2000",
+      "cases_per_run": 228,
+      "exact_score_and_legal_moves": true,
+      "display_errors": 0,
+      "capacity_corrected": true
+    }
+  ],
+  "statistic": "Case-paired 100*log(candidate/base); mean +/- sample standard deviation / sqrt(number of cases). Negative is better. No individual-request pseudoreplication.",
+  "normal_holdout_total": {
+    "case_range": "1000-1512",
+    "cases": 512,
+    "interpretation": "First 256 in three-arm comparison with cap-joint; second 256 paired base/cap. Same frozen cap source throughout."
+  },
+  "frozen_source_checks_before_capacity_correction": [
+    {
+      "run": "20261101-200023_astra-cap",
+      "source": "solutions/astra-cap/main.cpp",
+      "exact_source_match": true
+    },
+    {
+      "run": "20261101-201353_astra-cap",
+      "source": "solutions/astra-cap/main.cpp",
+      "exact_source_match": true
+    },
+    {
+      "run": "20261101-202139_astra-cap",
+      "source": "solutions/astra-cap/main.cpp",
+      "exact_source_match": true
+    },
+    {
+      "run": "20261101-201816_astra-cap-joint",
+      "source": "solutions/astra-cap-joint/main.cpp",
+      "exact_source_match": true
+    },
+    {
+      "run": "20261101-202139_astra-cap-joint",
+      "source": "solutions/astra-cap-joint/main.cpp",
+      "exact_source_match": true
+    }
+  ],
+  "capacity_correction": {
+    "changes": "Matching scratch arrays empty and saved increased from 70 to 128 elements in all eight cap solver sources. No objective/search/policy change.",
+    "reason": "71 matching pairs can theoretically exceed inherited 70-element scratch capacity. No crash or illegal output was observed; historical array accesses were not instrumented.",
+    "historical_astra_cap_commit": "4c5a24a87505d19bc1a69d82795e4fed86867062",
+    "fixed_32_revalidation": "20261101-204700: all 32 cap stdout transcripts exactly equal to pre-correction run 20261101-200023; baseline also identical.",
+    "post_correction_source_checks": [
+      {
+        "run": "20261101-204849_as5-g38",
+        "source": "solutions/as5-g38/main.cpp",
+        "sha256": "46bdf6b845c06597db9af96c0421906bb5f297f0a540b5f46777a91bd59491f5",
+        "exact_match": true
+      },
+      {
+        "run": "20261101-204849_astra-cap-as5",
+        "source": "solutions/astra-cap-as5/main.cpp",
+        "sha256": "7158e986b6b04148e6d1e6f53604e20fce1332d46bfdb8448322d0caf3b5fc84",
+        "exact_match": true
+      },
+      {
+        "run": "20261101-204849_g37",
+        "source": "solutions/astra-cap-as5/g37.cpp",
+        "sha256": "d8960fd8e29857df9f28ad49e0acadf47c387b217340a993ce6a7ee8a3555843",
+        "exact_match": true
+      }
+    ]
+  },
+  "new_baseline": {
+    "commit": "c2ec151bd5607c76c48dc899325d413468a77bec",
+    "path": "solutions/as5-g38/main.cpp",
+    "github_blob": "b9cff3591c88d6d4c8af8f5702a62061bacc6539"
+  }
+}

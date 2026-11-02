@@ -1,0 +1,86 @@
+{
+  "label": "cap-capacity-fixed-32",
+  "baseline_run": "20261101-204700_astra-search4",
+  "transcript_problems": [],
+  "selected_seeds": null,
+  "summary": [
+    {
+      "run": "20261101-204700_astra-search4",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10710.6875,
+      "mean_moves_per_query": 10.45965576171875,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 32,
+      "losses": 0
+    },
+    {
+      "run": "20261101-204700_astra-cap",
+      "cases": 32,
+      "valid_pairs": 32,
+      "mean_score": 10690.53125,
+      "mean_moves_per_query": 10.439971923828125,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": -0.18850582062249888,
+      "se_log_ratio_percent": 0.20198033601783255,
+      "mean_delta_per_query": -0.019683837890625,
+      "se_delta_per_query": 0.021123460443005546,
+      "wins": 15,
+      "ties": 0,
+      "losses": 17
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-204700_astra-search4",
+      "comment": "Capacity correction validation: cap matching scratch arrays 70 to 128, no algorithm change; compare outputs against earlier fixed 32 cap cases. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204700_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204700_astra-search4/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "4816d76e36563348b10596fb7901829ba69bffad37666d7d20fd8eed6cb31094"
+      }
+    },
+    {
+      "run": "20261101-204700_astra-cap",
+      "comment": "Capacity correction validation: cap matching scratch arrays 70 to 128, no algorithm change; compare outputs against earlier fixed 32 cap cases. [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204700_astra-cap/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-204700_astra-cap/src/main.cpp"
+      ],
+      "research_settings": {
+        "fixed": "800000,200000,20000000,66000",
+        "threads": 4,
+        "portable_judge": true,
+        "environment": {}
+      },
+      "source_sha256": {
+        "src/main.cpp": "8145074aee0c9c6137ff64a70982cb3f6b85d192f4a9f07d6a48ed4951ea8501"
+      }
+    }
+  ]
+}

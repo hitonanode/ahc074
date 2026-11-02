@@ -1,0 +1,161 @@
+--- solutions/astra-cap/main.cpp
++++ solutions/astra-cap-joint/main.cpp
+@@ -1,7 +1,7 @@
+ // imp-gla: solutions/imp-910 with the generic look-ahead (Solver::init_lookahead, set_generic; README).
+ // imp-seg: solutions/imp-s2hd with the design annealing in 4 segments restarted from the best state (README).
+-// astra-cap: astra-search4 with one former handle driven by a fixed black cap (README).
+-// Windows: G = 36 generic windows and H = 28 handle windows h_0..h_27 (which physical windows is a
++// astra-cap-joint: astra-cap with exact cap / handle descent between annealing segments (README).
++// Windows: G = 36 generic windows and H = 27 handle windows h_0..h_26 (which physical windows is a
+ // choice of the design; internally the generic windows are 0..G-1 and h_j is window G + j before
+ // the annealing reorders the handles).
+ // Papers, top to bottom at the start:
+@@ -14,7 +14,7 @@
+ //     h_0..h_c, a hole on the deeper handles; it serves one target, or a pair of targets whose
+ //     generic differences form a DAG (it is then also a hole where they differ). Under the generic
+ //     layer the columns lie in the order 0, 1, ..., so the top of column c shows on h_c only.
+-//     192 = 6 generic + 186 dedicated papers (70 pairs + 116 singles = 256 targets).
++//     192 = 6 generic + 1 cap + 185 dedicated papers (71 pairs + 114 singles = 256 targets).
+ // Request u (paper D of column c): order the generic sheets for D's generic holes, dig column c until
+ // D is its top and move D to the very top; every handle hole of D must then show A_u, by fillers
+ // (column papers placed just below the generic layer, showing on an interval of handles) or by
+@@ -1457,13 +1457,15 @@
+     int anneal_iters = 0, climb_iters = 0, climb_accepted = 0;
+     int colswap_tried = 0, colswap_accepted = 0, replace_tried = 0, replace_accepted = 0;  // (anneal)
+     double proxy_before = 0, proxy_after = 0;
++    int cap_joint_tried = 0, cap_joint_valid = 0, cap_joint_accepted = 0;
++    double cap_joint_gain = 0.0;
+ 
+     static int pc(u64 x) { return __builtin_popcountll(x); }
+     Design(const std::vector<u64>& a, int m, int g) : M(m), G(g), H(63 - g), U(191 - m), need(256 - U), A(a) {
+         handle.resize(H);
+         std::iota(handle.begin(), handle.end(), G);
+         hb.resize(256);
+-        for (int i = 0; i < 256; i++) hb[i] = A[i] >> G;
++        for (int i = 0; i < 256; i++) hb[i] = (A[i] >> G) & low_bits(H);
+         owner.assign(256, -1);
+         partners.resize(256);
+         nc.resize(H);
+@@ -1575,7 +1577,7 @@
+                 ok[a][b] = ok[b][a] = 1;
+                 partners[a].push_back(b);
+                 partners[b].push_back(a);
+-                u64 d = A[a] ^ A[b];
++                u64 d = (A[a] ^ A[b]) & kActiveWindows;
+                 gcost[a][b] = gcost[b][a] = estimate(A[a], A[b]);
+                 edges.push_back({0.65 * pc(d >> G) + 2 * gcost[a][b] + 0.04 * pc(d), a, b});
+             }
+@@ -1590,7 +1592,7 @@
+         // Greedy matching can get stuck despite an adequate compatibility
+         // graph.  A length-three augmenting path replaces one pair by two.
+         auto edgeCost = [&](int a, int b) {
+-            u64 d = A[a] ^ A[b];
++            u64 d = (A[a] ^ A[b]) & kActiveWindows;
+             return 0.65 * pc(d >> G) + 2 * gcost[a][b] + 0.04 * pc(d);
+         };
+         while (int(unit.size()) < need) {
+@@ -1687,8 +1689,51 @@
+     // is kept in a form that evaluates a move quickly (Annealer).
+     // The schedule in kAnnealSegments segments, each a new Annealer from the best state so far (run
+     // keeps the best state on return), with the temperatures of its slice of the whole schedule.
++    // This move changes the input coordinate represented by the cap, but keeps
++    // its internal index fixed at 63 so all online code remains unchanged.
++    // Pair compatibility and generic distance depend only on the first G bits.
++    void cap_descent(std::vector<int>& permutation) {
++        const auto saved_hb = hb;
++        const double old_cost = cur;
++        double best_cost = old_cost;
++        int best_handle = -1;
++        for (int j = 0; j < H; ++j) {
++            ++cap_joint_tried;
++            bool valid_column = true;
++            int black_count = 0;
++            for (const auto& u : unit) {
++                if (u.c != j) continue;
++                if (u.b >= 0 && ((A[u.a] ^ A[u.b]) & kCapBit)) {
++                    valid_column = false;
++                    break;
++                }
++                black_count += (A[u.a] & kCapBit) != 0;
++            }
++            if (!valid_column || black_count == 0 || black_count == nc[j]) continue;
++            ++cap_joint_valid;
++            const u64 hbit = 1ULL << j;
++            for (int u = 0; u < P; ++u)
++                hb[u] = (saved_hb[u] & ~hbit) | (((A[u] >> kCapWindow) & 1) << j);
++            rebuild();
++            if (cur < best_cost - 1e-7) best_cost = cur, best_handle = j;
++        }
++        hb = saved_hb;
++        if (best_handle >= 0) {
++            const int w = handle[best_handle];
++            const u64 wbit = 1ULL << w, hbit = 1ULL << best_handle;
++            for (int u = 0; u < P; ++u) {
++                const u64 flip = ((A[u] >> w) ^ (A[u] >> kCapWindow)) & 1;
++                A[u] ^= (wbit | kCapBit) * flip;
++                hb[u] ^= hbit * flip;
++            }
++            std::swap(permutation[w], permutation[kCapWindow]);
++            ++cap_joint_accepted;
++            cap_joint_gain += old_cost - best_cost;
++        }
++        rebuild();
++    }
+     static constexpr int kAnnealSegments = 4;
+-    void anneal(double seconds, int fixedIterations = 0) {
++    void anneal(double seconds, int fixedIterations, std::vector<int>& permutation) {
+         const auto t0 = std::chrono::steady_clock::now();
+         int total = 0;
+         for (int s = 0; s < kAnnealSegments; s++) {
+@@ -1701,6 +1746,7 @@
+             else
+                 Annealer<5>(*this).run(sec, fi, p0, p1);
+             total += anneal_iters;
++            if (s + 1 < kAnnealSegments) cap_descent(permutation);
+         }
+         anneal_iters = total;
+     }
+@@ -4280,6 +4326,9 @@
+                           << "\ngopt_steps = " << ws.climb_steps << '\n';
+         }
+         comp.rebuild();
++        // Assignment excludes cap bit 63. Keep its color in Design::A so the
++        // exact coordinate descent can later exchange it with a handle.
++        for (int u = 0; u < P; ++u) A[u] |= originalA[u] & kCapBit;
+         des = std::make_unique<Design>(A, M, G);
+         // gcost: the exact mean number of moves of the generic layer from a uniform order, averaged over
+         // the two targets of the pair (gpt6pro-09: the legal distance is not symmetric, and the
+@@ -4300,9 +4349,9 @@
+     }
+     std::cerr << "map_iters = " << map_total << "\nmap_end_sec = " << elapsed_sec() << '\n';
+     if (anneal_iters)
+-        des->anneal(1e9, anneal_iters);
++        des->anneal(1e9, anneal_iters, permutation);
+     else
+-        des->anneal(std::max(0.005, kAnnealEnd - elapsed_sec()), 0);
++        des->anneal(std::max(0.005, kAnnealEnd - elapsed_sec()), 0, permutation);
+     std::cerr << "anneal_iters = " << des->anneal_iters << "\nanneal_end_sec = " << elapsed_sec() << '\n';
+     std::cerr << "colswap_tried = " << des->colswap_tried << "\ncolswap_accepted = " << des->colswap_accepted
+               << "\nreplace_tried = " << des->replace_tried << "\nreplace_accepted = " << des->replace_accepted
+@@ -4317,13 +4366,17 @@
+               << "\nproxy_before = " << des->proxy_before / P << "\nproxy_after = " << des->proxy_after / P
+               << "\nclimb_end_sec = " << elapsed_sec() << '\n';
+ 
+-    // Restore the cap bit only for the physical papers and online targets.
+-    // Assignment never moves index 63, and all design calculations used 63 bits.
+-    for (int u = 0; u < P; ++u) A[u] |= originalA[u] & kCapBit;
++    // Design owns the accepted cap / handle bit transpositions. Its full A and
++    // the physical permutation now describe exactly the same internal targets.
++    A = des->A;
++    std::cerr << "cap_joint_tried = " << des->cap_joint_tried
++              << "\ncap_joint_valid = " << des->cap_joint_valid
++              << "\ncap_joint_accepted = " << des->cap_joint_accepted
++              << "\ncap_joint_gain = " << des->cap_joint_gain / P << '\n';
+     double model_col = 0.0, model_hole = 0.0, model_gc = 0.0;
+     for (int c = 0; c < des->H; ++c) model_col += des->colcost(c), model_hole += des->hcost(c);
+     for (const auto& u : des->unit) model_gc += des->gc(u);
+-    std::cerr << "cap_window = " << kCapWindow
++    std::cerr << "cap_window = " << permutation[kCapWindow]
+               << "\nmodel_cost = " << (model_col + model_hole + model_gc) / P
+               << "\nmodel_col = " << model_col / P << "\nmodel_hole = " << model_hole / P
+               << "\nmodel_gc = " << model_gc / P << '\n';

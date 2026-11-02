@@ -1,0 +1,96 @@
+{
+  "label": "decoder-development-128",
+  "baseline_run": "20261101-195415_astra-search4",
+  "transcript_problems": [],
+  "summary": [
+    {
+      "run": "20261101-195415_astra-search4",
+      "cases": 128,
+      "valid_pairs": 128,
+      "mean_score": 10712.4453125,
+      "mean_moves_per_query": 10.461372375488281,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0,
+      "se_log_ratio_percent": 0.0,
+      "mean_delta_per_query": 0.0,
+      "se_delta_per_query": 0.0,
+      "wins": 0,
+      "ties": 128,
+      "losses": 0
+    },
+    {
+      "run": "20261101-195415_astra-nonlinear",
+      "cases": 128,
+      "valid_pairs": 128,
+      "mean_score": 10714.8515625,
+      "mean_moves_per_query": 10.463722229003906,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.022223215454284524,
+      "se_log_ratio_percent": 0.01724680299278341,
+      "mean_delta_per_query": 0.002349853515625,
+      "se_delta_per_query": 0.001819336810329792,
+      "wins": 4,
+      "ties": 119,
+      "losses": 5
+    },
+    {
+      "run": "20261101-195415_astra-rule-post",
+      "cases": 128,
+      "valid_pairs": 128,
+      "mean_score": 10712.4765625,
+      "mean_moves_per_query": 10.461402893066406,
+      "mean_errors": 0,
+      "mean_log_ratio_percent": 0.0002677434440182744,
+      "se_log_ratio_percent": 0.0025340391486535106,
+      "mean_delta_per_query": 3.0517578125e-05,
+      "se_delta_per_query": 0.00026420672513099806,
+      "wins": 3,
+      "ties": 123,
+      "losses": 2
+    }
+  ],
+  "runs": [
+    {
+      "run": "20261101-195415_astra-search4",
+      "comment": "larger fixed-count comparison: pre-design vs final-pair decoder learning [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195415_astra-search4/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195415_astra-search4/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-195415_astra-nonlinear",
+      "comment": "larger fixed-count comparison: pre-design vs final-pair decoder learning [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195415_astra-nonlinear/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195415_astra-nonlinear/src/main.cpp"
+      ]
+    },
+    {
+      "run": "20261101-195415_astra-rule-post",
+      "comment": "larger fixed-count comparison: pre-design vs final-pair decoder learning [portable=True; threads=4; fixed=800000,200000,20000000,66000]",
+      "status": "ok",
+      "compile_command": [
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195415_astra-rule-post/a.out",
+        "/workspace/scratch/e4cd1cf9e4b0/ahc074/runs/20261101-195415_astra-rule-post/src/main.cpp"
+      ]
+    }
+  ]
+}
