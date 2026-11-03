@@ -104,6 +104,6 @@ AtCoder Heuristic Contest 074（A - Layered Barcode Display）の問題を解く
 
 ### ダッシュボード（人間用）
 
-- runs/report.html は、全ケースを評価した run の一覧（相対スコア・平均スコア・E・T・勝-分-負）と、選んだ run のケース別スコアを並べる。評価のたびに scripts/pahcer_run.py が作り直す（手で作り直すなら `scripts/report.py`）。
+- runs/report.html は、全ケースを評価した run の一覧（相対スコア・平均スコア・E・T・勝-分-負）と、選んだ run のケース別スコアを並べる。上の「ケース」を seed 0〜499 にすると、その 500 ケースだけを評価した古い run も並び、全ケースの run もその 500 ケースで比べる。評価のたびに scripts/pahcer_run.py が作り直す（手で作り直すなら `scripts/report.py`）。
 - `scripts/serve_report.py` を起動して http://localhost:8074/report.html を開くと、ケースをクリックしたときに、その出力を読み込んだ公式ビジュアライザ（runs/.vis/ に取ってきたコピー）が並ぶ。
 - agent が結果を調べるときは、HTML ではなく observe.py のテキスト出力を使う。
