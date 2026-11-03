@@ -171,18 +171,21 @@ const scopeKey = ([lo, hi]) => `${lo}-${hi}`;
 // The seed range compared on. DATA.scopes[0] is all the local cases; on a narrower one (the 500
 // cases of the early runs) the runs that evaluated only that range are listed too, and the other
 // runs are cut to it. Chosen in the bar, which reloads the page with ?scope=LO-HI; without the
-// parameter, the range saved in localStorage by the last page is used.
+// parameter, the range saved in localStorage by the last page is used. Otherwise the widest range
+// that some run evaluated (e.g. only 500-case runs exist yet) is used.
+const covers = (run, [lo, hi]) => run.seeds[0] <= lo && hi <= run.seeds[1];
 const SCOPE = (() => {
   let wanted = new URLSearchParams(location.search).get('scope');
   try {
     wanted ??= JSON.parse(localStorage.getItem(STORE))?.scope;
   } catch (e) { /* use all the cases */ }
-  return DATA.scopes.find(r => scopeKey(r) === wanted) || DATA.scopes[0];
+  return DATA.scopes.find(r => scopeKey(r) === wanted)
+      || DATA.scopes.find(r => DATA.runs.some(run => covers(run, r))) || DATA.scopes[0];
 })();
 const [LO, HI] = SCOPE;
 const NS = HI - LO;        // number of cases; a case index i stands for seed LO + i
 // Newest first; scores[i] is 0 for WA. r.seeds is the range the run's arrays cover.
-const RUNS = DATA.runs.filter(r => r.seeds[0] <= LO && HI <= r.seeds[1]).map(r => {
+const RUNS = DATA.runs.filter(r => covers(r, SCOPE)).map(r => {
   const cut = values => values.slice(LO - r.seeds[0], HI - r.seeds[0]);
   const times = cut(r.times);
   return {...r, scores: cut(r.scores), E: cut(r.E), T: cut(r.T), times, errors: cut(r.errors),
@@ -627,7 +630,7 @@ $('mode-note').textContent = SERVED
   ? 'ビジュアライザは公式のものを手元にコピーしたもので、出力を自動で読み込みます。'
   : 'ファイルとして開いています。ビジュアライザに出力を自動で読み込むには、scripts/serve_report.py を起動し、表示された URL で開いてください。';
 $('scope').append(...DATA.scopes.map((r, at) => {
-  const count = DATA.runs.filter(e => e.seeds[0] <= r[0] && r[1] <= e.seeds[1]).length;
+  const count = DATA.runs.filter(e => covers(e, r)).length;
   return el('option', {value: scopeKey(r)}, `seed ${r[0]}〜${r[1] - 1}${at ? '' : '（全ケース）'}・${count} run`);
 }));
 $('scope').value = scopeKey(SCOPE);
