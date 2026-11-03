@@ -455,3 +455,5 @@ Time                      | Cases | Total Score      | Avg. Score       | Total 
 2026-11-03T03:25:27+09:00 | 2,000 |       21,150,954 |         10575.48 |  8,048.56661 |     4.02428 | 20261103-032506_as6-gproxy canonicalize levels through empty columns / assignment objective + color skew and pair-difference spread (Astra)
 2026-11-03T03:33:01+09:00 | 2,000 |       21,147,886 |         10573.94 |  8,048.44257 |     4.02422 | 20261103-033246_as6-canon as6-canon + the assignment objective of as6-gproxy
 2026-11-03T03:33:01+09:00 | 2,000 |       21,153,613 |         10576.81 |  8,048.67540 |     4.02434 | 20261103-033246_as6-cg as6-canon + the assignment objective of as6-gproxy
+2026-11-03T09:23:23+09:00 |    50 |          529,433 |         10588.66 |    201.24134 |     4.02483 | 20261103-092306_as6-canon 構造再検討: 8枚の完全比較器、G40、半順序の厳密平均費用表、動作と差の確認
+2026-11-03T09:23:23+09:00 |    50 |          547,370 |         10947.40 |    201.96480 |     4.03930 | 20261103-092306_eight-code 構造再検討: 8枚の完全比較器、G40、半順序の厳密平均費用表、動作と差の確認
