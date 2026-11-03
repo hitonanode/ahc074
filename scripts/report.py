@@ -5,7 +5,10 @@
 
 - scripts/pahcer_run.py が評価のたびに自動で実行する。手で実行し直してもよい。
 - 載せるのは、正常に終わり、手元の全ケース (pahcer_config.toml の seed 範囲) を評価した run。
-  --seeds で一部だけを評価した run は対象外になる（ページの「載せていない run」に出る）。
+  ページの「ケース」で seed 0〜499 に切り替えると、その 500 ケースを評価した run（2000 ケースが
+  既定になる前の run）も並べ、全ケースの run とはその 500 ケースで比べる（EXTRA_SCOPES）。
+  どの範囲も評価し終えていない run（--seeds で一部だけを評価したもの）は対象外になる
+  （ページの「載せていない run」に出る）。
 - 画面の本体は scripts/report_template.html。このスクリプトは、そこへスコア・E・T などを埋め込む。
   ケースごとの E と T は runs/<run-id>/metrics.json（なければここで計算して作る）から読む。
 - 出力を読み込んだビジュアライザを並べて見るには、scripts/serve_report.py で HTTP で開く
@@ -31,6 +34,10 @@ VISUALIZER_URL = "https://img.atcoder.jp/ahc074/YAAu43G9.html"
 # Same-origin copy of the official visualizer, relative to runs/ (made by scripts/serve_report.py).
 MIRROR_URL = ".vis/YAAu43G9/YAAu43G9.html"
 
+# Seed ranges the page can also compare on, besides all the local cases: the 500 cases that were
+# the local set until 2026-11-01. A run is listed in every range that it evaluated completely.
+EXTRA_SCOPES = [range(0, 500)]
+
 QUIET = False
 
 
@@ -47,8 +54,12 @@ def write_atomic(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
-def collect_runs(seeds: range) -> tuple[list[dict], list[dict]]:
-    """Returns the entries of the runs to show, newest first, and the runs left out with the reason."""
+def collect_runs(scopes: list[range]) -> tuple[list[dict], list[dict]]:
+    """Returns the entries of the runs to show, newest first, and the runs left out with the reason.
+
+    The per-case arrays of an entry cover the first (widest) range of scopes that the run evaluated
+    completely, given as its "seeds"; the page slices them to a narrower range.
+    """
     shown, skipped = [], []
     for d in sorted(replay.runs_dir().iterdir(), reverse=True):
         if not d.is_dir() or d.name.startswith(".") or not (d / "meta.json").exists():
@@ -64,9 +75,11 @@ def collect_runs(seeds: range) -> tuple[list[dict], list[dict]]:
         except (OSError, ValueError, KeyError) as e:  # e.g. a file that is being written right now
             skipped.append({"id": d.name, "reason": f"記録を読めない ({type(e).__name__})"})
             continue
-        missing = sum(s not in cases for s in seeds)
-        if missing:
-            skipped.append({"id": d.name, "reason": f"seed {seeds.start}〜{seeds.stop - 1} のうち {missing} 個が"
+        seeds = next((r for r in scopes if all(s in cases for s in r)), None)
+        if seeds is None:
+            full = scopes[0]
+            missing = sum(s not in cases for s in full)
+            skipped.append({"id": d.name, "reason": f"seed {full.start}〜{full.stop - 1} のうち {missing} 個が"
                                                     f"未評価 (評価済み {len(cases)} ケース)"})
             continue
         try:
@@ -77,6 +90,7 @@ def collect_runs(seeds: range) -> tuple[list[dict], list[dict]]:
         git = (meta.get("source") or {}).get("git") or {}
         shown.append({
             "id": d.name,
+            "seeds": [seeds.start, seeds.stop],
             "comment": meta.get("comment") or "",
             "record": meta.get("record", True),
             "source": f"{meta.get('source', {}).get('path', '')} @ {git.get('commit', '')[:8]}"
@@ -93,11 +107,13 @@ def collect_runs(seeds: range) -> tuple[list[dict], list[dict]]:
 
 def build(open_browser: bool) -> int:
     seeds = replay.all_seeds()
-    shown, skipped = collect_runs(seeds)
+    # Widest first; every extra range lies inside all the local cases, so that a slice of an entry covers it.
+    scopes = [seeds] + [r for r in EXTRA_SCOPES if r != seeds and seeds.start <= r.start and r.stop <= seeds.stop]
+    shown, skipped = collect_runs(scopes)
     generated_at = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
     data = {
         "generated_at": generated_at,
-        "seeds": [seeds.start, seeds.stop],
+        "scopes": [[r.start, r.stop] for r in scopes],  # the first is all the local cases
         "visualizer_url": VISUALIZER_URL,
         "mirror_url": MIRROR_URL,
         "runs": shown,
@@ -112,7 +128,9 @@ def build(open_browser: bool) -> int:
     write_atomic(out, template.replace(DATA_PLACEHOLDER, payload))
     # The page polls this file (when served) to notice that it was rebuilt.
     write_atomic(replay.runs_dir() / "report_stamp.txt", generated_at + "\n")
-    log(f"{len(shown)} run を載せました (seed {seeds.start}〜{seeds.stop - 1})。対象外 {len(skipped)} run")
+    counts = "、".join(f"seed {r.start}〜{r.stop - 1}: {sum(e['seeds'][0] <= r.start and r.stop <= e['seeds'][1] for e in shown)} run"
+                      for r in scopes)
+    log(f"{len(shown)} run を載せました ({counts})。対象外 {len(skipped)} run")
     log(str(out))
     if open_browser:
         webbrowser.open(out.as_uri())

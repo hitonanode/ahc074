@@ -109,6 +109,7 @@
 <body>
 <header class="bar">
   <h1>AHC074 実験結果</h1>
+  <label title="比べるケースの範囲。狭い範囲を選ぶと、その範囲だけを評価した run も並び、全ケースの run もその範囲のスコアで比べる">ケース <select id="scope"></select></label>
   <label>基準 <select id="ref"></select></label>
   <label>色の幅 <select id="range"></select></label>
   <label>セル <select id="cell"></select></label>
@@ -165,12 +166,30 @@ try {
   throw e;
 }
 
-const [LO, HI] = DATA.seeds;
+const STORE = 'ahc074-report';
+const scopeKey = ([lo, hi]) => `${lo}-${hi}`;
+// The seed range compared on. DATA.scopes[0] is all the local cases; on a narrower one (the 500
+// cases of the early runs) the runs that evaluated only that range are listed too, and the other
+// runs are cut to it. Chosen in the bar, which reloads the page with ?scope=LO-HI; without the
+// parameter, the range saved in localStorage by the last page is used.
+const SCOPE = (() => {
+  let wanted = new URLSearchParams(location.search).get('scope');
+  try {
+    wanted ??= JSON.parse(localStorage.getItem(STORE))?.scope;
+  } catch (e) { /* use all the cases */ }
+  return DATA.scopes.find(r => scopeKey(r) === wanted) || DATA.scopes[0];
+})();
+const [LO, HI] = SCOPE;
 const NS = HI - LO;        // number of cases; a case index i stands for seed LO + i
-const RUNS = DATA.runs;    // newest first; scores[i] is 0 for WA
+// Newest first; scores[i] is 0 for WA. r.seeds is the range the run's arrays cover.
+const RUNS = DATA.runs.filter(r => r.seeds[0] <= LO && HI <= r.seeds[1]).map(r => {
+  const cut = values => values.slice(LO - r.seeds[0], HI - r.seeds[0]);
+  const times = cut(r.times);
+  return {...r, scores: cut(r.scores), E: cut(r.E), T: cut(r.T), times, errors: cut(r.errors),
+          max_time: Math.max(...times), cases: r.seeds[1] - r.seeds[0]};
+});
 const byId = new Map(RUNS.map(r => [r.id, r]));
 const RANGES = [2, 5, 10, 20, 40];
-const STORE = 'ahc074-report';
 // Served over HTTP by scripts/serve_report.py: the visualizer is a same-origin copy of the
 // official one, into which the output can be loaded. Opened as a file: only the official page.
 const SERVED = location.protocol === 'http:' || location.protocol === 'https:';
@@ -180,7 +199,8 @@ const state = {
   ref: 'all',           // what a relative score of 100 means: 'all', 'selected' or a run id
   range: 10,            // distance from 100 at which the color is strongest
   cell: 'score',        // what a case cell shows: 'score', 'E' or 'T'
-  sortCols: false,      // visualizer: reorder the windows by the number of holes in the design
+  sortCols: false,      // visualizer: reorder the windows by the first designed paper that fills them
+  otherSelected: [],    // selected runs that are not listed in this range, kept for the other ranges
   runSort: {key: 'rel', desc: true},
   caseSort: {key: 'seed', desc: false},
 };
@@ -284,10 +304,15 @@ const RUN_COLUMNS = [
    cell: r => el('td', {}, `${r.wins}-${r.ties}-${r.losses}`)},
   {key: 'wa', label: 'WA', value: r => r.wa, descFirst: true,
    cell: r => el('td', {class: r.wa ? 'wa' : null}, String(r.wa))},
+  {key: 'cases', label: '評価', value: r => r.cases, descFirst: true, narrow: true,
+   title: 'その run が評価したケースの数（ここでは、そのうちこの範囲のケースだけで比べている）',
+   cell: r => el('td', {}, String(r.cases))},
   {key: 'time', label: '最大時間', value: r => r.max_time, descFirst: true,
    title: '1 ケースの最大実行時間（手元。制限は 2 秒）',
    cell: r => el('td', {class: r.max_time > 2 ? 'wa' : null}, `${fmt(r.max_time, 2)} s`)},
 ];
+// The evaluated-cases column only tells runs apart when narrower runs are listed with the others.
+if (SCOPE === DATA.scopes[0]) RUN_COLUMNS.splice(RUN_COLUMNS.findIndex(c => c.narrow), 1);
 const CASE_COLUMNS = [
   {key: 'seed', label: 'seed', value: i => i},
   {key: 'ref', label: '基準', value: i => (isFinite(REF[i]) ? REF[i] : null)},
@@ -324,8 +349,9 @@ function selectTop() {
 
 function saveState() {
   try {
-    localStorage.setItem(STORE, JSON.stringify({selected: [...state.selected], ref: state.ref, range: state.range,
-                                                cell: state.cell, sortCols: state.sortCols}));
+    localStorage.setItem(STORE, JSON.stringify({selected: [...state.selected, ...state.otherSelected], ref: state.ref,
+                                                range: state.range, cell: state.cell, sortCols: state.sortCols,
+                                                scope: scopeKey(SCOPE)}));
   } catch (e) { /* storage may be unavailable; the page works without it */ }
 }
 
@@ -333,6 +359,7 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE)) || {};
     state.selected = new Set((saved.selected || []).filter(id => byId.has(id)));
+    state.otherSelected = (saved.selected || []).filter(id => !byId.has(id) && DATA.runs.some(r => r.id === id));
     if (saved.ref === 'selected' || byId.has(saved.ref)) state.ref = saved.ref;
     if (RANGES.includes(saved.range)) state.range = saved.range;
     if (saved.cell in CELLS) state.cell = saved.cell;
@@ -599,6 +626,16 @@ $('meta').textContent = `${DATA.generated_at.slice(0, 16).replace('T', ' ')} 生
 $('mode-note').textContent = SERVED
   ? 'ビジュアライザは公式のものを手元にコピーしたもので、出力を自動で読み込みます。'
   : 'ファイルとして開いています。ビジュアライザに出力を自動で読み込むには、scripts/serve_report.py を起動し、表示された URL で開いてください。';
+$('scope').append(...DATA.scopes.map((r, at) => {
+  const count = DATA.runs.filter(e => e.seeds[0] <= r[0] && r[1] <= e.seeds[1]).length;
+  return el('option', {value: scopeKey(r)}, `seed ${r[0]}〜${r[1] - 1}${at ? '' : '（全ケース）'}・${count} run`);
+}));
+$('scope').value = scopeKey(SCOPE);
+$('scope').addEventListener('change', e => {
+  const url = new URL(location.href);
+  url.searchParams.set('scope', e.target.value);
+  location.assign(url);
+});
 if (DATA.skipped.length) {
   $('skipped').replaceChildren(
     el('summary', {}, `載せていない run（${DATA.skipped.length} 個）`),
