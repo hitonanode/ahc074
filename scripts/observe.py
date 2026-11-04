@@ -2,15 +2,20 @@
 """runs/ に保存された出力を再生し、評価結果を AI が読みやすいテキストで観察する。
 
 RUN には run-id、その末尾の解法名（複数あれば最新）、run ディレクトリのパスを指定できる。
-ケース単位のコマンド (queries, state, design, stats --seed) には、出力ファイルのパスも指定できる。
+ケース単位のコマンド (queries, state, design, stats --seed) には、出力ファイルのパスも指定できる
+（runs/<run-id>/out/ の下のファイルなら、隣の err/ から解法の構造の行も読む）。
+
+解法が stderr に自分の構造（紙の属性 `@paper <名前> = <紙 0 の値> ...` と、注文ごとの操作のラベル
+`@ops <r> = <ラベル> ...`。AGENTS.md の「分析」）を出していれば、design・state・queries はそれを添え、
+stats はラベルごと・動かした紙の属性ごとの操作数を集計する。
 
     scripts/observe.py runs     [--ref RUN] [--all] [--sort ratio|time] [--top 30]
     scripts/observe.py cases    RUN [--vs RUN2] [--top 15]
-    scripts/observe.py stats    RUN [--vs RUN2] [--seed S]
-    scripts/observe.py queries  RUN SEED [--from R] [--to R] [--wrong] [--all]
+    scripts/observe.py stats    RUN [--vs RUN2] [--seed S] [--attr A,B] [--cross A]
+    scripts/observe.py queries  RUN SEED [--from R] [--to R] [--wrong] [--all] [--attr A,B]
     scripts/observe.py state    RUN SEED --request R [--after] [--top 24]
     scripts/observe.py design   RUN SEED
-    scripts/observe.py log      RUN SEED [--tail N]
+    scripts/observe.py log      RUN SEED [--tail N] [--annotations]
     scripts/observe.py verify   RUN
 """
 
@@ -43,6 +48,55 @@ def load_case(target: str, seed: int):
         label, out = run.name, replay.out_path(run, seed)
     inp = replay.load_input(seed)
     return label, inp, replay.parse_output(inp, out.read_text(errors="replace"))
+
+
+def err_of(target: str, seed: int) -> Path | None:
+    """The stderr file of a case: the run's, or for an output file runs/<run-id>/out/<seed>.txt the file
+    of the same name in the err/ next to it."""
+    path = Path(target)
+    if path.is_file():
+        err = path.parent.parent / "err" / path.name
+        return err if path.parent.name == "out" and err.exists() else None
+    err = replay.err_path(replay.resolve_run(target), seed)
+    return err if err.exists() else None
+
+
+def load_annotations(target: str, seed: int, inp: replay.Input, out: replay.Output,
+                     warn: bool = True) -> replay.Annotations:
+    """The solution's structure (the `@paper` / `@ops` lines of the case's stderr; empty if none). With
+    warn, prints the format problems and the requests whose number of labels differs from their moves."""
+    err = err_of(target, seed)
+    if err is None:
+        return replay.Annotations()
+    ann = replay.parse_annotations(err.read_text(errors="replace"), inp.k)
+    if warn:
+        warn_problems(replay.check_annotations(ann, out))
+    return ann
+
+
+def warn_problems(problems: list[str], where: str = "") -> None:
+    if problems:
+        print(f"WARNING: {len(problems)} problems in the @paper / @ops lines of stderr{where}: "
+              + "; ".join(problems[:5]) + ("; ..." if len(problems) > 5 else ""))
+
+
+def attribute_columns(ann: replay.Annotations, papers) -> tuple[list[str], dict[str, int]]:
+    """The @paper attributes (in the order printed) and their column widths over the given papers."""
+    names = list(ann.papers)
+    widths = {a: max([len(a)] + [len(ann.value(a, k)) for k in papers]) for a in names}
+    return names, widths
+
+
+def attribute_cells(ann: replay.Annotations, names: list[str], widths: dict[str, int], k: int) -> str:
+    return "".join(f" {ann.value(a, k):<{widths[a]}}" for a in names)
+
+
+def attribute_header(names: list[str], widths: dict[str, int]) -> str:
+    return "".join(f" {a:<{widths[a]}}" for a in names)
+
+
+def parse_names(text: str | None) -> list[str]:
+    return [x for x in (text or "").split(",") if x]
 
 
 def result_line(rep: replay.Replay) -> str:
@@ -284,7 +338,98 @@ def cmd_stats(args) -> None:
         print("stderr `name = value` (mean over valid cases that print it):")
         for name in stderr_names:
             print(f"  {name:<32}" + "".join(f"{num(r[1].get(name), '{:.6g}'):>14}" for r in results))
+    if args.seed is not None:
+        annotations = []
+        for target in targets:
+            _, inp, out = load_case(target, args.seed)
+            ann = load_annotations(target, args.seed, inp, out, warn=False)
+            annotations.append({args.seed: replay.annotation_metrics(out, ann)} if ann else {})
+    else:
+        annotations = [replay.run_annotations(r) for r in runs]
+    valid = [[s for s in seeds if not c[s]["error"]] for c in columns]
+    annotation_stats(names, annotations, valid, args)
     print("(means over valid cases; per-request metrics are means of per-case values)")
+
+
+def value_key(v: str):
+    """Natural order of attribute values: numbers by value, then words, '-' last."""
+    try:
+        return (0, float(v), "")
+    except ValueError:
+        return (2, 0.0, "") if v == "-" else (1, 0.0, v)
+
+
+def annotation_stats(names: list[str], annotations: list[dict[int, dict]], valid: list[list[int]], args) -> None:
+    """Moves per request by @ops label and by the moved paper's @paper attributes (replay.annotation_metrics
+    per case; means of the per-case values over the valid cases with annotations)."""
+    if not any(annotations):
+        return
+    cases = [[a[s] for s in v if s in a and a[s]["requests"]] for a, v in zip(annotations, valid)]
+    for name, cs in zip(names, cases):
+        bad = [c for c in cs if c["problems"]]
+        if bad:
+            warn_problems([e for c in bad for e in c["problem_examples"]],
+                          f" of {name} in {len(bad)} cases (moves without a fitting label count as '?')")
+
+    def mean(cs, get):
+        return sum(get(c) / c["requests"] for c in cs) / len(cs) if cs else None
+
+    def line(title, values, fmt="{:.3f}", shares=None, width=11):
+        cells = [num(v, fmt) for v in values]
+        if len(values) == 2:
+            cells.append("-" if None in values else f"{values[1] - values[0]:+.3f}")
+        text = f"  {title:<18}" + "".join(f"{c:>{width}}" for c in cells)
+        if shares is not None:
+            text += "".join(f"{num(x, '{:.1%}'):>9}" for x in shares)
+        print(text)
+
+    heads = names + (["B-A"] if len(names) == 2 else [])
+    found = {k for cs in cases for c in cs for k in c["labels"]}
+    order = {k: max((mean(cs, lambda c: c["labels"].get(k, 0)) or 0) for cs in cases) for k in found}
+    labels = sorted(found, key=lambda k: (-order[k], k))
+    if labels:
+        print("moves per request by @ops label (cases with labels: " + " / ".join(str(len(cs)) for cs in cases)
+              + "), and the share of requests with such a move (req):")
+        print(f"  {'label':<18}" + "".join(f"{h:>11}" for h in heads) + "".join(f"{'req ' + n:>9}" for n in names))
+        for k in labels:
+            line(k, [mean(cs, lambda c: c["labels"].get(k, 0)) for cs in cases],
+                 shares=[mean(cs, lambda c: c["label_requests"].get(k, 0)) for cs in cases])
+        line("(all)", [mean(cs, lambda c: sum(c["labels"].values())) for cs in cases])
+    stored = {a for cs in cases for c in cs for a in c["attrs"]}
+    crossable = list(dict.fromkeys(a for cs in cases for c in cs for a in c["cross"]))
+    for attr in parse_names(args.attr) or crossable:
+        if attr not in stored:
+            print(f"(no counts by @paper {attr}: not printed, or more than {replay.ANNOTATION_ATTR_VALUES} values)")
+            continue
+        values = sorted({v for cs in cases for c in cs for v in c["attrs"].get(attr, {})}, key=value_key)
+        print(f"moves per request by the moved paper's @paper {attr}"
+              + ("" if args.attr else " (--attr for the other attributes)") + ":")
+        print(f"  {attr:<18}" + "".join(f"{h:>11}" for h in heads))
+        for v in values:
+            line(v, [mean(cs, lambda c: c["attrs"].get(attr, {}).get(v, 0)) for cs in cases])
+    if args.cross:
+        attr = args.cross
+        if attr not in crossable:
+            print(f"(no counts by label and @paper {attr}: only for attributes of at most"
+                  f" {replay.ANNOTATION_CROSS_VALUES} values)")
+            return
+        values = sorted({v for cs in cases for c in cs for r in c["cross"].get(attr, {}).values() for v in r},
+                        key=value_key)
+
+        def cell(cs, k, v):
+            return mean(cs, lambda c: c["cross"].get(attr, {}).get(k, {}).get(v, 0))
+
+        for i, (name, cs) in enumerate(zip(names, cases)):
+            diff = i == 1
+            print(f"moves per request by @ops label and the moved paper's @paper {attr}"
+                  + (f" ({names[1]} - {names[0]})" if diff else f" ({name})") + ":")
+            print(f"  {'label':<18}" + "".join(f"{v:>10}" for v in values))
+            for k in labels:
+                xs = [cell(cs, k, v) for v in values]
+                if diff:
+                    xs = [None if x is None or y is None else x - y for x, y in zip(xs, (cell(cases[0], k, v)
+                                                                                    for v in values))]
+                print(f"  {k:<18}" + "".join(f"{num(x, '{:+.3f}' if diff else '{:.3f}'):>10}" for x in xs))
 
 
 # ---------------------------------------------------------------- queries
@@ -308,8 +453,26 @@ def cmd_queries(args) -> None:
     end = parse_request(args.to, total) if args.to is not None else (total if args.wrong else min(start + 30, total))
     print(f"[{label}] seed {args.seed:04d}")
     print(result_line(rep))
+    ann = load_annotations(args.run, args.seed, inp, out)
+    attrs = parse_names(args.attr)
+    missing = [a for a in attrs if a not in ann.papers]
+    if missing:
+        print(f"(no @paper {', '.join(missing)} in stderr" + (f"; there are: {', '.join(ann.papers)}" if ann.papers
+                                                                else "") + ")")
+        attrs = [a for a in attrs if a in ann.papers]
     print("r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows."
-          " A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d.")
+          " A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d"
+          + (", :label = its @ops label" if ann.ops else "")
+          + (f", k({','.join(attrs)}) = the @paper values of paper k" if attrs else "") + ".")
+
+    def move_text(k: int, d: int, p: int | None, label: str | None) -> str:
+        paper = f"{k}({','.join(ann.value(a, k) for a in attrs)})" if attrs else str(k)
+        return paper + (f"@{p}" if p is not None else "") + f">{d}" + (f":{label}" if label is not None else "")
+
+    def moves_of(r: int, ops, positions) -> str:
+        labels = ann.labels_of(r, len(ops)) if ann.ops else [None] * len(ops)
+        return " ".join(move_text(k, d, p, x) for (k, d), p, x in zip(ops, positions, labels))
+
     shown = 0
     for q in rep.queries[start:end]:
         if args.wrong and q.correct:
@@ -317,13 +480,13 @@ def cmd_queries(args) -> None:
         if shown >= QUERY_LINE_LIMIT and not args.all:
             print(f"(stopped at {QUERY_LINE_LIMIT} lines; pass --all or narrow --from/--to)")
             break
-        moves = " ".join(f"{k}@{p}>{d}" for (k, d), p in zip(q.ops, q.positions))
+        moves = moves_of(q.r, q.ops, q.positions)
         print(f"r={q.r:>4} a={q.target:>3} m={len(q.ops):>3} ok={'Y' if q.correct else 'N'} mis={q.mismatch:>2}  {moves}")
         shown += 1
     if rep.error and len(rep.queries) < len(out.queries):
         r = len(rep.queries)
         print(f"r={r:>4} a={inp.requests[r]:>3} invalid: {rep.error}; moves: "
-              + " ".join(f"{k}>{d}" for k, d in out.queries[r]))
+              + moves_of(r, out.queries[r], [None] * len(out.queries[r])))
 
 
 # ---------------------------------------------------------------- state
@@ -341,8 +504,14 @@ def cmd_state(args) -> None:
     if rep.error:
         print(f"WA before this point: {rep.error}")
     print(f"so far: E={game.mistakes} T={game.moves}")
+    ann = load_annotations(args.run, args.seed, inp, out)
     if r < len(out.queries):
-        print(f"moves of request {r}: " + (" ".join(f"{k}>{d}" for k, d in out.queries[r]) or "(none)"))
+        ops = out.queries[r]
+        labels = ann.labels_of(r, len(ops)) if ann.ops else [None] * len(ops)
+        print(f"moves of request {r}"
+              + (" (k>d:label)" if ann.ops else "") + ": "
+              + (" ".join(f"{k}>{d}" + (f":{x}" if x is not None else "") for (k, d), x in zip(ops, labels))
+                 or "(none)"))
     target = inp.target[inp.requests[r]]
     shown = game.display()
     n = inp.n
@@ -351,11 +520,18 @@ def cmd_state(args) -> None:
     print(f"{'mismatch':<20}{diff_row(shown, target, n)}  ({(shown ^ target).bit_count()} windows)")
     print(PAPER_LEGEND)
     covered = 0
-    print(f"{'pos paper  vis':<20}")
-    for pos, k in enumerate(game.order[:args.top]):
+    top = game.order[:args.top]
+    attrs, widths = attribute_columns(ann, top)
+    if attrs:
+        # the @paper attributes between vis and the windows; the windows start in the same column
+        header = f"{'pos':>3} {'paper':>5} {'vis':>4}" + attribute_header(attrs, widths)
+        print(f"{header}    windows")
+    else:
+        print(f"{'pos paper  vis':<20}")
+    for pos, k in enumerate(top):
         row = paper_row(game, k, covered)
         vis = (game.papers[k].opaque & ~covered).bit_count()
-        print(f"{pos:>3} {k:>5} {vis:>4}    {row}")
+        print(f"{pos:>3} {k:>5} {vis:>4}" + attribute_cells(ann, attrs, widths, k) + f"    {row}")
         covered |= game.papers[k].opaque
     uncovered = n - covered.bit_count()
     rest = len(game.order) - args.top
@@ -385,10 +561,14 @@ def cmd_design(args) -> None:
     m = replay.design_metrics(inp, out.designs)
     print(f"[{label}] seed {args.seed:04d}: {len(out.designs)} papers designed; holes {m['hole_share']:.2%},"
           f" only holes {m['papers_all_holes']}, no holes {m['papers_no_holes']}")
-    print("k: paper, '0' white, '1' black, '.' hole; opaque/black: window counts; moved: times moved")
-    print(f"{'k':>3} {'opaque':>6} {'black':>5} {'moved':>5}  pattern")
+    ann = load_annotations(args.run, args.seed, inp, out)
+    attrs, widths = attribute_columns(ann, range(len(out.designs)))
+    print("k: paper, '0' white, '1' black, '.' hole; opaque/black: window counts; moved: times moved"
+          + (f"; {', '.join(attrs)}: the solution's @paper attributes" if attrs else ""))
+    print(f"{'k':>3} {'opaque':>6} {'black':>5} {'moved':>5}" + attribute_header(attrs, widths) + "  pattern")
     for k, p in enumerate(out.designs):
-        print(f"{k:>3} {p.opaque.bit_count():>6} {p.black.bit_count():>5} {moved.get(k, 0):>5}  {p.pattern}")
+        print(f"{k:>3} {p.opaque.bit_count():>6} {p.black.bit_count():>5} {moved.get(k, 0):>5}"
+              + attribute_cells(ann, attrs, widths, k) + f"  {p.pattern}")
 
 
 # ---------------------------------------------------------------- log, verify
@@ -398,6 +578,11 @@ def cmd_log(args) -> None:
     run = replay.resolve_run(args.run)
     text = replay.err_path(run, args.seed).read_text(errors="replace")
     lines = text.splitlines()
+    if not args.annotations:
+        kept = [line for line in lines if not line.startswith("@")]
+        if len(kept) < len(lines):
+            print(f"({len(lines) - len(kept)} structure lines @paper / @ops left out; --annotations shows them)")
+            lines = kept
     if args.tail and len(lines) > args.tail:
         print(f"(last {args.tail} of {len(lines)} lines)")
         lines = lines[-args.tail:]
@@ -451,6 +636,10 @@ def main() -> int:
     p.add_argument("run")
     p.add_argument("--vs", help="比べる run")
     p.add_argument("--seed", type=int, help="1 ケースだけの指標を出す")
+    p.add_argument("--attr", help="動かした紙の @paper 属性ごとの操作数を出す属性（カンマ区切り。既定: 値が"
+                                  f" {replay.ANNOTATION_CROSS_VALUES} 種以下の属性）")
+    p.add_argument("--cross", help="@ops のラベルと動かした紙の @paper 属性（値が"
+                                   f" {replay.ANNOTATION_CROSS_VALUES} 種以下）の組ごとの操作数を出す")
     p.set_defaults(func=cmd_stats)
 
     p = sub.add_parser("queries", help="注文ごとの操作と正誤を 1 行ずつ見る")
@@ -460,6 +649,7 @@ def main() -> int:
     p.add_argument("--to", help="この注文の直前まで（既定: --from の 30 個後。--wrong なら最後まで）")
     p.add_argument("--wrong", action="store_true", help="誤った注文だけを表示する")
     p.add_argument("--all", action="store_true", help=f"{QUERY_LINE_LIMIT} 行を超えても全部表示する")
+    p.add_argument("--attr", help="動かした紙に添える @paper 属性（カンマ区切り。例: role,col）")
     p.set_defaults(func=cmd_queries)
 
     p = sub.add_parser("state", help="注文の前（--after なら後）の紙の重なりと表示を見る")
@@ -479,6 +669,7 @@ def main() -> int:
     p.add_argument("run")
     p.add_argument("seed", type=int)
     p.add_argument("--tail", type=int, help="末尾の N 行だけ")
+    p.add_argument("--annotations", action="store_true", help="解法の構造の行（@paper / @ops）も表示する")
     p.set_defaults(func=cmd_log)
 
     p = sub.add_parser("verify", help="再生したスコアがテスターのスコアと一致するか（可視性の検査つき）")
