@@ -1,0 +1,12 @@
+ void design(int G,int iterations)const{
+  std::vector<int> windows,products;for(int j=0;j<63;j++)if(mask>>j&1)windows.push_back(j);for(int j=0;j<63;j++)if(!(mask>>j&1))windows.push_back(j);
+  for(int a=0;a<256;a++)if(std::find(anchor.begin(),anchor.begin()+Q,a)==anchor.begin()+Q)products.push_back(a);for(int i=0;i<Q;i++)products.push_back(anchor[i]);
+  std::vector<u64> target(256);for(int a=0;a<256;a++)for(int j=0;j<63;j++)target[a]|=((A[products[a]]>>windows[j])&1)<<j;
+  Comparator comp;comp.M=6;comp.G=G;for(int j=0;j<G;j++){comp.edge.emplace_back(e0[windows[j]],e1[windows[j]]);comp.polarity.push_back(pol[windows[j]]);}comp.rebuild();assert(comp.complete);
+  Design d(target,6,G,256-Q);auto cost=[&](u64 a,u64 b){auto r=comp.closure(a,a^b);u64 key=0;for(int x=0;x<6;x++)key|=u64(r[x])<<(8*x);return PosetSums::get().both_of(key)/1440.;};
+  if(!d.initialize([&](u64 a,u64 b){return comp.compatible(a,b);},cost,[]{return false;})){std::cout<<",\"failed\":true";return;}
+  d.anneal(1e9,iterations);d.filler_climb(1e9,60000);double gc=0;
+  for(int a=256-Q;a<256;a++){auto r=comp.closure(target[a],low_bits(G));u64 key=0;for(int x=0;x<6;x++){assert(!(r[x]>>x&1));key|=u64(r[x])<<(8*x);}auto&t=PosetSums::get();gc+=t.one[t.slot_of(key)]/720.;}
+  double col=0,hole=0,pairg=0;for(int c=0;c<d.H;c++){col+=d.colcost(c);hole+=d.hcost(c);}for(auto u:d.unit)pairg+=d.gc(u);assert(std::abs(d.cur-col-hole-pairg)<1e-5);
+  std::cout<<",\"design_cost\":"<<(d.cur+gc)/256<<",\"optimistic_cost\":"<<(d.cur+gc-2*Q)/256<<",\"columns\":"<<col/256<<",\"holes\":"<<hole/256<<",\"pair_generic\":"<<pairg/256<<",\"anchor_generic\":"<<gc/256;
+ }
