@@ -1041,3 +1041,9 @@
 - 外した部品の戻し方（最終日の最適化用）:
   - post-prune（2 操作の同時削除。効果は +0.020 ± 0.027%（124908）、+0.045 ± 0.031%（104051））: solutions/esw-tidy の `// ==== Post-processing: deletions and new anchors of the edits ====` の post_optimize で、編集の段の最初の delete_singles の 3 回の後にある「A return of the old lifted paper or an old filler may be needed ...」の 2 重ループ（i < j の 2 操作のうち一方が initial_extra の紙なら両方消して evaluate）を、「Other anchors for an old extra」の前に戻す。stderr の post_pair_trials・post_pair_accepts と、段の冒頭のコメントも戻す。
   - 穴埋めの山登りは外していない。as6-canon の山登りに替えるなら solutions/esw-lean-climb の `// ==== Filler climb: columns of the units for the filler value ====`（canon_filler_gain と filler_climb）を使う（効果は esw-tidy と差なし）。
+
+## 2026-11-04 ジャッジでの軽い計画と、設計の締め切りの短縮（esw-nofb / esw-early90 / esw-early85）
+
+- ジャッジの暫定 50 件: as6-canon 529870、esw-tidy 531759、esw-noprune 533784（どちらも最大 1810 ms）。手元の比（as6-canon 比 −1.465%）からの期待は約 522100 で、約 1.85% 悪い。軽い計画は 1 注文あたり約 0.014% の損（PR 94）なので、ジャッジでは平均約 130 注文/件が 1.80 秒以降の軽い計画で処理され、注文処理（と対話の待ち）が約 0.47 秒（手元の倍率込みの見積り 0.34 秒の約 1.4 倍）と見積もられる。CPU と対話のどちらが遅いかは未確認。
+- solutions/esw-nofb: esw-tidy から軽い計画を外した測定用（ジャッジでのケースごとの時間を見るため。TLE もありうる）。手元（LOCAL_BENCH）では esw-tidy と同じ動作。
+- solutions/esw-early90 / esw-early85: esw-noprune の設計の締め切り（窓の割り当て〜補助紙の表、緊急設計への切り替え）をすべて 0.9 / 0.85 倍（定数 kDesignScale）。500 件（20261104-132052、esw-noprune 比）で +0.006 ± 0.049%（248/2/250）、+0.022 ± 0.050%（245/2/253）と手元の損はほぼなく、end_sec の最大は 1.950 → 1.814 / 1.706 秒、1.8 秒超えは 59 → 1 / 0 件。設計の探索は 1.2 秒ほどで飽和していて、締め切りを縮めて注文処理の余裕に回す方が得。ジャッジでの効果は提出で確かめる。
