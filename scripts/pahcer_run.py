@@ -10,6 +10,9 @@
     scripts/pahcer_run.py --extend <run-id> [<run-id> ...] [-c "<comment>"]
                                                                    # 既存の run に未評価の seed を加える
     scripts/pahcer_run.py --status                                 # 評価中・待機中の評価と、評価の外の CPU 負荷を表示
+    scripts/pahcer_run.py --compare ... --save-design              # 各 run の設計を runs/<run-id>/design/ に保存する
+    scripts/pahcer_run.py --compare solutions/<A> solutions/<B> --design-from <run> [--orders N]
+                                                                   # 保存した設計を読み込み、注文処理だけを比べる
     （そのほか --no-record）
 
 - 解法のソース（と solutions/<name>/README.md）を runs/<run-id>/src/ にコピーし、そのコピーをコンパイルして評価する。
@@ -29,6 +32,15 @@
   runs/.queue/<pid>.json に自分を登録し、--status はそれ（と古い版が書いた runs/.lock の中身）を読む。
 - 評価中は、評価の外のプロセスが使った CPU を LOAD_INTERVAL_SEC ごとに測り、平均と最大を meta.json の
   outside_load（--extend では extensions の各記録）に残して、要約の最後に出す。目安を超えたら警告する。
+- --save-design は、解法に環境変数 DESIGN_SAVE_DIR=runs/<run-id>/design を渡し、解法は設計の終わりの状態を
+  そこに保存する（solutions/esw-tidy の DesignStore。ファイル名は入力のバーコードのハッシュ）。--design-from RUN は、
+  全部の解法に DESIGN_LOAD_DIR=runs/<RUN>/design を渡し、解法は設計をせずにそれを読み込んで注文だけを処理する。
+  --orders N（--design-from と一緒に使う）は、seed ごとに、tools/in の注文の列と、同じバーコードで注文の列だけを
+  変えた N - 1 本（tools/src/lib.rs と同じ規則で生成し、runs/.orders/ にキャッシュ）を評価する。2 本目からの
+  出力は runs/<run-id>/orders/<j>/out, err/ に入り、result.json の各ケースの order_scores に N 本のスコアが並ぶ。
+  比較の差は、seed ごとに N 本の log スコア比を平均してから seed の間で平均と標準誤差を取る。--design-from の
+  run は本当のスコアではないので、pahcer/ に記録せず（--no-record と同じ）、meta.json の design_from に印を
+  残す（ダッシュボードと observe.py runs の既定の一覧に載らない）。
 - 評価が終わるたびに、ケースごとの指標 (runs/<run-id>/metrics.json) を計算し、ダッシュボード
   (runs/report.html) を作り直す。どちらもロックを持ったまま行う（次の評価と CPU を取り合わないため）。
 - pahcer の設定は、ルートの pahcer_config.toml をテンプレートにして評価ごとに生成する。
@@ -45,6 +57,7 @@ import io
 import json
 import math
 import os
+import random
 import re
 import shutil
 import signal
@@ -100,6 +113,16 @@ LOAD_WARN_MAX_CORES = 3.0
 # per CPU, so over 0.1 s its rounding alone can amount to a couple of cores.
 LOAD_MIN_SEC = 5.0
 CLK_TCK = os.sysconf("SC_CLK_TCK")
+
+# --save-design / --design-from: the environment variables read by the solutions (solutions/esw-tidy,
+# DesignStore; under LOCAL_BENCH only) and the directory of a run that holds its saved designs.
+DESIGN_SAVE_ENV = "DESIGN_SAVE_DIR"
+DESIGN_LOAD_ENV = "DESIGN_LOAD_DIR"
+DESIGN_DIR = "design"
+# --orders: the inputs with other orders are cached in runs/.orders/<version>/<j>/<seed>.txt (j >= 1;
+# j = 0 is the input of tools/in). Change the version if the way they are generated changes.
+ORDERS_DIR = ".orders"
+ORDERS_VERSION = "v1"
 
 
 class Interrupted(Exception):
@@ -303,6 +326,87 @@ def write_config(path: Path, template: dict, *, seeds: tuple[int, int], out_dir:
     for header, table in sections:
         lines += ["", header] + [f"{k} = {toml_value(v)}" for k, v in table.items()]
     path.write_text("\n".join(lines) + "\n")
+
+
+# ---------------------------------------------------------------- saved designs and other orders
+
+
+def barcode_hash(input_path: Path) -> str:
+    """The name the solutions give to the saved design of an input (DesignStore::barcode_hash): FNV-1a
+    of the barcodes as 64-bit masks (bit j = window j), 8 little-endian bytes each, in input order."""
+    lines = input_path.read_text().split("\n")
+    h = 0xCBF29CE484222325
+    for s in lines[1:1 + int(lines[0].split()[2])]:
+        a = int(s.strip()[::-1], 2)
+        for byte in range(8):
+            h = ((h ^ (a >> (8 * byte) & 255)) * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return f"{h:016x}"
+
+
+def missing_designs(design_dir: Path, in_dir: Path, seeds) -> list[int]:
+    """The seeds whose design is not saved in design_dir."""
+    return [s for s in seeds if not (design_dir / f"{barcode_hash(in_dir / f'{s:04d}.txt')}.txt").is_file()]
+
+
+def design_source(arg: str) -> tuple[str, Path]:
+    """(run-id, its design directory) of the run named by --design-from."""
+    try:
+        run_dir = replay.resolve_run(arg)
+    except LookupError as e:
+        sys.exit(f"[pahcer_run] {e}")
+    design_dir = run_dir / DESIGN_DIR
+    if not design_dir.is_dir():
+        sys.exit(f"[pahcer_run] {run_dir.name} には保存した設計がありません（--save-design で評価した run を指定してください）")
+    return run_dir.name, design_dir
+
+
+def check_designs(design_dir: Path, in_dir: Path, seeds) -> None:
+    missing = missing_designs(design_dir, in_dir, seeds)
+    if missing:
+        sys.exit(f"[pahcer_run] {design_dir.parent.name} に保存した設計がない seed が {len(missing)} 個あります: "
+                 f"{', '.join(map(str, missing[:10]))}{' ...' if len(missing) > 10 else ''}")
+
+
+def order_input(root: Path, in_dir: Path, seed: int, j: int) -> Path:
+    """The input of `seed` with its j-th order sequence (j = 0: tools/in itself; otherwise the same
+    barcodes and a new sequence by the rule of tools/src/lib.rs: the first target uniform, then each
+    uniform among the targets other than the previous one). Generated once and cached."""
+    if j == 0:
+        return in_dir / f"{seed:04d}.txt"
+    path = root / "runs" / ORDERS_DIR / ORDERS_VERSION / str(j) / f"{seed:04d}.txt"
+    if path.is_file():
+        return path
+    lines = (in_dir / f"{seed:04d}.txt").read_text().split("\n")
+    _, _, p, r = map(int, lines[0].split())
+    rng = random.Random(1_000_003 * seed + j)
+    requests = [rng.randrange(p)]
+    for _ in range(r - 1):
+        x = rng.randrange(p - 1)
+        requests.append(x + (x >= requests[-1]))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp.write_text("\n".join(lines[:1 + p] + [str(a) for a in requests]) + "\n")
+    os.replace(tmp, path)
+    return path
+
+
+def solution_env(save_dir: Path | None = None, load_dir: Path | None = None) -> dict:
+    """The environment of a solution: ours without DESIGN_*, plus the directory to save to or load from."""
+    env = {k: v for k, v in os.environ.items() if k not in (DESIGN_SAVE_ENV, DESIGN_LOAD_ENV)}
+    if save_dir is not None:
+        env[DESIGN_SAVE_ENV] = str(save_dir)
+    if load_dir is not None:
+        env[DESIGN_LOAD_ENV] = str(load_dir)
+    return env
+
+
+def arm_env(meta: dict, run_dir: Path, runs_dir: Path) -> dict:
+    """The environment of a run's solution, from its meta.json (also for --extend)."""
+    if meta.get("design_from"):
+        return solution_env(load_dir=runs_dir / meta["design_from"]["run"] / DESIGN_DIR)
+    if meta.get("save_design"):
+        return solution_env(save_dir=run_dir / DESIGN_DIR)
+    return solution_env()
 
 
 # ---------------------------------------------------------------- processes, queue and outside load
@@ -626,10 +730,13 @@ def finished_case_count(run_ids: list[str], runs_dir: Path, since: float) -> int
     that end with the tester's "Score = ..." line (it is written last, when the case ends)."""
     count = 0
     for run_id in run_ids:
-        try:
-            files = list(os.scandir(runs_dir / run_id / "err"))
-        except OSError:
-            continue
+        files = []
+        # err/, and orders/<j>/err/ of the other order sequences (--orders)
+        for err_dir in [runs_dir / run_id / "err", *(runs_dir / run_id / "orders").glob("*/err")]:
+            try:
+                files += os.scandir(err_dir)
+            except OSError:
+                continue
         for entry in files:
             try:
                 st = entry.stat()
@@ -839,8 +946,9 @@ def wait_for_unused_result_name(json_dir: Path) -> None:
 
 
 def run_pahcer(root: Path, run_dir: Path, config: Path, comment: str, out_dir: Path,
-               lock_fd: int) -> tuple[int, Path | None]:
-    """Runs pahcer once while holding the lock. Returns (exit code, the result JSON it wrote)."""
+               lock_fd: int, env: dict | None = None) -> tuple[int, Path | None]:
+    """Runs pahcer once while holding the lock. Returns (exit code, the result JSON it wrote).
+    `env`: the environment of pahcer, which the tester and the solution inherit."""
     json_dir = out_dir / "json"
     json_dir.mkdir(parents=True, exist_ok=True)
     wait_for_unused_result_name(json_dir)
@@ -848,12 +956,12 @@ def run_pahcer(root: Path, run_dir: Path, config: Path, comment: str, out_dir: P
     cmd = ["pahcer", "run", "--setting-file", str(config), "--no-compile", "-c", comment]
     # pahcer inherits the lock fd, so the lock is held until pahcer exits even if this script dies.
     if sys.stdout.isatty():
-        proc = subprocess.Popen(cmd, cwd=root, pass_fds=(lock_fd,))
+        proc = subprocess.Popen(cmd, cwd=root, pass_fds=(lock_fd,), env=env)
     else:
         # Agents are not on a TTY; keep pahcer's per-case lines in a file.
         with open(run_dir / "pahcer.log", "w") as pahcer_log:
             proc = subprocess.Popen(cmd, cwd=root, stdout=pahcer_log, stderr=subprocess.STDOUT,
-                                    pass_fds=(lock_fd,))
+                                    pass_fds=(lock_fd,), env=env)
     try:
         returncode = proc.wait()
     except (KeyboardInterrupt, Interrupted):
@@ -926,6 +1034,10 @@ def summarize(result: dict, metrics: dict[int, dict] | None) -> dict:
         "over_time_limit": sum(c["execution_time"] > TIME_LIMIT_SEC for c in cases),
         "wa_seeds": result["wa_seeds"],
     }
+    if any("order_scores" in c for c in cases):  # --orders: the mean over all the order sequences too
+        every = [s for c in cases for s in all_scores(c) if s > 0]
+        summary["orders"] = max(len(all_scores(c)) for c in cases)
+        summary["average_score_all_orders"] = sum(every) / len(every) if every else None
     # Real times of all cases (the tester's wall time, at this machine's speed while evaluating).
     times = [c["execution_time"] for c in cases]
     summary["time_p99"] = replay.percentile(times, 0.99)
@@ -1033,6 +1145,9 @@ def evaluate(args, root: Path, template: dict) -> int:
     run_id, run_dir, meta = arm["run_id"], arm["run_dir"], arm["meta"]
     out_dir = root / "pahcer" if record else run_dir / "pahcer"
     meta["out_dir"] = str(out_dir)
+    if args.save_design:
+        meta["save_design"] = True
+        (run_dir / DESIGN_DIR).mkdir()
     log(f"run-id: {run_id}")
     log(f"記録先: {run_dir}")
     lock_fd = queue = None
@@ -1066,7 +1181,7 @@ def evaluate(args, root: Path, template: dict) -> int:
         monitor = LoadMonitor().start()
         try:
             returncode, result_json = run_pahcer(root, run_dir, config_path, f"{run_id} {args.comment}".strip(),
-                                                 out_dir, lock_fd)
+                                                 out_dir, lock_fd, arm_env(meta, run_dir, runs_dir))
         finally:
             meta["outside_load"] = monitor.stop()
         queue.update(phase="postprocess")
@@ -1098,6 +1213,8 @@ def evaluate(args, root: Path, template: dict) -> int:
     save_meta(run_dir, meta)
     log("評価が終わりました")
     print_summary(run_id, run_dir, summary, record, meta.get("outside_load"))
+    if args.save_design:
+        print_design_lines([{"run_id": run_id, "run_dir": run_dir, "meta": meta}], None, 1)
     refresh_report(root)
     release_lock(lock_fd, queue)
     return 0
@@ -1107,35 +1224,54 @@ def evaluate(args, root: Path, template: dict) -> int:
 
 
 def compare_case(seed: int, order: list[int], binaries: list[Path], run_dirs: list[Path],
-                 in_dir: Path, tester: Path) -> list[dict]:
+                 inputs: list[Path], tester: Path, envs: list[dict]) -> list[dict]:
     """Runs every solution on one seed, one after another in the given order.
 
+    inputs: the input files of the seed, one per order sequence (--orders; the first is the one of
+    tools/in), each run by all the solutions before the next. envs: the environment of each solution.
     Returns one case record per solution (in the solutions' order), in the format of the
-    "cases" of a pahcer result JSON. relative_score is filled in later.
+    "cases" of a pahcer result JSON, for the first input; with several inputs, also the scores and
+    times of all of them (order_scores, order_times). relative_score is filled in later.
     """
     seed4 = f"{seed:04d}"
-    infile = in_dir / f"{seed4}.txt"
+    runs: list[list[tuple[int, float, str]]] = [[] for _ in binaries]
+    for j, infile in enumerate(inputs):
+        for i in order:
+            base = run_dirs[i] if j == 0 else run_dirs[i] / "orders" / str(j)
+            outfile = base / "out" / f"{seed4}.txt"
+            errfile = base / "err" / f"{seed4}.txt"
+            error = ""
+            start = time.perf_counter()
+            with open(infile, "rb") as stdin, open(outfile, "wb") as stdout, open(errfile, "wb") as stderr:
+                try:
+                    subprocess.run([str(tester), str(binaries[i])], stdin=stdin, stdout=stdout, stderr=stderr,
+                                   timeout=COMPARE_CASE_TIMEOUT, env=envs[i])
+                except subprocess.TimeoutExpired:
+                    error = f"timeout ({COMPARE_CASE_TIMEOUT:.0f} s)"
+            elapsed = time.perf_counter() - start
+            err_text = errfile.read_text(errors="replace")
+            scores = SCORE_LINE.findall(err_text)
+            score = int(scores[-1]) if scores and not error else 0
+            if not error and score == 0:
+                error = judge_message(err_text)
+            runs[i].append((score, elapsed, error))
     records: list[dict] = [{} for _ in binaries]
     for i in order:
-        outfile = run_dirs[i] / "out" / f"{seed4}.txt"
-        errfile = run_dirs[i] / "err" / f"{seed4}.txt"
-        error = ""
-        start = time.perf_counter()
-        with open(infile, "rb") as stdin, open(outfile, "wb") as stdout, open(errfile, "wb") as stderr:
-            try:
-                subprocess.run([str(tester), str(binaries[i])], stdin=stdin, stdout=stdout, stderr=stderr,
-                               timeout=COMPARE_CASE_TIMEOUT)
-            except subprocess.TimeoutExpired:
-                error = f"timeout ({COMPARE_CASE_TIMEOUT:.0f} s)"
-        elapsed = time.perf_counter() - start
-        err_text = errfile.read_text(errors="replace")
-        scores = SCORE_LINE.findall(err_text)
-        score = int(scores[-1]) if scores and not error else 0
-        if not error and score == 0:
-            error = judge_message(err_text)
+        score, elapsed, error = runs[i][0]
         records[i] = {"seed": seed, "score": score, "relative_score": 0.0,
                       "execution_time": elapsed, "error_message": error}
+        if len(inputs) > 1:
+            records[i]["order_scores"] = [r[0] for r in runs[i]]
+            records[i]["order_times"] = [round(r[1], 4) for r in runs[i]]
+            failed = next(((j, r[2]) for j, r in enumerate(runs[i]) if r[0] == 0), None)
+            if failed and not error:
+                records[i]["error_message"] = f"注文の列 {failed[0]}: {failed[1]}"
     return records
+
+
+def all_scores(case: dict) -> list[int]:
+    """The scores of a case on all its order sequences (just its score without --orders)."""
+    return case.get("order_scores") or [case["score"]]
 
 
 def compare_result(cases: list[dict], comment: str, start_time: str) -> dict:
@@ -1149,7 +1285,8 @@ def compare_result(cases: list[dict], comment: str, start_time: str) -> dict:
         "max_execution_time": max(c["execution_time"] for c in cases),
         "comment": comment,
         "tag_name": None,
-        "wa_seeds": [c["seed"] for c in cases if c["score"] == 0],
+        # with --orders, the seeds with a WA on any of the order sequences
+        "wa_seeds": [c["seed"] for c in cases if 0 in all_scores(c)],
         "cases": cases,
     }
 
@@ -1167,13 +1304,20 @@ def compare_against_first(results: list[dict]) -> list[dict]:
 
     The difference is the mean of log(score / score of the first) over cases (negative is better),
     which follows the contest's per-case ranking better than the mean score; its standard error
-    comes from the per-case differences.
+    comes from the per-case differences. With several order sequences per seed (--orders), the
+    difference of a seed is the mean of its log ratios over them (a seed with a WA in any is left out).
     """
-    base = {c["seed"]: c["score"] for c in results[0]["cases"]}
+    base = {c["seed"]: all_scores(c) for c in results[0]["cases"]}
+
+    def diff(case: dict) -> float | None:
+        a, b = all_scores(case), base.get(case["seed"])
+        if not b or len(a) != len(b) or min(a) <= 0 or min(b) <= 0:
+            return None
+        return sum(math.log(x / y) for x, y in zip(a, b)) / len(a)
+
     table = []
     for result in results:
-        diffs = [math.log(c["score"] / base[c["seed"]]) for c in result["cases"]
-                 if c["score"] > 0 and base.get(c["seed"], 0) > 0]
+        diffs = [d for d in map(diff, result["cases"]) if d is not None]
         n = len(diffs)
         mean = sum(diffs) / n if n else float("nan")
         se = math.sqrt(sum((d - mean) ** 2 for d in diffs) / (n - 1) / n) if n > 1 else float("nan")
@@ -1196,20 +1340,36 @@ def evaluate_compare(args, root: Path, template: dict) -> int:
     rotates with the seed. Tasks run in parallel with the thread count of pahcer_config.toml.
     Each solution gets an ordinary run directory and, unless --no-record, an ordinary pahcer
     record (summary line, result JSON and best scores).
+    With --design-from (also for a single solution), all the solutions load the designs saved by
+    that run, on `--orders` order sequences per seed, and nothing is recorded in pahcer/.
     """
-    if len(args.compare) < 2:
+    if len(args.compare) < 2 and not args.design_from:
         sys.exit("[pahcer_run] --compare には解法を 2 つ以上指定してください")
     seeds = seed_range(args, template)
     runs_dir = root / "runs"
     runs_dir.mkdir(exist_ok=True)
     out_dir = root / "pahcer"
-    record = not args.no_record
+    in_dir = root / "tools" / "in"
+    # A run on saved designs does not have true scores: never in pahcer/ (as with --no-record).
+    record = not args.no_record and not args.design_from
+    orders = args.orders or 1
+    if args.design_from:
+        source_id, design_dir = design_source(args.design_from)
+        check_designs(design_dir, in_dir, range(*seeds))
     arms = [prepare_run(s, runs_dir, args.comment, seeds, record, out_dir) for s in args.compare]
     group = [arm["run_id"] for arm in arms]
     for index, arm in enumerate(arms):
         arm["meta"]["compare"] = {"runs": group, "index": index}
         if not record:
             arm["meta"]["out_dir"] = None
+        if args.design_from:
+            arm["meta"]["design_from"] = {"run": source_id, "orders": orders}
+        if args.save_design:
+            arm["meta"]["save_design"] = True
+            (arm["run_dir"] / DESIGN_DIR).mkdir()
+        for j in range(1, orders):
+            for sub in ("out", "err"):
+                (arm["run_dir"] / "orders" / str(j) / sub).mkdir(parents=True)
         save_meta(arm["run_dir"], arm["meta"])
         log(f"run-id: {arm['run_id']}")
     # Compile outside the lock. Nothing is kept if any solution fails to compile.
@@ -1220,10 +1380,11 @@ def evaluate_compare(args, root: Path, template: dict) -> int:
             log(f"{arm['run_id']} のコンパイルに失敗しました (run ディレクトリはすべて削除しました)")
             return 1
     tester = ensure_tester(root)
-    in_dir = root / "tools" / "in"
     threads = int(template["test"].get("threads", 0)) or os.cpu_count() or 1
     seed_list = list(range(*seeds))
     count = len(arms)
+    inputs = {seed: [order_input(root, in_dir, seed, j) for j in range(orders)] for seed in seed_list}
+    envs = [arm_env(arm["meta"], arm["run_dir"], runs_dir) for arm in arms]
     lock_fd = queue = None
     load = None
     finished = False  # the lock is then kept until the dashboard is rebuilt
@@ -1231,7 +1392,8 @@ def evaluate_compare(args, root: Path, template: dict) -> int:
         for arm in arms:
             arm["meta"]["status"] = "waiting"
             save_meta(arm["run_dir"], arm["meta"])
-        queue = QueueEntry(runs_dir, "compare", group, args.compare, args.comment, seeds, len(seed_list) * count)
+        queue = QueueEntry(runs_dir, "compare", group, args.compare, args.comment, seeds,
+                           len(seed_list) * count * orders)
         lock_fd = acquire_lock(runs_dir / ".lock", f"{group[0]} ほか {count - 1} 個の比較")
         started = now_iso()
         start_time = datetime.datetime.now().astimezone().isoformat()
@@ -1240,7 +1402,9 @@ def evaluate_compare(args, root: Path, template: dict) -> int:
             arm["meta"]["started_at"] = started
             save_meta(arm["run_dir"], arm["meta"])
         queue.started(started)
-        log(f"{count} 個の解法を比べます (seed {seeds[0]}〜{seeds[1] - 1}、{threads} 並列、seed ごとに続けて実行)")
+        log(f"{count} 個の解法を比べます (seed {seeds[0]}〜{seeds[1] - 1}、{threads} 並列、seed ごとに続けて実行"
+            f"{f'、{source_id} の設計を読み込む' if args.design_from else ''}"
+            f"{f'、注文の列 {orders} 本' if orders > 1 else ''})")
         records = {}
         began = time.perf_counter()
         monitor = LoadMonitor().start()
@@ -1248,7 +1412,7 @@ def evaluate_compare(args, root: Path, template: dict) -> int:
             with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as pool:
                 futures = {pool.submit(compare_case, seed, [(seed + j) % count for j in range(count)],
                                        [arm["binary"] for arm in arms], [arm["run_dir"] for arm in arms],
-                                       in_dir, tester): seed for seed in seed_list}
+                                       inputs[seed], tester, envs): seed for seed in seed_list}
                 try:
                     for done, future in enumerate(concurrent.futures.as_completed(futures), 1):
                         records[futures[future]] = future.result()
@@ -1261,8 +1425,10 @@ def evaluate_compare(args, root: Path, template: dict) -> int:
                     raise
         finally:
             load = monitor.stop()
+            case_minutes = (time.perf_counter() - began) / 60
             for arm in arms:
                 arm["meta"]["outside_load"] = load
+                arm["meta"]["case_minutes"] = round(case_minutes, 2)
         queue.update(phase="postprocess")
 
         # Relative scores use the best known score of each seed, including every solution here.
@@ -1331,11 +1497,31 @@ def evaluate_compare(args, root: Path, template: dict) -> int:
             print(f"    {line}")
         if s.get("replay_mismatch"):
             print(f"    警告: scripts/replay.py の再生スコアがテスターと {s['replay_mismatch']} ケースで違います")
-    print(f"  pahcer/ への記録 : {'した' if record else 'しない (--no-record)'}")
+    print_design_lines(arms, args.design_from and source_id, orders)
+    print(f"  pahcer/ への記録 : {'した' if record else 'しない (--design-from)' if args.design_from else 'しない (--no-record)'}")
+    print(f"  所要時間         : {case_minutes:.1f} 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)")
     print_load(load)
     refresh_report(root)
     release_lock(lock_fd, queue)
     return 0
+
+
+def print_design_lines(arms: list[dict], source_id: str | None, orders: int) -> None:
+    """The lines of a summary about saved and loaded designs and the order sequences."""
+    for arm in arms:
+        if arm["meta"].get("save_design"):
+            saved = sum(1 for f in (arm["run_dir"] / DESIGN_DIR).iterdir() if f.suffix == ".txt")
+            print(f"  設計の保存       : {arm['run_id']}/{DESIGN_DIR}/ に {saved} ケース (--design-from で読み込める)"
+                  f"{'。全ケースではない（解法が DESIGN_SAVE_DIR に対応していないか、失敗したケースがある）' if saved < arm['meta']['summary']['cases'] else ''}")
+    if source_id:
+        print(f"  設計             : {source_id} が保存した設計を全部の解法が読み込んだ（注文処理だけの比較。"
+              "本当のスコアではない）")
+    if orders > 1:
+        print(f"  注文の列         : seed ごとに {orders} 本（1 本目は tools/in、2 本目からは runs/{ORDERS_DIR}/ に生成）。"
+              f"差は seed ごとに {orders} 本の log スコア比を平均してから seed の間で取った。上の平均スコアは 1 本目")
+        for arm in arms:
+            average = arm["meta"]["summary"].get("average_score_all_orders")
+            print(f"    {arm['run_id']:<44} 全部の注文の列の平均スコア {average or float('nan'):.2f}")
 
 
 # ---------------------------------------------------------------- --extend
@@ -1368,6 +1554,13 @@ def evaluate_extend(args, root: Path, template: dict) -> int:
             sys.exit(f"[pahcer_run] 同じ run が 2 回指定されています: {run_dir.name}")
         arms.append({"run_id": run_dir.name, "run_dir": run_dir, "binary": run_dir / "a.out"})
         log(f"run-id: {run_dir.name}")
+    # Runs on saved designs (--design-from) load the same designs again, on as many order sequences;
+    # runs that saved their designs (--save-design) save those of the new seeds too.
+    first_meta = [json.loads((arm["run_dir"] / "meta.json").read_text()) for arm in arms]
+    orders_of = {(m.get("design_from") or {}).get("orders", 1) for m in first_meta}
+    if len(orders_of) > 1:
+        sys.exit("[pahcer_run] 注文の列の本数 (--orders) が違う run は一緒に --extend できません")
+    orders = orders_of.pop()
     # Compile outside the lock, only when the binary of the run is gone.
     for arm in arms:
         if not arm["binary"].exists():
@@ -1380,6 +1573,10 @@ def evaluate_extend(args, root: Path, template: dict) -> int:
     in_dir = root / "tools" / "in"
     threads = int(template["test"].get("threads", 0)) or os.cpu_count() or 1
     group = [arm["run_id"] for arm in arms]
+    envs = [arm_env(m, arm["run_dir"], runs_dir) for m, arm in zip(first_meta, arms)]
+    for m in first_meta:
+        if m.get("design_from"):
+            check_designs(runs_dir / m["design_from"]["run"] / DESIGN_DIR, in_dir, range(*seeds))
     lock_fd = queue = None
     load = None
     finished = False  # the lock is then kept until the dashboard is rebuilt
@@ -1396,6 +1593,7 @@ def evaluate_extend(args, root: Path, template: dict) -> int:
             arm["missing"] = [s for s in range(*seeds) if s not in done]
             if not arm["missing"]:
                 log(f"{arm['run_id']} は seed {seeds[0]}〜{seeds[1] - 1} をすべて評価済みです")
+        envs = [env for env, arm in zip(envs, arms) if arm["missing"]]
         arms = [arm for arm in arms if arm["missing"]]
         if not arms:
             log("追加する seed はありません")
@@ -1405,7 +1603,8 @@ def evaluate_extend(args, root: Path, template: dict) -> int:
         seed_list = sorted(set().union(*missing))
         started = now_iso()
         start_time = datetime.datetime.now().astimezone().isoformat()
-        queue.started(started, cases=sum(map(len, missing)))
+        queue.started(started, cases=sum(map(len, missing)) * orders)
+        inputs = {seed: [order_input(root, in_dir, seed, j) for j in range(orders)] for seed in seed_list}
         log(f"{count} 個の run に seed を追加します (seed {seed_list[0]}〜{seed_list[-1]} のうち未評価の"
             f" {sum(map(len, missing))} ケース、{threads} 並列、seed ごとに続けて実行)")
         records = {}
@@ -1417,7 +1616,7 @@ def evaluate_extend(args, root: Path, template: dict) -> int:
                 for seed in seed_list:
                     order = [i for i in ((seed + j) % count for j in range(count)) if seed in missing[i]]
                     futures[pool.submit(compare_case, seed, order, [arm["binary"] for arm in arms],
-                                        [arm["run_dir"] for arm in arms], in_dir, tester)] = seed
+                                        [arm["run_dir"] for arm in arms], inputs[seed], tester, envs)] = seed
                 try:
                     for done, future in enumerate(concurrent.futures.as_completed(futures), 1):
                         records[futures[future]] = future.result()
@@ -1430,6 +1629,7 @@ def evaluate_extend(args, root: Path, template: dict) -> int:
                     raise
         finally:
             load = monitor.stop()
+            case_minutes = (time.perf_counter() - began) / 60
         queue.update(phase="postprocess")
 
         # Relative scores use the best known score of each seed, including every run here. Only
@@ -1506,6 +1706,9 @@ def evaluate_extend(args, root: Path, template: dict) -> int:
             print(f"    {line}")
         if s.get("replay_mismatch"):
             print(f"    警告: scripts/replay.py の再生スコアがテスターと {s['replay_mismatch']} ケースで違います")
+    sources = {(arm["meta"].get("design_from") or {}).get("run") for arm in arms} - {None}
+    print_design_lines(arms, ", ".join(sorted(sources)) or None, orders)
+    print(f"  所要時間         : {case_minutes:.1f} 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)")
     print_load(load)  # while the added cases ran
     refresh_report(root)
     release_lock(lock_fd, queue)
@@ -1527,6 +1730,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--extend", nargs="+", metavar="RUN",
                         help="既存の run（run-id か末尾の解法名）に、未評価の seed（既定は全ケースのうち未評価のもの）を"
                              "評価して加える。複数なら seed ごとに続けて実行する")
+    parser.add_argument("--save-design", action="store_true",
+                        help="各 run の設計を runs/<run-id>/design/ に保存する（解法が DESIGN_SAVE_DIR に対応している"
+                             "こと。solutions/esw-tidy とその子孫）")
+    parser.add_argument("--design-from", metavar="RUN",
+                        help="RUN（--save-design で評価した run）が保存した設計を全部の解法に読み込ませ、注文処理だけを"
+                             "評価する。pahcer/ には記録しない。解法 1 つか --compare と使う")
+    parser.add_argument("--orders", type=int, metavar="N",
+                        help="--design-from と使う。seed ごとに、tools/in の注文の列と、同じバーコードで注文の列だけを"
+                             "変えた N - 1 本を評価する（既定 1）")
     parser.add_argument("--status", action="store_true",
                         help="評価を始めずに、実行中・待機中の評価（進み具合と終わる時刻の見積り）と、"
                              "評価の外で CPU を使っているプロセスを表示する")
@@ -1549,6 +1761,12 @@ def main() -> int:
             parser.error("--compare を使うときは、解法をすべて --compare の後に並べてください")
     elif not args.solution:
         parser.error("解法を指定してください")
+    if args.extend and (args.save_design or args.design_from or args.orders):
+        parser.error("--extend は元の run の設定（設計の保存・読み込み、注文の列の本数）に従います")
+    if args.save_design and args.design_from:
+        parser.error("--save-design と --design-from は一緒に使えません")
+    if args.orders is not None and (not args.design_from or args.orders < 1):
+        parser.error("--orders は --design-from と一緒に、1 以上で指定してください")
 
     root = replay.main_root()
     template = tomllib.loads((root / "pahcer_config.toml").read_text())
@@ -1558,6 +1776,9 @@ def main() -> int:
     if args.extend:
         return evaluate_extend(args, root, template)
     if args.compare:
+        return evaluate_compare(args, root, template)
+    if args.design_from:  # a single solution on saved designs: the comparison of one solution
+        args.compare = [args.solution]
         return evaluate_compare(args, root, template)
     return evaluate(args, root, template)
 

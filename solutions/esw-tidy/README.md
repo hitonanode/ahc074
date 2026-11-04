@@ -36,6 +36,18 @@ eject-single-window の main.cpp を、出力を変えずに読みやすく整�
 
 ## 手元の評価だけの違い（LOCAL_BENCH）
 
-`-DLOCAL_BENCH`（scripts/pahcer_run.py が付ける。ジャッジでは定義されない）のときは、倍率込みで 1.80 秒を過ぎても注文処理の軽い計画（fast_mode）に入らず、最後まで通常の計画で処理する。マシンの負荷で手が変わらないようにするため。stderr の fast_requests は常に 0 になり、かかった時間は end_sec に出る。変更は main の「main: requests」の段の `#ifdef LOCAL_BENCH` の 1 か所だけで、LOCAL_BENCH なしではプリプロセス後のコードが元と同じ。
+`-DLOCAL_BENCH`（scripts/pahcer_run.py が付ける。ジャッジでは定義されない）のときは、倍率込みで 1.80 秒を過ぎても注文処理の軽い計画（fast_mode）に入らず、最後まで通常の計画で処理する。マシンの負荷で手が変わらないようにするため。stderr の fast_requests は常に 0 になり、かかった時間は end_sec に出る。変更は main の「main: requests」の段の `#ifdef LOCAL_BENCH` の 1 か所だけ（ほかに LOCAL_BENCH で働くのは下の設計の保存と読み込み）。
 
 設計の段の時刻による打ち切り（窓の割り当て 0.50・0.61、緊急設計に切り替える 1.30・1.35、焼きなまし 1.205、穴埋めの山登り 1.26、再割り当て 1.345、穴あけ 1.39、補助紙の表をあきらめる 1.45）は、LOCAL_BENCH でもそのまま。
+
+## 設計の保存と読み込み（LOCAL_BENCH、scripts/pahcer_run.py の --save-design / --design-from）
+
+注文処理だけの変更を、同じ設計の上で比べるための仕組み。`-DLOCAL_BENCH` のときだけ働き、提出版の動作は変えない。
+
+- 設計の結果（注文処理に要る状態）を `DesignState` にまとめた: 汎用紙の数 M・汎用窓の数 G・取っ手の数 H、窓の並べ替え、並べ替えた後の目標、比較器の対と色、穴あけの後の 192 枚の紙、各紙の列、各目標の紙、取っ手の窓。
+- main の設計の段（窓の割り当て〜穴あけ）を関数 `design_papers` に移し、Solver の準備を `make_solver`（DesignState から Solver を作る）にした。main は「設計（または読み込み）→ make_solver → 補助紙の表と先読み → 紙の出力 → 注文」の順になる。穴あけは design_papers の中で、印刷したままの紙から作った Solver の上で行い、その結果の紙を DesignState に戻す（main は穴あけの後の紙から Solver を作り直す。元の Solver と同じ中身になる）。計算と時計を読む回数は改良元と同じ。
+- 環境変数 `DESIGN_SAVE_DIR` があると、設計の終わり（補助紙の表と先読みを作った後、紙を出力する直前）に、DesignState と、補助紙の表を作り終えたか、design_papers の stderr、プログラム開始からの経過時間を `<dir>/<hash>.txt` に書く（hash は入力のバーコードの FNV-1a。注文の列だけが違う入力は同じファイルを使う）。
+- 環境変数 `DESIGN_LOAD_DIR` があると、設計をせずにそのファイルを読む（ないか、入力と合わなければ `design_store_error` を出して終了コード 1 で終わる）。保存した stderr と `design_loaded = 1` を出し、Solver・補助紙の表（保存した run で作り終えていなければすぐにあきらめる）・先読みを作り直す。設計の終わりで、時計がそこから保存した経過時間の続きを読むように開始時刻をずらす。そのため、注文処理の stderr（req_sec、end_sec、helper_end_sec など）も元の run の時間の続きになる。
+- 注文処理のコードが同じなら、読み込んだ run は保存した run と同じ紙と操作を出す。注文処理を変えた解法でも、DesignState の形が同じならその設計を読み込める。
+
+確認（時計を、読むたびに一定時間進む擬似時計に置き換えた版で）: seed 0〜39（1 回 20 µs）、40〜55（200 µs。設計の各段が早く打ち切られ、補助紙の表をあきらめる）、56〜60（2 ms。緊急設計）の 61 件で、(1) LOCAL_BENCH なしで改良元と stdout・時計を読む回数が一致、(2) LOCAL_BENCH で改良元と一致、(3) 保存した run と読み込んだ run の stdout が一致し、stderr も `design_loaded` の行と、補助紙の表をあきらめたときの helper_papers（読み込んだ側は途中までの数が違う）を除いて一致（end_sec などの時刻も一致）、(4) 同じバーコードで注文の列だけを変えた入力でも、保存したファイルが同じで、元の入力の設計を読み込んだ run が、その入力で保存した run と同じ stdout、(5) LOCAL_BENCH で軽い計画を止めないようにした版（時刻で手が変わる）でも保存と読み込みの stdout が一致（読み込みで時計をずらさない版では 6 件中 6 件が不一致）。実時計でも、gcc と clang の版で保存と読み込みの stdout が一致した（4 件ずつ）。

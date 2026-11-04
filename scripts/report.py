@@ -7,8 +7,8 @@
 - 載せるのは、正常に終わり、手元の全ケース (pahcer_config.toml の seed 範囲) を評価した run。
   ページの「ケース」で seed 0〜499 に切り替えると、その 500 ケースを評価した run（2000 ケースが
   既定になる前の run）も並べ、全ケースの run とはその 500 ケースで比べる（EXTRA_SCOPES）。
-  どの範囲も評価し終えていない run（--seeds で一部だけを評価したもの）は対象外になる
-  （ページの「載せていない run」に出る）。
+  どの範囲も評価し終えていない run（--seeds で一部だけを評価したもの）と、保存した設計を読み込んだ run
+  （pahcer_run.py --design-from。本当のスコアではない）は対象外になる（ページの「載せていない run」に出る）。
 - 画面の本体は scripts/report_template.html。このスクリプトは、そこへスコア・E・T などを埋め込む。
   ケースごとの E と T は runs/<run-id>/metrics.json（なければここで計算して作る）から読む。
 - 出力を読み込んだビジュアライザを並べて見るには、scripts/serve_report.py で HTTP で開く
@@ -70,6 +70,10 @@ def collect_runs(scopes: list[range]) -> tuple[list[dict], list[dict]]:
             if status != "ok" or not (d / "result.json").exists():
                 if status not in ("running", "waiting", "compiling"):
                     skipped.append({"id": d.name, "reason": f"正常に終わっていない (status: {status})"})
+                continue
+            if meta.get("design_from"):
+                skipped.append({"id": d.name, "reason": f"{meta['design_from']['run']} の設計を読み込んだ run"
+                                                        "（--design-from。本当のスコアではない）"})
                 continue
             cases = replay.run_cases(d)
         except (OSError, ValueError, KeyError) as e:  # e.g. a file that is being written right now

@@ -50,12 +50,15 @@
 //   Request processing (process)
 //   Emergency design
 //   Handle perforation
+//   Design state: what the requests need from the design (DesignState, make_solver)
+//   Design deadlines
+//   design_papers: window assignment and the initial design
+//   design_papers: design annealing, filler climb and reassignment
+//   design_papers: printing the papers
+//   design_papers: handle perforation
+//   Saving and loading the design state (LOCAL_BENCH: DesignStore)
 //   main: input
-//   main: window assignment and the initial design
-//   main: design annealing, filler climb and reassignment
-//   main: printing the papers
-//   main: solver setup
-//   main: handle perforation
+//   main: the design (designed, or loaded under LOCAL_BENCH)
 //   main: helper tables and the generic look-ahead
 //   main: simulation harness (SIM_HARNESS)
 //   main: output of the papers
@@ -78,6 +81,11 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#ifdef LOCAL_BENCH
+#include <cstdio>
+#include <fstream>
+#include <sstream>
+#endif
 
 using u64 = std::uint64_t;
 
@@ -100,7 +108,12 @@ using Clock = std::chrono::steady_clock;
 double scaled_since(Clock::time_point start) {
     return CLOCK_SCALE * std::chrono::duration<double>(Clock::now() - start).count();
 }
+#ifdef LOCAL_BENCH
+// Not const in the local evaluation: a run that loads a saved design moves it (DesignStore::design_end).
+auto kStartTime = Clock::now();
+#else
 const auto kStartTime = Clock::now();
+#endif
 double elapsed_sec() { return scaled_since(kStartTime); }
 
 // Fixed iteration counts for experiments (MAP_ITERS, GOPT_STEPS, ANNEAL_ITERS, CLIMB_ITERS; 0 or
@@ -5576,37 +5589,74 @@ struct Perforation {
     }
 };
 
-}  // namespace
+// ==== Design state: what the requests need from the design (DesignState, make_solver) ====
 
-int main() {
-    // ==== main: input ====
+// The result of the design. design_papers computes it and make_solver builds the solver of the
+// requests from it; under LOCAL_BENCH, DesignStore can save it to a file and load it instead of
+// designing (AGENTS.md, scripts/pahcer_run.py --save-design / --design-from). A change of the design
+// whose result does not fit in these fields has to add them here, in make_solver and in DesignStore.
+struct DesignState {
+    bool emergency = false;                 // no design: emergency_design serves the requests
+    int M = 0, G = 0, H = 0;                // generic sheets, generic windows, handles
+    std::vector<int> permutation;           // original window of each internal window
+    std::vector<u64> A;                     // the targets on the internal windows (with the cap)
+    std::vector<std::pair<int, int>> edge;  // the comparator's pairs and colors (Comparator::rebuild)
+    std::vector<int> polarity;
+    std::vector<Paper> papers;  // the K papers (internal numbers; after the perforation in the result)
+    std::vector<int> columns;   // column of each paper (-1: a generic sheet or the cap)
+    std::vector<int> ded;       // paper of each target
+    std::vector<int> handle;    // window of each handle h_c
+};
 
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-    int n, k, p, R;
-    if (!(std::cin >> n >> k >> p >> R)) return 0;
-    std::vector<u64> A(P);
-    for (auto& a : A) {
-        std::string s;
-        std::cin >> s;
-        a = 0;
-        for (int j = 0; j < N; j++)
-            if (s[j] == '1') a |= 1ULL << j;
+// The solver of a design state (before the helper tables and the look-ahead, which main adds).
+Solver make_solver(const DesignState& state) {
+    Solver solver(state.A);
+    solver.M = state.M;
+    solver.H = state.H;
+    solver.comparator.M = state.M;
+    solver.comparator.G = state.G;
+    solver.comparator.edge = state.edge;
+    solver.comparator.polarity = state.polarity;
+    solver.comparator.rebuild();
+    solver.paper = state.papers;
+    solver.col_of = state.columns;
+    solver.ded = state.ded;
+    solver.set_handles(state.handle);
+    solver.gmask = low_bits(state.G);
+    solver.hmask = kActiveWindows & ~solver.gmask;
+    solver.h_opq.resize(K);
+    solver.h_blk.resize(K);
+    for (int x = 0; x < K; x++) {
+        solver.h_opq[x] = solver.handle_bits(state.papers[x].opaque);
+        solver.h_blk[x] = solver.handle_bits(state.papers[x].black);
     }
-    if (n != N || k != K || p != P) return 0;
-    const auto originalA = A;
+    solver.order.resize(K);
+    std::iota(solver.order.begin(), solver.order.end(), 0);
+    // Model the one initial legal cap move now; emit it before the first plan.
+    solver.order.erase(solver.order.begin() + kCapPaper);
+    solver.order.insert(solver.order.begin(), kCapPaper);
+    return solver;
+}
 
-    // ==== main: window assignment and the initial design ====
+// ==== Design deadlines ====
 
-    // Window assignment until kMapEnd and its greedy matching climb until kGoptEnd, annealing until
-    // kAnnealEnd, filler climb until kClimbEnd, reassignments until kMatchEnd, perforation until
-    // kPerforationEnd; the light plan for the requests from kFastAfter on (scaled s).
-    constexpr double kMapEnd = 0.50, kGoptEnd = 0.61, kAnnealEnd = 1.205, kClimbEnd = 1.26, kFastAfter = 1.80;
-    constexpr double kMatchEnd = 1.345, kPerforationEnd = 1.39;
-    // A design not initialized by kInitExpiry (or failed after kInitGiveUp) falls back to the emergency design.
-    constexpr double kInitGiveUp = 1.30, kInitExpiry = 1.35;
-    // The helper tables (Interleave) are left unfinished (no helpers) after kHelperGiveUp.
-    constexpr double kHelperGiveUp = 1.45;
+// Window assignment until kMapEnd and its greedy matching climb until kGoptEnd, annealing until
+// kAnnealEnd, filler climb until kClimbEnd, reassignments until kMatchEnd, perforation until
+// kPerforationEnd; the light plan for the requests from kFastAfter on (scaled s).
+constexpr double kMapEnd = 0.50, kGoptEnd = 0.61, kAnnealEnd = 1.205, kClimbEnd = 1.26, kFastAfter = 1.80;
+constexpr double kMatchEnd = 1.345, kPerforationEnd = 1.39;
+// A design not initialized by kInitExpiry (or failed after kInitGiveUp) falls back to the emergency design.
+constexpr double kInitGiveUp = 1.30, kInitExpiry = 1.35;
+// The helper tables (Interleave) are left unfinished (no helpers) after kHelperGiveUp.
+constexpr double kHelperGiveUp = 1.45;
+
+// The design from the targets as read (window assignment, design annealing, printing of the papers
+// and their perforation; its statistics go to stderr). `emergency` if no design was found in time.
+DesignState design_papers(const std::vector<u64>& originalA) {
+    // ==== design_papers: window assignment and the initial design ====
+
+    DesignState state;
+    std::vector<u64> A;
     const int map_iters = env_int("MAP_ITERS"), anneal_iters = env_int("ANNEAL_ITERS");
     const int climb_iters = env_int("CLIMB_ITERS");
     std::vector<int> permutation(64);  // original window of each internal window
@@ -5650,12 +5700,15 @@ int main() {
         if (des->initialize([&](u64 a, u64 b) { return comp.compatible(a, b); }, estimate,
                             [&]() { return !untimed && elapsed_sec() > kInitExpiry; }))
             break;
-        if (attempt >= 2 || (!untimed && elapsed_sec() > kInitGiveUp)) return emergency_design(originalA, R);
+        if (attempt >= 2 || (!untimed && elapsed_sec() > kInitGiveUp)) {
+            state.emergency = true;
+            return state;
+        }
         G = attempt == 0 ? 32 : 28;
     }
     std::cerr << "map_iters = " << map_total << "\nmap_end_sec = " << elapsed_sec() << '\n';
 
-    // ==== main: design annealing, filler climb and reassignment ====
+    // ==== design_papers: design annealing, filler climb and reassignment ====
 
     if (anneal_iters)
         des->anneal(1e9, anneal_iters);
@@ -5687,7 +5740,7 @@ int main() {
               << "\nmodel_col = " << model_col / P << "\nmodel_hole = " << model_hole / P
               << "\nmodel_gc = " << model_gc / P << '\n';
 
-    // ==== main: printing the papers ====
+    // ==== design_papers: printing the papers ====
 
     // Papers: six generic sheets, the cap, then the columns 0, 1, ... (colors alternate,
     // the more numerous first; singles before pairs within a color).
@@ -5735,33 +5788,25 @@ int main() {
             next++;
         }
     }
-    if (next != K || std::find(ded.begin(), ded.end(), -1) != ded.end()) return emergency_design(originalA, R);
-    // ==== main: solver setup ====
-
-    Solver solver(A);
-    solver.M = M;
-    solver.H = des->H;
-    solver.comparator = comp;
-    solver.paper = papers;
-    solver.col_of = columns;
-    solver.ded = ded;
-    solver.set_handles(des->handle);
-    solver.gmask = low_bits(G);
-    solver.hmask = kActiveWindows & ~solver.gmask;
-    solver.h_opq.resize(K);
-    solver.h_blk.resize(K);
-    for (int x = 0; x < K; x++) {
-        solver.h_opq[x] = solver.handle_bits(papers[x].opaque);
-        solver.h_blk[x] = solver.handle_bits(papers[x].black);
+    if (next != K || std::find(ded.begin(), ded.end(), -1) != ded.end()) {
+        state.emergency = true;
+        return state;
     }
-    solver.order.resize(K);
-    std::iota(solver.order.begin(), solver.order.end(), 0);
-    // Model the one initial legal cap move now; emit it before the first plan.
-    solver.order.erase(solver.order.begin() + kCapPaper);
-    solver.order.insert(solver.order.begin(), kCapPaper);
+    state.M = M;
+    state.G = G;
+    state.H = des->H;
+    state.permutation = permutation;
+    state.A = A;
+    state.edge = comp.edge;
+    state.polarity = comp.polarity;
+    state.papers = papers;
+    state.columns = columns;
+    state.ded = ded;
+    state.handle = des->handle;
+    // ==== design_papers: handle perforation ====
 
-    // ==== main: handle perforation ====
-
+    // The solver of the papers as printed, for the perforation only (main builds the one of the requests).
+    Solver solver = make_solver(state);
     // Sacrifice a few printed handles when that makes a common donor
     // repair several other products more efficiently. Its own handle stays.
     const double perforation_start = elapsed_sec();
@@ -5769,21 +5814,249 @@ int main() {
     perforation.deadline = kPerforationEnd;
     perforation.run(0.5);
     perforation.install();
-    papers = solver.paper;
+    state.papers = solver.paper;
     std::cerr << "perforation_holes = " << perforation.holes() << "\nperforation_trials = " << perforation.trials
               << "\nperforation_accepts = " << perforation.accepted
               << "\nperforation_sec = " << elapsed_sec() - perforation_start
               << "\nperforation_end_sec = " << elapsed_sec() << '\n';
+    return state;
+}
+
+#ifdef LOCAL_BENCH
+// ==== Saving and loading the design state (LOCAL_BENCH: DesignStore) ====
+
+// Local evaluation only (AGENTS.md, scripts/pahcer_run.py --save-design / --design-from). Both name
+// the file of an input <dir>/<hash>.txt, hash = FNV-1a of the input's barcodes, so that the inputs
+// with the same barcodes and other orders share it.
+// - DESIGN_SAVE_DIR=<dir>: the run designs as usual and, at the end of the design (design_end, just
+//   before the papers are printed), writes the design state, whether the helper tables were complete,
+//   the stderr of design_papers and the clock (ticks since the start) to the file.
+// - DESIGN_LOAD_DIR=<dir>: the run reads the file instead of designing (it stops with an error if the
+//   file is missing or does not fit the input), prints the saved stderr, builds the solver, the helper
+//   tables (given up at once if they were not complete) and the look-ahead again, and at design_end
+//   moves kStartTime so that the clock continues from the saved end of the design. With the same
+//   request code, it then prints the same papers and moves as the saved run (and the same stderr: the
+//   requests read the clock only through elapsed_sec).
+struct DesignStore {
+    static constexpr int kVersion = 1;
+    std::string save_path, load_path;  // empty: not saving / not loading
+    std::ostringstream captured;       // the stderr of design_papers (saving)
+    std::streambuf* real_cerr = nullptr;
+    bool helpers_ready = false;  // loaded: the saved run completed the helper tables
+    long long end_ticks = 0;     // loaded: Clock ticks from the start to the end of the design
+
+    [[noreturn]] static void fail(const std::string& message) {
+        std::cerr << "design_store_error: " << message << std::endl;
+        std::exit(1);
+    }
+    static u64 barcode_hash(const std::vector<u64>& a) {  // FNV-1a of the barcodes' bytes (bit j: window j)
+        u64 h = 0xcbf29ce484222325ULL;
+        for (u64 x : a)
+            for (int byte = 0; byte < 8; byte++) h = (h ^ (x >> (8 * byte) & 255)) * 0x100000001b3ULL;
+        return h;
+    }
+    explicit DesignStore(const std::vector<u64>& originalA) {
+        char name[32];
+        std::snprintf(name, sizeof name, "%016llx.txt", (unsigned long long)barcode_hash(originalA));
+        const char* save = std::getenv("DESIGN_SAVE_DIR");
+        const char* load = std::getenv("DESIGN_LOAD_DIR");
+        if (save && *save) save_path = std::string(save) + "/" + name;
+        if (load && *load) load_path = std::string(load) + "/" + name;
+        if (!save_path.empty() && !load_path.empty()) fail("DESIGN_SAVE_DIR and DESIGN_LOAD_DIR are both set");
+    }
+    bool loading() const { return !load_path.empty(); }
+
+    // Saving: the stderr of design_papers goes to `captured` (and to the real stderr at the end).
+    void begin_capture() {
+        if (!save_path.empty()) real_cerr = std::cerr.rdbuf(captured.rdbuf());
+    }
+    void end_capture() {
+        if (!real_cerr) return;
+        std::cerr.rdbuf(real_cerr);
+        real_cerr = nullptr;
+        std::cerr << captured.str();
+    }
+
+    // The end of the design (after the helper tables, before the papers are printed).
+    void design_end(const DesignState& state, bool ready) {
+        if (loading()) {
+            kStartTime = Clock::now() - Clock::duration(end_ticks);
+            return;
+        }
+        if (save_path.empty()) return;
+        const long long ticks = (Clock::now() - kStartTime).count();
+        std::ostringstream out;
+        out.precision(17);
+        auto list = [&](const char* key, const auto& values) {
+            out << key << ' ' << values.size();
+            for (const auto& v : values) out << ' ' << v;
+            out << '\n';
+        };
+        out << "design_state " << kVersion << '\n'
+            << "emergency " << state.emergency << '\n'
+            << "end_ticks " << ticks << '\n'
+            << "end_sec " << CLOCK_SCALE * std::chrono::duration<double>(Clock::duration(ticks)).count() << '\n'
+            << "helpers_ready " << ready << '\n'
+            << "M " << state.M << "\nG " << state.G << "\nH " << state.H << '\n';
+        list("permutation", state.permutation);
+        list("A", state.A);
+        std::vector<int> pairs;
+        for (auto [a, b] : state.edge) pairs.push_back(a), pairs.push_back(b);
+        list("edge", pairs);
+        list("polarity", state.polarity);
+        std::vector<u64> bits;
+        for (const auto& p : state.papers) bits.push_back(p.opaque), bits.push_back(p.black);
+        list("papers", bits);
+        list("columns", state.columns);
+        list("ded", state.ded);
+        list("handle", state.handle);
+        const std::string text = captured.str();
+        out << "stderr " << text.size() << '\n' << text;
+        const std::string tmp = save_path + ".tmp";
+        {
+            std::ofstream file(tmp, std::ios::binary);
+            file << out.str();
+            if (!file) fail("cannot write " + tmp);
+        }
+        if (std::rename(tmp.c_str(), save_path.c_str()) != 0) fail("cannot rename " + tmp);
+    }
+
+    // Loading: the design state of the input (originalA: the targets as read).
+    DesignState load(const std::vector<u64>& originalA) {
+        std::ifstream in(load_path, std::ios::binary);
+        if (!in) fail("no saved design " + load_path);
+        auto expect = [&](const char* key) {
+            std::string word;
+            if (!(in >> word) || word != key) fail(load_path + ": expected " + key);
+        };
+        auto number = [&](const char* key, auto& value) {
+            expect(key);
+            if (!(in >> value)) fail(load_path + ": bad " + key);
+        };
+        auto list = [&](const char* key, auto& values, size_t size) {
+            expect(key);
+            size_t n = 0;
+            if (!(in >> n) || n != size) fail(load_path + ": bad size of " + key);
+            values.resize(n);
+            for (auto& v : values)
+                if (!(in >> v)) fail(load_path + ": bad " + key);
+        };
+        DesignState state;
+        int version = 0;
+        double end_sec = 0;
+        number("design_state", version);
+        if (version != kVersion) fail(load_path + ": version " + std::to_string(version));
+        number("emergency", state.emergency);
+        number("end_ticks", end_ticks);
+        number("end_sec", end_sec);
+        number("helpers_ready", helpers_ready);
+        number("M", state.M);
+        number("G", state.G);
+        number("H", state.H);
+        if (!state.emergency) {
+            if (state.M < 2 || state.M > 12 || state.G < 1 || state.G > 63 || state.H < 1 || state.G + state.H > 63)
+                fail(load_path + ": bad M, G or H");
+            list("permutation", state.permutation, N);
+            list("A", state.A, P);
+            std::vector<int> pairs;
+            list("edge", pairs, 2 * state.G);
+            for (int j = 0; j < state.G; j++) state.edge.emplace_back(pairs[2 * j], pairs[2 * j + 1]);
+            list("polarity", state.polarity, state.G);
+            std::vector<u64> bits;
+            list("papers", bits, 2 * K);
+            for (int k = 0; k < K; k++) state.papers.push_back({bits[2 * k], bits[2 * k + 1]});
+            list("columns", state.columns, K);
+            list("ded", state.ded, P);
+            list("handle", state.handle, state.H);
+            // The saved targets must be those read, on the saved windows (a file of another input).
+            for (int u = 0; u < P; u++) {
+                u64 a = 0;
+                for (int j = 0; j < N; j++) a |= (originalA[u] >> state.permutation[j] & 1) << j;
+                if (a != state.A[u]) fail(load_path + ": the targets differ from the input");
+            }
+        } else {
+            for (const char* key : {"permutation", "A", "edge", "polarity", "papers", "columns", "ded", "handle"}) {
+                std::vector<long long> skip;
+                expect(key);
+                size_t n = 0;
+                in >> n;
+                skip.resize(n);
+                for (auto& v : skip) in >> v;
+            }
+        }
+        size_t length = 0;
+        number("stderr", length);
+        in.get();  // the newline after the length
+        std::string text(length, '\0');
+        if (!in.read(text.data(), length)) fail(load_path + ": short stderr");
+        std::cerr << text << "design_loaded = 1\n";
+        return state;
+    }
+};
+#endif
+
+}  // namespace
+
+int main() {
+    // ==== main: input ====
+
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+    int n, k, p, R;
+    if (!(std::cin >> n >> k >> p >> R)) return 0;
+    std::vector<u64> A(P);
+    for (auto& a : A) {
+        std::string s;
+        std::cin >> s;
+        a = 0;
+        for (int j = 0; j < N; j++)
+            if (s[j] == '1') a |= 1ULL << j;
+    }
+    if (n != N || k != K || p != P) return 0;
+    const auto originalA = A;
+
+    // ==== main: the design (designed, or loaded under LOCAL_BENCH) ====
+
+#ifdef LOCAL_BENCH
+    DesignStore store(originalA);  // DESIGN_SAVE_DIR / DESIGN_LOAD_DIR
+    DesignState state;
+    if (store.loading())
+        state = store.load(originalA);
+    else {
+        store.begin_capture();
+        state = design_papers(originalA);
+        store.end_capture();
+    }
+#else
+    const DesignState state = design_papers(originalA);
+#endif
+    if (state.emergency) {
+#ifdef LOCAL_BENCH
+        store.design_end(state, false);
+#endif
+        return emergency_design(originalA, R);
+    }
+    Solver solver = make_solver(state);
+    const int M = state.M, G = state.G;
 
     // ==== main: helper tables and the generic look-ahead ====
 
+    double helper_limit = kHelperGiveUp;
+#ifdef LOCAL_BENCH
+    // a loaded design: the helper tables are complete, or given up at once, as in the saved run
+    if (store.loading()) helper_limit = store.helpers_ready ? 1e300 : -1e300;
+#endif
     solver.init_adaptive();
-    if (M == Interleave::GM && comp.complete) {
+    if (M == Interleave::GM && solver.comparator.complete) {
         solver.interleave = std::make_shared<Interleave>();
         solver.comparator.build_tables();
-        solver.interleave->init(solver.comparator, papers, A, ded, columns, solver.gmask, solver.hmask, kHelperGiveUp);
+        solver.interleave->init(solver.comparator, state.papers, state.A, state.ded, state.columns, solver.gmask,
+                                solver.hmask, helper_limit);
         solver.init_lookahead();
     }
+#ifdef LOCAL_BENCH
+    store.design_end(state, solver.interleave && solver.interleave->ready);
+#endif
     std::cerr << "helper_end_sec = " << elapsed_sec() << '\n';
 
     // ==== main: simulation harness (SIM_HARNESS) ====
@@ -5804,7 +6077,7 @@ int main() {
                 if (t > 0 && u >= prev) u++;
                 prev = u;
                 tot += sim.process(u).size();
-                wr += sim.display() != A[u];
+                wr += sim.display() != state.A[u];
             }
         }
         std::cerr << "sim_moves = " << tot / (double(ns) * R) << "\nsim_wrong = " << double(wr) / ns << '\n';
@@ -5822,9 +6095,10 @@ int main() {
     for (int k = 0; k < K; k++) out_order[out_index(k)] = k;
     std::string output;
     for (int o = 0; o < K; o++) {
-        const auto& pp = papers[out_order[o]];
+        const auto& pp = state.papers[out_order[o]];
         std::string row(N, '.');
-        for (int j = 0; j < N; j++) row[permutation[j]] = !(pp.opaque >> j & 1) ? '.' : (pp.black >> j & 1) ? '1' : '0';
+        for (int j = 0; j < N; j++)
+            row[state.permutation[j]] = !(pp.opaque >> j & 1) ? '.' : (pp.black >> j & 1) ? '1' : '0';
         output += row + '\n';
     }
     std::cout << output << std::flush;
@@ -5846,7 +6120,7 @@ int main() {
 #endif
         auto moves = solver.process(u);
         req_sec += elapsed_sec() - t_req;
-        wrong += solver.display() != A[u];
+        wrong += solver.display() != state.A[u];
         output = std::to_string(moves.size()) + '\n';
         for (auto [x, d] : moves) {
             output += std::to_string(out_index(x)) + ' ' + std::to_string(d) + '\n';
