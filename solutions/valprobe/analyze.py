@@ -18,6 +18,9 @@ import numpy as np
 RUNS = Path("/home/sato/ahc074/runs")
 
 
+NPARTS = 4
+
+
 def load(run):
     rows = []
     for f in sorted((RUNS / run / "err").glob("*.txt")):
@@ -26,17 +29,22 @@ def load(run):
                 continue
             v = line.split()[1:]
             r, u, lb, lc = map(int, v[:4])
-            pb = list(map(float, v[4:8]))
-            pc = list(map(float, v[8:12]))
-            rest = v[12:]
+            pb = list(map(float, v[4:4 + NPARTS]))
+            pc = list(map(float, v[4 + NPARTS:4 + 2 * NPARTS]))
+            rest = v[4 + 2 * NPARTS:]
             seqs = [(int(rest[i]), int(rest[i + 1]), float(rest[i + 2]), float(rest[i + 3])) for i in range(0, len(rest), 4)]
             rows.append((lb, lc, pb, pc, seqs))
     return rows
 
 
 def main():
+    global NPARTS
+    args = sys.argv[1:]
+    if "--parts" in args:
+        NPARTS = int(args[args.index("--parts") + 1])
+        args = [a for i, a in enumerate(args) if a != "--parts" and (i == 0 or args[i - 1] != "--parts")]
     rows = []
-    for run in sys.argv[1:]:
+    for run in args:
         rows += load(run)
     n = len(rows)
     dlen = np.array([lc - lb for lb, lc, _, _, _ in rows], dtype=float)
@@ -58,7 +66,7 @@ def main():
     res = state_real - X @ coef
     cov = np.linalg.inv(X.T @ X) * res.var()
     se = np.sqrt(np.diag(cov))
-    names = ["one-step digs", "one-step fixes", "column MDP", "filler charge", "intercept"]
+    names = ["one-step digs", "one-step fixes", "column MDP", "filler charge", "generic next"][:NPARTS] + ["intercept"]
     print("regression realized(later moves + terminal) ~ predicted parts:")
     for nm, c, e in zip(names, coef, se):
         print(f"  {nm:16s} {c:+.3f} ± {e:.3f}   (sd of the part diff {dparts[:, names.index(nm)].std() if nm != 'intercept' else 0:.3f})")
