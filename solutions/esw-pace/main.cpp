@@ -6308,7 +6308,8 @@ struct DesignStore {
 // A planning time includes the output of the moves, a wait is the time from that output to the next
 // request read. PACE_CLIFF (test builds): effort 0 until kCliffAfter, then the light plan (as
 // esw-fast).
-constexpr double kPaceEnd = 1.85, kFastAfter = 1.92, kCliffAfter = 1.80, kPaceAlpha = 1.0 / 64, kPaceClip = 4.0;
+constexpr double kPaceEnd = 1.85, kFastAfter = 1.92, kPaceAlpha = 1.0 / 64, kPaceClip = 4.0;
+[[maybe_unused]] constexpr double kCliffAfter = 1.80;  // (PACE_CLIFF only)
 constexpr int kPaceWarmup = 32, kEfforts = 4;
 constexpr std::array<double, kEfforts> kEffortShare = {1.0, 0.71, 0.58, 0.02};
 struct Pacer {
