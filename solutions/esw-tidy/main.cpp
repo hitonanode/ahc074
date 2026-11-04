@@ -5857,6 +5857,11 @@ int main() {
         const double t_req = elapsed_sec();
         // Safety net against a slow machine: the light plan from kFastAfter on.
         if (t_req > kFastAfter) solver.fast_mode = true;
+#ifdef LOCAL_BENCH
+        // Local evaluation only (AGENTS.md, LOCAL_BENCH): never the light plan, so that the load of the
+        // machine does not change the moves; the time it takes shows in end_sec.
+        solver.fast_mode = false;
+#endif
         auto moves = solver.process(u);
         req_sec += elapsed_sec() - t_req;
         wrong += solver.display() != A[u];
