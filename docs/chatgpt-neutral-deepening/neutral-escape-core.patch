@@ -1,0 +1,195 @@
+--- eject-single-window.cpp
++++ eject-single-window-neutral-escape.cpp
+@@ -4515,6 +4515,13 @@
+     static inline bool mid_possible=true;
+     static inline bool mid_fast=true;
+     static inline int mid_eject_mode=2;
++    
++    long long triple_trials=0,triple_repairs=0,triple_accepts=0;
++    struct NeutralCandidate{State state;std::vector<std::pair<int,int>> path;double value;u64 signature;};
++    bool neutral_collect=false;
++    std::vector<NeutralCandidate> neutral_candidates;
++    long long neutral_total=0,neutral_accepted=0,neutral_direct_saved=0,neutral_escape_saved=0,request_counter=0;
++
+     long long mid_pairs=0,mid_trials=0,mid_accepts=0,mid_inside=0;
+     static inline int post_rewrite_mode=5;
+     static inline bool post_link_filter=true;
+@@ -4530,6 +4537,7 @@
+     std::vector<std::pair<int, int>> post_optimize_links(const State& initial, std::vector<std::pair<int, int>> input_ops,
+                                                    int u,bool only_eject=false) {
+         if (input_ops.empty()) return input_ops;
++        static const int neutral_signature_mode=env_int("NEUTRAL_SIGNATURE"),neutral_width=std::getenv("NEUTRAL_WIDTH")?std::max(1,env_int("NEUTRAL_WIDTH")):4;
+         struct Edit {
+             int paper, anchor;
+         };
+@@ -4685,6 +4693,16 @@
+             canonicalize();
+             if (!fillers_reachable()) return false;
+             const double value = score(path.size());
++
++            if(neutral_collect && path.size()<=input_ops.size() && value<=best_score+.75 && order!=seed.order){
++                u64 seen=0,twice=0,signature=7819213141;
++                for(int k:order){u64 op=paper[k].opaque;if(op&~(neutral_signature_mode==1?seen:twice))signature=(signature^u64(k+1))*0x100000001b3ULL;twice|=seen&op;seen|=op;if(twice==~u64(0))break;}
++                bool found=false;
++                for(auto&c:neutral_candidates)if(c.signature==signature){if(value<c.value)c={save(),path,value,signature};found=true;break;}
++                if(!found)neutral_candidates.push_back({save(),path,value,signature});
++                std::sort(neutral_candidates.begin(),neutral_candidates.end(),[](auto&a,auto&b){return a.value<b.value;});
++                if(neutral_candidates.size()>size_t(neutral_width))neutral_candidates.pop_back();
++            }
+             if (value + 1e-8 >= best_score) return false;
+             best_score = value;
+             best_ops = std::move(path);
+@@ -4952,6 +4970,92 @@
+             edits=anchorize(best_ops);
+         }
+ 
++        if(only_eject && neutral_collect && edits.size()>=2){
++            const auto base=edits;
++            std::array<u64,K> wrong_color;for(int k=0;k<K;k++)wrong_color[k]=(paper[k].black^A[u])&paper[k].opaque;
++            for(int y=int(base.size())-1;y>=1;y--)for(int x=y-1;x>=0;x--){
++                
++                auto trial=base;trial.erase(trial.begin()+y);trial.erase(trial.begin()+x);
++                auto ord=initial.order;bool legal=true;
++                for(auto[k,a]:trial){
++                    int p=std::find(ord.begin(),ord.end(),k)-ord.begin();int d=a<0?0:int(std::find(ord.begin(),ord.end(),a)-ord.begin())+1;if(p<d)--d;
++                    if(p==d)continue;u64 seen=0;for(int t=0;t<p;t++)seen|=paper[ord[t]].opaque;
++                    if(!(paper[k].opaque&~seen)){legal=false;break;}
++                    ord.erase(ord.begin()+p);ord.insert(ord.begin()+d,k);
++                }
++                if(!legal)continue;triple_trials++;
++                std::array<int,64> first,second,third;first.fill(K);second.fill(K);third.fill(K);
++                std::array<u64,K> owned{},owned2{};std::array<int,K>position{};
++                u64 seen=0,twice=0,thrice=0,view=0,black2=0,black3=0;std::vector<int> pool;
++                for(int t=0;t<K;t++){
++                    int k=ord[t];position[k]=t;
++                    u64 one=paper[k].opaque&~seen,two=paper[k].opaque&seen&~twice,three=paper[k].opaque&twice&~thrice;
++                    owned[k]=one;owned2[k]=two;
++                    if((one||two)&&k!=kCapPaper)pool.push_back(k);
++                    view|=paper[k].black&one;black2|=paper[k].black&two;black3|=paper[k].black&three;
++                    for(u64 b=one;b;b&=b-1)first[__builtin_ctzll(b)]=t;
++                    for(u64 b=two;b;b&=b-1)second[__builtin_ctzll(b)]=t;
++                    for(u64 b=three;b;b&=b-1)third[__builtin_ctzll(b)]=t;
++                    seen|=paper[k].opaque;twice|=two;thrice|=three;
++                }
++                if(view==A[u]){if(evaluate(trial))triple_accepts++;continue;}
++                const u64 oldbad=view^A[u];
++                for(int f:pool)for(int g:pool){
++                    if(f==g||!(owned[f]|owned[g]))continue;
++                    const u64 opf=paper[f].opaque,opg=paper[g].opaque;
++                    if(oldbad & ~(opf|opg))continue;
++                    if(oldbad & wrong_color[f] & ~(owned[f]|owned[g]))continue;
++                    const u64 own=owned[f]|owned[g],both=(owned[f]&owned2[g])|(owned[g]&owned2[f]);
++                    const u64 after=view^((view^black2)&own)^((black2^black3)&both),bad=after^A[u];
++                    if(!bad||(bad&wrong_color[f]))continue;
++                    const u64 lowerbad=bad&~opf;
++                    if((lowerbad&~opg)||(lowerbad&wrong_color[g]))continue;
++                    int pf=position[f],pg=position[g];
++                    auto without_pos=[&](int w){int p=first[w];if(p==pf||p==pg)p=second[w];if(p==pf||p==pg)p=third[w];return p-int(p>pf)-int(p>pg);};
++                    int la=0,ha=K-2,lb=0,hb=K-2;
++                    for(u64 b=bad&opf;b;b&=b-1)ha=std::min(ha,without_pos(__builtin_ctzll(b)));
++                    for(u64 b=lowerbad;b;b&=b-1)hb=std::min(hb,without_pos(__builtin_ctzll(b)));
++                    ha=std::min(ha,hb);
++                    for(u64 b=wrong_color[f];b&&la<=ha;b&=b-1)la=std::max(la,without_pos(__builtin_ctzll(b))+1);
++                    if(la>ha)continue;
++                    lb=la;
++                    for(u64 b=wrong_color[g]&~opf;b&&lb<=hb;b&=b-1)lb=std::max(lb,without_pos(__builtin_ctzll(b))+1);
++                    if(lb>hb)continue;
++                    auto without=ord;std::erase(without,f);std::erase(without,g);
++                    for(auto[a,b]:{std::pair{la,lb},std::pair{ha,hb}}){
++                        int aa=a?without[a-1]:-1,ab=b?without[b-1]:-1;
++
++                        // The unmodified prefix has already been replayed.
++                        // Check both tail moves in O(1), using the first two
++                        // opacity owners, before invoking the expensive scorer.
++                        struct Tail{int x,a,y,b,moves;};
++                        std::vector<Tail> tails;
++                        for(int rev=0;rev<2;rev++){
++                            int k1=rev?f:g,k2=rev?g:f;
++                            int anc1=rev?aa:ab,anc2=rev?(a==b?f:ab):aa;
++                            int p1=position[k1],p2=position[k2];
++                            int d1=anc1<0?0:position[anc1]+1;d1-=int(p1<d1);
++                            if(d1!=p1&&!owned[k1])continue;
++                            auto after_position=[&](int k){if(k==k1)return d1;int q=position[k]-int(position[k]>p1);return q+int(q>=d1);};
++                            int p2new=after_position(k2);
++                            int d2=anc2<0?0:after_position(anc2)+1;d2-=int(p2new<d2);
++                            if(d2!=p2new){
++                                u64 exposed=owned[k2]|(owned[k1]&owned2[k2]);
++                                if(d1<=p2-int(p2>p1))exposed&=~paper[k1].opaque;
++                                if(!exposed)continue;
++                            }
++                            tails.push_back({k1,anc1,k2,anc2,int(d1!=p1)+int(d2!=p2new)});
++                        }
++                        if(!tails.empty()){
++                            auto t=tails.front();if(tails.size()>1&&tails.back().moves<t.moves)t=tails.back();
++                            auto tr=trial;tr.push_back({t.x,t.a});tr.push_back({t.y,t.b});triple_repairs++;
++                            if(evaluate(tr))triple_accepts++;
++                        }
++                    }
++                }
++            }
++            edits=anchorize(best_ops);
++        }
+         if(mid_accepts>accepted_before_eject){
+             edits=anchorize(best_ops);
+             for(int pass=0;pass<3;pass++)if(!delete_singles())break;
+@@ -4971,6 +5075,7 @@
+     long long post_alternate=0,post_candidate_calls=0,post_secondary_saved=0;
+     std::vector<std::pair<int, int>> process(int u) {
+         init_adaptive();
++        ++request_counter;
+         adaptive_request = u;
+         const State st0 = save();
+         if (fast_mode) {
+@@ -5102,6 +5207,42 @@
+         if(mid_accepts>before_eject){
+             chosen_path=post_optimize(st0,std::move(chosen_path),u,false);
+             chosen_path=post_optimize(st0,std::move(chosen_path),u,true);
++        }
++
++        const auto neutral_before_path=chosen_path;
++        int neutral_before=chosen_path.size();
++        neutral_candidates.clear();neutral_collect=true;
++        chosen_path=post_optimize(st0,std::move(chosen_path),u,true);
++        neutral_collect=false;
++        neutral_direct_saved+=neutral_before-int(chosen_path.size());
++        int escape_before=chosen_path.size();
++        auto incumbent=save();double incumbent_value=chosen_path.size()+filler_charge()+kEndWeight*adaptive_next_cost();
++        auto proposals=std::move(neutral_candidates);neutral_candidates.clear();neutral_total+=proposals.size();
++        bool neutral_better=false;
++        int mode=std::getenv("NEUTRAL_DEPTH")?env_int("NEUTRAL_DEPTH"):2;
++        std::vector<std::pair<int,int>> neutral_witness;
++        if(mode)for(auto&c:proposals){
++            restore(c.state);
++            auto path=c.path;
++            if(mode>=2)path=post_optimize(st0,std::move(path),u,false);
++            for(int it=0;it<2;it++){
++                auto before=mid_accepts;
++                path=post_optimize(st0,std::move(path),u,true);
++                if(mid_accepts==before)break;
++                path=post_optimize(st0,std::move(path),u,false);
++            }
++            double value=path.size()+filler_charge()+kEndWeight*adaptive_next_cost();
++            if(value<incumbent_value-1e-9){incumbent_value=value;incumbent=save();chosen_path=std::move(path);neutral_better=true;neutral_witness=c.path;}
++        }
++
++        restore(incumbent);neutral_accepted+=neutral_better;
++        neutral_escape_saved+=escape_before-int(chosen_path.size());
++        if(std::getenv("TRACE_MAGIC") && neutral_better && chosen_path.size()<neutral_before_path.size()){
++            auto outid=[](int k){return k==kCapPaper?0:k<kCapPaper?k+1:k;};
++            std::cerr<<"WITNESS "<<(request_counter-1)<<' '<<u<<' '<<neutral_before_path.size()<<' '<<neutral_witness.size()<<' '<<chosen_path.size()<<'\n';
++            std::cerr<<"INITIAL";for(int k:st0.order)std::cerr<<' '<<outid(k);std::cerr<<'\n';
++            auto show=[&](const char*label,const auto&path){std::cerr<<label;for(auto[k,d]:path)std::cerr<<' '<<outid(k)<<':'<<d;std::cerr<<'\n';};
++            show("BEFORE",neutral_before_path);show("NEUTRAL",neutral_witness);show("AFTER",chosen_path);
+         }
+         post_secondary_saved+=original_length-int(chosen_path.size());
+         return chosen_path;
+@@ -5669,6 +5810,9 @@
+         std::cout << output << std::flush;
+         total += moves.size();
+     }
++    std::cerr << "neutral_direct_saved = " << solver.neutral_direct_saved << "\nneutral_escape_saved = " << solver.neutral_escape_saved << "\n";
++    std::cerr << "neutral_total = " << solver.neutral_total << "\nneutral_accepted = " << solver.neutral_accepted << "\n";
++    std::cerr << "triple_trials = " << solver.triple_trials << "\ntriple_repairs = " << solver.triple_repairs << "\ntriple_accepts = " << solver.triple_accepts << "\n";
+     std::cerr << "eject_pairs = " << solver.mid_pairs << "\neject_trials = " << solver.mid_trials << "\neject_accepts = " << solver.mid_accepts << "\neject_inside = " << solver.mid_inside << '\n';
+     std::cerr << "post_alternate = " << solver.post_alternate << "\npost_candidate_calls = " << solver.post_candidate_calls << "\npost_secondary_saved = " << solver.post_secondary_saved << '\n';
+     std::cerr << "self_wrong = " << wrong << "\ngeneric_moves = " << generic << "\ntotal_moves = " << total

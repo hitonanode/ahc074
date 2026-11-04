@@ -1,0 +1,147 @@
+{
+  "reference_commit": "bde7523bab7fa158c12b744f6ab417d00014ce84",
+  "reference_blob": "8136e2455cc70038e3f7993ac1e7979d3ed2767f",
+  "prior_pr": 114,
+  "compiler_command": "g++ -O2 -std=c++23 -march=native",
+  "fixed_env": {
+    "BENCH_FIXED": "1",
+    "MAP_ITERS": "160000",
+    "GOPT_STEPS": "60000",
+    "ANNEAL_ITERS": "10000000",
+    "CLIMB_ITERS": "16000",
+    "PATCH_ITERS": "3000",
+    "NEUTRAL_DEPTH": "2",
+    "NEUTRAL_WIDTH": "4"
+  },
+  "method_env": {
+    "control": {},
+    "prior": {},
+    "permutation": {
+      "CACHE_POST": "1",
+      "SWAP_EDITS": "1",
+      "REROUTE_ALL": "1",
+      "NEUTRAL_ROUNDS": "3"
+    },
+    "portal": {
+      "PORTAL_GROUP": "2"
+    }
+  },
+  "summary": {
+    "0000-0019": {
+      "control": {
+        "total": 209442,
+        "mean": 10.22666015625,
+        "delta_vs_prior": 829,
+        "log_ratio_percent": 0.3971512252524483,
+        "standard_error_pp": 0.05719331988142021,
+        "wins": 0,
+        "draws": 0,
+        "losses": 20
+      },
+      "prior": {
+        "total": 208613,
+        "mean": 10.186181640625
+      },
+      "permutation": {
+        "total": 208459,
+        "mean": 10.178662109375,
+        "delta_vs_prior": -154,
+        "log_ratio_percent": -0.07403296261531553,
+        "standard_error_pp": 0.03272937379242777,
+        "wins": 13,
+        "draws": 2,
+        "losses": 5
+      },
+      "portal": {
+        "total": 208604,
+        "mean": 10.1857421875,
+        "delta_vs_prior": -9,
+        "log_ratio_percent": -0.004244538156692458,
+        "standard_error_pp": 0.0033304186709027877,
+        "wins": 4,
+        "draws": 14,
+        "losses": 2
+      }
+    },
+    "0020-0039": {
+      "control": {
+        "total": 208070,
+        "mean": 10.15966796875,
+        "delta_vs_prior": 987,
+        "log_ratio_percent": 0.47552149945447086,
+        "standard_error_pp": 0.035719855035401815,
+        "wins": 0,
+        "draws": 0,
+        "losses": 20
+      },
+      "prior": {
+        "total": 207083,
+        "mean": 10.111474609375
+      },
+      "permutation": {
+        "total": 207023,
+        "mean": 10.108544921875,
+        "delta_vs_prior": -60,
+        "log_ratio_percent": -0.029401733949119862,
+        "standard_error_pp": 0.0268679643279846,
+        "wins": 11,
+        "draws": 0,
+        "losses": 9
+      },
+      "portal": {
+        "total": 207088,
+        "mean": 10.11171875,
+        "delta_vs_prior": 5,
+        "log_ratio_percent": 0.002399757072532117,
+        "standard_error_pp": 0.0033560193715046808,
+        "wins": 2,
+        "draws": 14,
+        "losses": 4
+      }
+    },
+    "0000-0039": {
+      "control": {
+        "total": 417512,
+        "mean": 10.1931640625,
+        "delta_vs_prior": 1816,
+        "log_ratio_percent": 0.4363363623534596,
+        "standard_error_pp": 0.033866942454070854,
+        "wins": 0,
+        "draws": 0,
+        "losses": 40
+      },
+      "prior": {
+        "total": 415696,
+        "mean": 10.148828125
+      },
+      "permutation": {
+        "total": 415482,
+        "mean": 10.143603515625,
+        "delta_vs_prior": -214,
+        "log_ratio_percent": -0.0517173482822177,
+        "standard_error_pp": 0.0212025827495563,
+        "wins": 24,
+        "draws": 2,
+        "losses": 14
+      },
+      "portal": {
+        "total": 415692,
+        "mean": 10.14873046875,
+        "delta_vs_prior": -4,
+        "log_ratio_percent": -0.0009223905420801703,
+        "standard_error_pp": 0.00239339332626773,
+        "wins": 6,
+        "draws": 28,
+        "losses": 6
+      }
+    }
+  },
+  "source_sha256": {
+    "portal.cpp": "929932d4b2e655c4efa70df5347eb5e777b14e5c5a7ce2c307cf92b345e93855",
+    "control.cpp": "d30bf0b369e5e92ca8df5249b5c581e9ea248f45a841daadab87dc070172d20a",
+    "prior.cpp": "ffe3afdb636114b52eeaf4bf5ed399d95ebdb2c5e63e45d2a4cdb62ff58e9df1",
+    "permutation.cpp": "be69311fbf6bc67dbbfd489ea8a5b493a532e24ea55467c233c59d9f1fcff14d"
+  },
+  "historical_baseline_compiler": "Seeds 0-19 control/prior: retained previous C++20 outputs; timing comparison uses newly paired seeds 20-39, all C++23.",
+  "pr_parent_commit": "21151b53e5ff0a34e0cd59323a36457a5a4dd5c4"
+}
