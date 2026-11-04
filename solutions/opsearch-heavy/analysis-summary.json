@@ -1,0 +1,370 @@
+{
+  "run": "20261104-232504_opsearch-heavy",
+  "totals": {
+    "changed": 17296,
+    "same_length": 15633,
+    "moves_saved": 1959,
+    "anchor_changes": 4682,
+    "shorter": 1661,
+    "verified_requests": 49152,
+    "longer": 2
+  },
+  "cost_terms": {
+    "cost_saved": 2059.0037631529262,
+    "filler_saved": -4422.820117187809,
+    "next_saved": 4522.823880342386
+  },
+  "histograms": {
+    "operator_same_length": {
+      "plans.direct": 2665,
+      "22.direct": 11548,
+      "11.direct": 578,
+      "22.escape": 655,
+      "11.escape": 186,
+      "32.direct": 1
+    },
+    "round_same_length": {
+      "0": 2665,
+      "1": 12783,
+      "2": 180,
+      "3": 5
+    },
+    "removed_added_same_length": {
+      "1->1": 5086,
+      "2->2": 8573,
+      "3->3": 956,
+      "0->0": 637,
+      "4->4": 273,
+      "6->6": 17,
+      "5->5": 84,
+      "8->8": 2,
+      "7->7": 5
+    },
+    "columns_same_length": {
+      "1": 3789,
+      "2": 5897,
+      "4": 989,
+      "0": 671,
+      "3": 3923,
+      "5": 242,
+      "6": 87,
+      "7": 20,
+      "10": 1,
+      "8": 12,
+      "9": 2
+    },
+    "removed_labels_same_length": {
+      "fill": 10999,
+      "fix": 8146,
+      "fret": 982,
+      "fdig": 658,
+      "help": 637,
+      "lift": 3468,
+      "ret": 483,
+      "repair": 174,
+      "relevel": 569,
+      "gen": 426,
+      "reuse": 140,
+      "dig": 20,
+      "hdig": 63
+    },
+    "added_labels_same_length": {
+      "repair": 23392,
+      "fdig": 231,
+      "fill": 262,
+      "relevel": 442,
+      "fix": 1064,
+      "reuse": 294,
+      "fret": 424,
+      "gen": 220,
+      "ret": 206,
+      "help": 95,
+      "hdig": 59,
+      "dig": 11,
+      "lift": 65
+    },
+    "relabel_same_length": {
+      "ret->reuse": 356,
+      "ret->fdig": 2,
+      "lift->repair": 1452,
+      "fill->repair": 1704,
+      "fix->repair": 2440,
+      "fret->relevel": 676,
+      "fdig->fix": 226,
+      "help->repair": 163,
+      "fret->repair": 21,
+      "reuse->repair": 37,
+      "relevel->fret": 114,
+      "hdig->fix": 39,
+      "reuse->ret": 117,
+      "repair->help": 10,
+      "fdig->hdig": 6,
+      "fill->hdig": 1,
+      "ret->repair": 47,
+      "gen->repair": 16,
+      "relevel->fdig": 4,
+      "hdig->repair": 4,
+      "fix->hdig": 20,
+      "fix->fdig": 24,
+      "fill->help": 10,
+      "fill->fdig": 1,
+      "hdig->fdig": 34,
+      "relevel->repair": 30,
+      "help->fill": 26,
+      "fdig->repair": 7,
+      "repair->reuse": 1,
+      "relevel->fill": 3,
+      "fill->relevel": 3,
+      "dig->repair": 6,
+      "fret->fdig": 5,
+      "repair->relevel": 1,
+      "repair->ret": 2,
+      "repair->fill": 1,
+      "reuse->fill": 1,
+      "repair->fret": 2
+    },
+    "categories_same_length": {
+      "filler_or_fix_removed": 14125,
+      "dig_and_return": 144,
+      "helper_removed": 546,
+      "generic_rewrite": 429
+    },
+    "operator_shorter": {
+      "plans.direct": 564,
+      "22.direct": 313,
+      "32.escape": 51,
+      "32.direct": 375,
+      "11.direct": 38,
+      "22.escape": 275,
+      "11.escape": 43,
+      "eject.escape": 2
+    },
+    "round_shorter": {
+      "0": 564,
+      "1": 995,
+      "2": 93,
+      "3": 8,
+      "4": 1
+    },
+    "removed_added_shorter": {
+      "3->2": 567,
+      "5->3": 60,
+      "4->2": 83,
+      "5->4": 182,
+      "2->1": 200,
+      "2->0": 18,
+      "4->3": 354,
+      "3->1": 59,
+      "6->4": 23,
+      "9->7": 3,
+      "7->6": 13,
+      "6->5": 48,
+      "5->2": 9,
+      "1->0": 14,
+      "6->3": 3,
+      "8->6": 2,
+      "7->5": 8,
+      "9->8": 1,
+      "8->7": 5,
+      "8->5": 4,
+      "4->1": 1,
+      "8->4": 1,
+      "9->6": 1,
+      "7->4": 1,
+      "6->2": 1
+    },
+    "columns_shorter": {
+      "3": 336,
+      "7": 57,
+      "5": 293,
+      "4": 444,
+      "2": 228,
+      "6": 155,
+      "1": 105,
+      "0": 19,
+      "9": 5,
+      "8": 19
+    },
+    "removed_labels_shorter": {
+      "fret": 1073,
+      "gen": 1255,
+      "fill": 1002,
+      "fix": 1575,
+      "ret": 195,
+      "fdig": 229,
+      "lift": 224,
+      "repair": 54,
+      "relevel": 207,
+      "help": 155,
+      "reuse": 53,
+      "hdig": 52,
+      "dig": 6
+    },
+    "added_labels_shorter": {
+      "hdig": 191,
+      "help": 374,
+      "repair": 2658,
+      "ret": 61,
+      "fill": 110,
+      "fix": 138,
+      "fdig": 98,
+      "reuse": 29,
+      "gen": 287,
+      "fret": 118,
+      "relevel": 33,
+      "lift": 16,
+      "dig": 6
+    },
+    "relabel_shorter": {
+      "fill->fdig": 1,
+      "ret->repair": 48,
+      "fix->repair": 74,
+      "fret->relevel": 52,
+      "fdig->fix": 10,
+      "fill->repair": 78,
+      "reuse->ret": 65,
+      "fix->fdig": 8,
+      "lift->repair": 139,
+      "help->repair": 28,
+      "ret->reuse": 45,
+      "fdig->hdig": 9,
+      "fill->hdig": 3,
+      "relevel->fret": 60,
+      "fix->hdig": 20,
+      "fill->help": 24,
+      "relevel->repair": 12,
+      "fret->repair": 18,
+      "relevel->fill": 3,
+      "ret->fdig": 1,
+      "relevel->help": 2,
+      "gen->repair": 13,
+      "hdig->fix": 10,
+      "hdig->fdig": 5,
+      "reuse->repair": 7,
+      "fdig->repair": 8,
+      "help->fill": 2,
+      "fret->help": 3,
+      "dig->repair": 3,
+      "repair->help": 4,
+      "ret->hdig": 2,
+      "hdig->repair": 1,
+      "fret->fdig": 3,
+      "relevel->fdig": 1,
+      "relevel->hdig": 1,
+      "repair->ret": 1,
+      "ret->help": 1,
+      "repair->gen": 1
+    },
+    "categories_shorter": {
+      "filler_or_fix_removed": 1417,
+      "generic_rewrite": 752,
+      "dig_and_return": 173,
+      "helper_removed": 130
+    },
+    "operator_longer": {
+      "plans.direct": 2
+    },
+    "round_longer": {
+      "0": 2
+    },
+    "removed_added_longer": {
+      "3->4": 2
+    },
+    "columns_longer": {
+      "5": 1,
+      "4": 1
+    },
+    "removed_labels_longer": {
+      "help": 2,
+      "hdig": 1,
+      "reuse": 1,
+      "gen": 1,
+      "fill": 1
+    },
+    "added_labels_longer": {
+      "fret": 2,
+      "fill": 1,
+      "fix": 1,
+      "repair": 2,
+      "ret": 1,
+      "help": 1
+    },
+    "relabel_longer": {
+      "repair->ret": 1,
+      "relevel->fret": 1
+    },
+    "categories_longer": {
+      "helper_removed": 1,
+      "filler_or_fix_removed": 1,
+      "generic_rewrite": 1
+    }
+  },
+  "filters": {
+    "all": [
+      2265306,
+      14221,
+      1428,
+      15161
+    ],
+    "rank1": [
+      63447,
+      53,
+      237,
+      54
+    ],
+    "rank2": [
+      123160,
+      118,
+      278,
+      121
+    ],
+    "rank4": [
+      234832,
+      283,
+      390,
+      296
+    ],
+    "gap0": [
+      280344,
+      3251,
+      379,
+      3555
+    ],
+    "gap025": [
+      1396116,
+      6703,
+      1194,
+      7319
+    ],
+    "rank2_gap025": [
+      121888,
+      118,
+      277,
+      121
+    ],
+    "repeat": [
+      32115,
+      1373,
+      67,
+      1574
+    ],
+    "shorter": [
+      10358,
+      2471,
+      68,
+      2615
+    ],
+    "added_paper_occurrence": [
+      1290578,
+      13169,
+      1160,
+      14032
+    ],
+    "rank4_added_occurrence": [
+      49026,
+      202,
+      276,
+      212
+    ]
+  }
+}
