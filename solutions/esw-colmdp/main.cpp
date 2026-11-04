@@ -21,7 +21,7 @@
 // The two best distinct moved-paper sequences are post-processed. Deletions,
 // destination changes, and deleting two moves with one repair are checked by
 // replay for visibility, final display, and the state needed by later orders.
-// At full effort, fast2 cheaply screens extra plans, then combines endpoint-only one-to-one
+// After that, fast2 cheaply screens extra plans, then combines endpoint-only one-to-one
 // repair with PR 114's two-to-two rewrite on final display owners. Up to two promising states
 // with different front-two-layer signatures are re-shortened. F2_MODE selects the search budget.
 // Per-request range data and exact replay/state caches reduce repeated post-processing work.
@@ -30,16 +30,12 @@
 // The design never reads the clock for a decision (Design iteration counts): the window assignment,
 // its climb, the product/column annealing and the filler climb run fixed numbers of iterations
 // (about 1.3 s of design on the judge with Clang), then four head-aware reassignments, one pass of
-// the handle perforation and the complete helper tables. The requests are paced (Request pacing):
-// when the projected end of the requests passes kPaceEnd, the post-processing of a request is
-// reduced step by step, down to the light plan (always from kFastAfter on). All random seeds are
-// fixed; no future order is read during design.
+// the handle perforation and the complete helper tables. Every request gets the full search (no
+// fallback for a lack of time: the fallback PR removed esw-pace's request pacing and light plan, so
+// that the time the full search needs shows; restore it from that PR before a final submission).
+// All random seeds are fixed; no future order is read during design.
 //
-// Test switches (macros, for copies of this file): PACE_SIM=f stretches the clock of the request
-// phase f times (a slower judge) and keeps the pacing under LOCAL_BENCH; PACE_FORCE=e fixes the
-// effort of every request under LOCAL_BENCH (which otherwise always uses the full effort);
-// PACE_CLIFF=1 replaces the pacing by the plain switch to the light plan at kCliffAfter;
-// ITER_SCALE multiplies the four fixed iteration counts.
+// Test switches (macros, for copies of this file): ITER_SCALE multiplies the four fixed iteration counts.
 //
 // Contents (each part starts with a line "// ==== <name> ===="; `grep -n '// ====' main.cpp` lists them
 // with their lines):
@@ -77,7 +73,6 @@
 //   design_papers: printing the papers
 //   design_papers: handle perforation
 //   Saving and loading the design state (LOCAL_BENCH: DesignStore)
-//   Request pacing (Pacer)
 //   Analysis output (LOCAL_BENCH): paper attributes
 //   main: input
 //   main: the design (designed, or loaded under LOCAL_BENCH)
@@ -136,17 +131,7 @@ auto kStartTime = Clock::now();
 #else
 const auto kStartTime = Clock::now();
 #endif
-#ifdef PACE_SIM
-// Test builds only: the request phase as if PACE_SIM times slower (the judge took about 1.4 times
-// the local estimate for it). Readings after pace_sim_start (the start of the requests) are stretched.
-double pace_sim_start = 1e300;
-double elapsed_sec() {
-    const double t = scaled_since(kStartTime);
-    return t <= pace_sim_start ? t : pace_sim_start + PACE_SIM * (t - pace_sim_start);
-}
-#else
 double elapsed_sec() { return scaled_since(kStartTime); }
-#endif
 
 // Overrides of the fixed iteration counts for experiments (MAP_ITERS, GOPT_STEPS, ANNEAL_ITERS,
 // CLIMB_ITERS; 0 or unset: the counts of Design iteration counts; GOPT_STEPS / CLIMB_ITERS = -1: no
@@ -3543,8 +3528,7 @@ struct Solver {
     // esw-ptune: kTopPenalty 0.35 -> 0 (the top of the column is allowed to every return; ret_mode 1
     // and 2 are then the same plan).
     static constexpr double kTopPenalty = 0.00, kEndWeight = 1.0;
-    bool fast_mode = false;
-    long long fast_requests = 0, plan_failures = 0;
+    long long plan_failures = 0;
     // The demand of the column papers as fillers: the expected saving (as Design::filler_gain, the
     // heads modeled by adaptive_holes, but 0.8 instead of 0.6 for the second window: esw-ptune) of
     // each paper k summed over the targets; the adaptive weights
@@ -6677,18 +6661,15 @@ struct Solver {
     // best plan without the joint choice again with the chain search (append_wide_chains), and the
     // helper plans (try_helpers). The kPostCandidates cheapest plans are post-processed (edit pass)
     // and the cheaper result kept; then the eject pass (and while it repairs something, the edit pass
-    // and the eject pass again, at most 4 eject passes in all; esw-ptune: formerly at most 2). At
-    // full effort, an additional collecting eject pass and the re-shortening of its neutral
-    // candidates follow (PR 114; NEUTRAL=0 disables this entire phase).
-    // In fast_mode, or when no plan is valid, the plain plan; if it is
+    // and the eject pass again, at most 4 eject passes in all; esw-ptune: formerly at most 2). Then
+    // an additional collecting eject pass and the re-shortening of its neutral candidates follow
+    // (PR 114; NEUTRAL=0 disables this entire phase).
+    // When no plan is valid, the plain plan; if it is
     // not legal either (it would move an invisible paper, or more than 2K moves: fillers may hide each
     // other), the full search, and as the last resort no move at all (a wrong display, never an
     // illegal output).
     long long unsafe_plans = 0;
     static constexpr int kPostCandidates = 2;
-    // esw-pace: the effort of the post-processing (main's Pacer): 0 all, 1 without the eject pass, 2
-    // also without the post-processing of the other candidate (the light plan is fast_mode).
-    int effort = 0;
     long long post_alternate = 0, post_candidate_calls = 0, post_secondary_saved = 0;
     std::vector<std::pair<int, int>> process(int u) {
         post_context.ready = false;  // all post-processing in this call replays the same st0
@@ -6703,21 +6684,6 @@ struct Solver {
         init_adaptive();
         adaptive_request = u;
         const State st0 = save();
-        if (fast_mode) {
-            fast_requests++;
-            ops.clear();
-            OP_TAG(op_tags.clear();)
-            invalid = false;
-            check_vis = true;
-            run_plan(u, PlanOpt{});
-            check_vis = false;
-            if (!invalid && ops.size() <= 2 * K) {
-                canonicalize();
-                return ops;
-            }
-            unsafe_plans++;
-            restore(st0);
-        }
         const int top0 = top_d, d = ded[u];
         const bool prev_ok = top0 >= 0 && d >= 0 && d != top0;
         // without old fillers, their options are all the same
@@ -6864,7 +6830,7 @@ struct Solver {
             edited_candidates.push_back({plan_cost(chosen_path.size()), save(), chosen_path OP_TAG(, best_tags)});
         post_candidate_calls++;
         const int original_length = chosen_path.size();
-        if (future_candidates.size() > 1 && effort < 2) {
+        if (future_candidates.size() > 1) {
             auto chosen = save();
             const auto original_order = best_state.order;
             double value = plan_cost(chosen_path.size());
@@ -6893,11 +6859,6 @@ struct Solver {
             restore(chosen);
             post_alternate += changed;
         }
-        if (effort >= 1) {
-            post_secondary_saved += original_length - int(chosen_path.size());
-            OP_TAG(op_tags = std::move(best_tags);)  // the labels of the moves returned
-            return chosen_path;
-        }
         const auto ordinary_eject_start = neutral_enabled && search_config().alternate ? order : std::vector<int>{};
         for (int round = 0; round < 4; round++) {  // esw-ptune: the eject passes repeated (formerly 2)
             const auto before_eject = eject_accepts;
@@ -6909,7 +6870,7 @@ struct Solver {
             plan_cache[chosen_cache].edited = {plan_cost(chosen_path.size()), save(), chosen_path OP_TAG(, best_tags)};
             plan_cache[chosen_cache].complete = true;
         }
-        if (neutral_enabled && effort == 0) {
+        if (neutral_enabled) {
             const auto& cfg = search_config();
             static const int neutral_depth = [] {
                 const char* s = search_env("NEUTRAL_DEPTH");
@@ -7987,57 +7948,6 @@ struct DesignStore {
 };
 #endif
 
-// ==== Request pacing (Pacer) ====
-
-// The effort of each request (esw-pace; Solver::effort, 3 = the light plan): before each request,
-// the projected end of the requests at effort e is now + (requests left) x (mean wait for a request
-// + kEffortShare[e] x full), full being the estimated planning time at effort 0; the least effort
-// whose projected end is at most kPaceEnd is used. If none, effort 2 while its projected end is at
-// most kFastAfter, else the light plan (3; always from kFastAfter on). The first kPaceWarmup requests
-// use effort 0 and full starts as their mean; then every request at effort e < 3 moves full by
-// kPaceAlpha towards its planning time / kEffortShare[e] (a moving average: the planning gets
-// cheaper along the requests, by about 15% from the first quarter to the rest, so the mean of all
-// the past requests projects too late an end); from the 5th request on, a planning time or a wait
-// above kPaceClip x full counts as kPaceClip x full (a stall of the machine is not expected to
-// repeat). The shares are measured locally (trial_log.md).
-// A planning time includes the output of the moves, a wait is the time from that output to the next
-// request read. PACE_CLIFF (test builds): effort 0 until kCliffAfter, then the light plan (as
-// esw-fast).
-constexpr double kPaceEnd = 1.85, kFastAfter = 1.92, kPaceAlpha = 1.0 / 64, kPaceClip = 4.0;
-[[maybe_unused]] constexpr double kCliffAfter = 1.80;  // (PACE_CLIFF only)
-constexpr int kPaceWarmup = 32, kEfforts = 4;
-constexpr std::array<double, kEfforts> kEffortShare = {1.0, 0.71, 0.58, 0.02};
-struct Pacer {
-    double full = 0, wait_sum = 0;
-    int samples = 0, wait_count = 0;
-    void record(int effort, double seconds) {
-        if (effort >= kEfforts - 1) return;
-        double t = seconds / kEffortShare[effort];
-        // a stall (one request much slower than the estimate) moves it little; the light plan, which
-        // does not update it, would otherwise stay until the end
-        if (samples >= 4) t = std::min(t, kPaceClip * full);
-        full = samples < kPaceWarmup ? (full * samples + t) / (samples + 1) : full + kPaceAlpha * (t - full);
-        samples++;
-    }
-    void record_wait(double seconds) {
-        if (samples >= 4) seconds = std::min(seconds, kPaceClip * full);  // a stall, as in record
-        wait_sum += seconds;
-        wait_count++;
-    }
-    int choose(int r, int R, double now) const {
-#ifdef PACE_CLIFF
-        return now > kCliffAfter ? 3 : 0;
-#endif
-        if (now > kFastAfter) return 3;
-        if (r < kPaceWarmup || samples == 0) return 0;
-        const double wait = wait_count ? wait_sum / wait_count : 0.0;
-        for (int e = 0; e < kEfforts - 1; e++)
-            if (now + (R - r) * (wait + kEffortShare[e] * full) <= kPaceEnd) return e;
-        // behind the target: the light plan only if even effort 2 would end after kFastAfter
-        return now + (R - r) * (wait + kEffortShare[kEfforts - 2] * full) <= kFastAfter ? kEfforts - 2 : kEfforts - 1;
-    }
-};
-
 #ifdef LOCAL_BENCH
 // ==== Analysis output (LOCAL_BENCH): paper attributes ====
 
@@ -8221,31 +8131,10 @@ int main() {
 
     long long total = 0, generic = 0, wrong = 0;
     double req_sec = 0;  // time spent planning the requests (without waiting for them)
-#ifdef PACE_SIM
-    pace_sim_start = elapsed_sec();
-#endif
-    Pacer pacer;
-    std::array<int, kEfforts> effort_requests{};
-    double t_out = elapsed_sec();  // the end of the last output
     for (int r = 0; r < R; r++) {
         int u;
         if (!(std::cin >> u) || u == -1) return 0;
         const double t_req = elapsed_sec();
-        pacer.record_wait(t_req - t_out);
-        int effort = pacer.choose(r, R, t_req);
-#if defined(LOCAL_BENCH) && !defined(PACE_SIM)
-        // Local evaluation only (AGENTS.md, LOCAL_BENCH): always the full effort (PACE_FORCE: a fixed
-        // one, for measurements), so that the load of the machine does not change the moves; the time
-        // it takes shows in end_sec. (The PACE_SIM test builds keep the pacing.)
-#ifdef PACE_FORCE
-        effort = PACE_FORCE;
-#else
-        effort = 0;
-#endif
-#endif
-        effort_requests[effort]++;
-        solver.fast_mode = effort == kEfforts - 1;
-        solver.effort = effort;
         auto moves = solver.process(u);
         req_sec += elapsed_sec() - t_req;
         wrong += solver.display() != state.A[u];
@@ -8262,8 +8151,6 @@ int main() {
         append_op_labels(op_labels, r, solver.op_tags);
 #endif
         total += moves.size();
-        t_out = elapsed_sec();
-        pacer.record(effort, t_out - t_req);
     }
 
     // ==== main: statistics ====
@@ -8296,7 +8183,7 @@ int main() {
               << "\npost_secondary_saved = " << solver.post_secondary_saved << '\n';
     std::cerr << "self_wrong = " << wrong << "\ngeneric_moves = " << generic << "\ntotal_moves = " << total
               << "\nG = " << G << "\nplan_failures = " << solver.plan_failures
-              << "\nfast_requests = " << solver.fast_requests << "\npost_saved = " << solver.post_saved
+              << "\npost_saved = " << solver.post_saved
               << "\nrewrite_trials = " << solver.rewrite_trials
               << "\nrewrite_accepts = " << solver.rewrite_accepts
               << "\nrewrite_same_column = " << solver.rewrite_same_column
@@ -8306,10 +8193,6 @@ int main() {
               << "\nchain_trials = " << solver.chain_trials << "\nchain_selected = " << solver.chain_selected
               << "\nchain_papers = " << solver.chain_papers << "\nunsafe_plans = " << solver.unsafe_plans
               << "\nfiller_demand_spread = " << solver.filler_demand_spread << "\nreq_sec = " << req_sec
-              << "\neffort1_requests = " << effort_requests[1] << "\neffort2_requests = " << effort_requests[2]
-              << "\neffort3_requests = " << effort_requests[3]
-              << "\npace_wait_sec = " << pacer.wait_sum / std::max(1, pacer.wait_count)
-              << "\npace_full_sec = " << pacer.full
               << "\nend_sec = " << elapsed_sec() << '\n';
     return 0;
 }
