@@ -1,0 +1,41 @@
+from pathlib import Path
+import fcntl,json,signal,subprocess,time
+folder=Path(__file__).resolve().parent
+waiting=[26,29,39,27,30,32,33,35,36,24,25,28,31,34,37,38]
+active=[];paused=False
+lock=open('/home/sato/ahc074/runs/.lock','rb')
+while waiting or active:
+    if (folder/'stop').exists():
+        for seed,p,files in active:
+            p.send_signal(signal.SIGCONT);p.terminate()
+        for seed,p,files in active:
+            p.wait()
+            for f in files:f.close()
+        break
+    busy=False
+    try:
+        fcntl.flock(lock,fcntl.LOCK_SH|fcntl.LOCK_NB)
+        fcntl.flock(lock,fcntl.LOCK_UN)
+    except BlockingIOError:busy=True
+    if busy!=paused:
+        for seed,p,files in active:
+            if p.poll() is None:p.send_signal(signal.SIGSTOP if busy else signal.SIGCONT)
+        paused=busy;print('paused' if busy else 'resumed',flush=True)
+    if not paused:
+        while waiting and len(active)<2:
+            seed=waiting.pop(0)
+            files=[(folder/f'{seed:04}.json').open('w'),(folder/f'{seed:04}.err').open('w')]
+            p=subprocess.Popen(['/tmp/ahc074-front-network',str(folder.parent/'front-three'/f'{seed:04}.txt'),'2000000','1024'],stdout=files[0],stderr=files[1])
+            active.append((seed,p,files));print('started',seed,flush=True)
+    for job in active[:]:
+        seed,p,files=job
+        if p.poll() is not None:
+            for f in files:f.close()
+            active.remove(job)
+            print('finished',seed,p.returncode,flush=True)
+            if p.returncode==0:
+                d=json.loads((folder/f'{seed:04}.json').read_text())
+                for chain in (0,1):
+                    candidates=[x for x in d['final'] if x['chain']==chain]
+                    if candidates:print(seed,'chain',chain,min(candidates,key=lambda x:x['value']),flush=True)
+    time.sleep(.5)

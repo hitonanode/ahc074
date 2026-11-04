@@ -1,0 +1,78 @@
+    std::vector<std::array<int,2>> choose_heads()const{
+        std::vector<std::array<int,2>> heads(H,std::array<int,2>{-1,-1});
+        for(int k=7;k<K;k++){
+            int c=columns[k],b=colors[k]>>c&1;
+            if(frequency[k]==max_frequency[c][b]&&(heads[c][b]<0||utility[k]>utility[heads[c][b]]))heads[c][b]=k;
+        }
+        return heads;
+    }
+    __attribute__((target("popcnt"))) void edge_column(int u,u64 color,int c,const std::vector<std::array<int,2>>&heads,std::array<double,26>&edge)const{
+        edge.fill(-1e9);int own=s.ded[u];if(c==columns[own])return;
+        u64 holes=low_bits(H)&~opacity[own],bad_mask=(color^target[u])&holes;
+        for(int b=0;b<2;b++){
+            int k=heads[c][b];assert(k>=0);u64 mask=opacity[k]&holes;
+            u64 wrong=mask&(colors[k]^target[u]);int lo=wrong?64-__builtin_clzll(wrong):0;
+            if(lo>c)continue;
+            u64 covered=bad_mask&mask&~low_bits(lo);
+            int number=__builtin_popcountll(covered);double price=1.6+(b!=int(color>>c&1));
+            for(int start=lo;start<=c&&number>price;start++){
+                edge[start]=std::max(edge[start],number-price);
+                number-=int(covered>>start&1);
+            }
+        }
+    }
+    Edges make_edges(int u,u64 color,const std::vector<std::array<int,2>>&heads)const{
+        Edges edges;for(int c=0;c<H;c++)edge_column(u,color,c,heads,edges[c]);return edges;
+    }
+    double solve_edges(const Edges&edges,int skip=-1)const{
+        std::array<double,26> dp{};
+        for(int c=0;c<H;c++){
+            dp[c+1]=dp[c];if(c==skip)continue;
+            for(int lo=0;lo<=c;lo++)dp[c+1]=std::max(dp[c+1],dp[lo]+edges[c][lo]);
+        }
+        return dp[H];
+    }
+    QueryCache make_cache(const Edges&edges)const{
+        QueryCache q;std::array<unsigned,26> used{};
+        for(int c=0;c<H;c++){
+            q.forward[c+1]=q.forward[c];used[c+1]=used[c];
+            for(int lo=0;lo<=c;lo++){
+                double v=q.forward[lo]+edges[c][lo];
+                if(v>q.forward[c+1])q.forward[c+1]=v,used[c+1]=used[lo]|(1U<<c);
+            }
+        }
+        q.value=q.forward[H];
+        for(int lo=H-1;lo>=0;lo--){
+            q.backward[lo]=q.backward[lo+1];
+            for(int c=lo;c<H;c++)q.backward[lo]=std::max(q.backward[lo],edges[c][lo]+q.backward[c+1]);
+        }
+        for(int c=0;c<H;c++)q.avoid[c]=(used[H]>>c&1)?solve_edges(edges,c):q.value;
+        return q;
+    }
+    void refresh_cache(){
+        cache_heads=choose_heads();cache.resize(P*overlap_samples);
+        for(int u=0;u<P;u++)for(int sample=0;sample<overlap_samples;sample++){
+            int i=u*overlap_samples+sample;cache[i]=make_cache(make_edges(u,samples[i],cache_heads));
+        }
+    }
+    double cached_profit()const{
+        double sum=0;for(const auto&q:cache)sum+=q.value;return sum/overlap_samples;
+    }
+    double total_profit(){
+        if(trial_paper<0)return cached_profit();
+        auto heads=choose_heads();std::vector<int>changed;
+        for(int c=0;c<H;c++)if(heads[c]!=cache_heads[c]||heads[c][0]==trial_paper||heads[c][1]==trial_paper)changed.push_back(c);
+        double sum=0;
+        for(int u=0;u<P;u++)for(int sample=0;sample<overlap_samples;sample++){
+            int i=u*overlap_samples+sample;const auto&q=cache[i];
+            if(s.ded[u]==trial_paper||changed.size()>1){sum+=solve_edges(make_edges(u,samples[i],heads));full_queries++;}
+            else if(changed.empty())sum+=q.value;
+            else{
+                int c=changed[0];std::array<double,26>edge;edge_column(u,samples[i],c,heads,edge);
+                double value=q.avoid[c];
+                for(int lo=0;lo<=c;lo++)value=std::max(value,q.forward[lo]+edge[lo]+q.backward[c+1]);
+                sum+=value;fast_queries++;
+            }
+        }
+        return sum/overlap_samples;
+    }
