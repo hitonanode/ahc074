@@ -1,0 +1,108 @@
+--- neutral-escape.cpp
++++ neutral-portal.cpp
+@@ -4519,6 +4519,9 @@
+     long long triple_trials=0,triple_repairs=0,triple_accepts=0;
+     struct NeutralCandidate{State state;std::vector<std::pair<int,int>> path;double value;u64 signature;};
+     bool neutral_collect=false;
++    bool portal_mode=false;
++    long long portal_trials=0,portal_accepts=0,portal_queries=0,portal_saved=0;
++
+     std::vector<NeutralCandidate> neutral_candidates;
+     long long neutral_total=0,neutral_accepted=0,neutral_direct_saved=0,neutral_escape_saved=0,request_counter=0;
+ 
+@@ -4850,7 +4853,7 @@
+         delete_singles();
+         }
+         auto accepted_before_eject=mid_accepts;
+-        if(mid_eject_mode&&(only_eject||!mid_once)&&edits.size()>=2){
++        if(mid_eject_mode&&!portal_mode&&(only_eject||!mid_once)&&edits.size()>=2){
+             const auto base_edits=edits;
+             std::array<bool,K>possible{};
+             for(auto e:base_edits)possible[e.paper]=true;
+@@ -4970,6 +4973,59 @@
+             edits=anchorize(best_ops);
+         }
+ 
++        // A generic comparison sheet may be lowered below the requested
++        // product. Together with an already planned follower this opens a
++        // non-handle window and can replace several column digs.
++        if(portal_mode && only_eject){
++            const auto base=edits;const auto parent_ops=best_ops;
++            const int d=ded[u],c=col_of[d];
++            int lift_at=int(base.size());
++            for(int i=0;i<int(base.size());++i)if(base[i].paper==d){lift_at=i;break;}
++            std::vector<int> generics,digs;
++            for(int i=0;i<lift_at;++i){
++                int k=base[i].paper;
++                if(k<M)generics.push_back(i);
++                else if(k!=d && col_of[k]==c)digs.push_back(i);
++            }
++            std::array<int,K> final_pos;
++            for(int i=0;i<K;++i)final_pos[best_state.order[i]]=i;
++            const int nd=int(digs.size()),ng=int(generics.size());
++            if(nd>0 && ng>0 && nd<=10 && ng<=6){
++                const int groups=env_int("PORTAL_GROUP")?env_int("PORTAL_GROUP"):1;
++                for(int gm=1;gm<(1<<ng);++gm){
++                    if(__builtin_popcount(unsigned(gm))>groups)continue;
++                    auto redirected=base;
++                    for(int t=0;t<ng;++t)if(gm>>t&1){
++                        int k=base[generics[t]].paper,a=d,bestpos=-1;
++                        for(int q=0;q<t;++q)if(gm>>q&1){int p=base[generics[q]].paper;
++                            if(final_pos[p]<final_pos[k] && final_pos[p]>bestpos){bestpos=final_pos[p];a=p;}
++                        }
++                        redirected[generics[t]].anchor=a;
++                    }
++                    for(int dm=1;dm<(1<<nd);++dm){
++                        std::vector<Edit> trial;int bit=0;
++                        for(int i=0;i<int(base.size());++i){
++                            bool remove=bit<nd&&digs[bit]==i;
++                            if(remove){remove=(dm>>bit)&1;++bit;}
++                            if(!remove)trial.push_back(redirected[i]);
++                        }
++                        ++portal_trials;
++                        if(evaluate(trial)){
++                            ++portal_accepts;
++                            if(std::getenv("TRACE_PORTAL")){
++                                auto id=[](int k){return k==kCapPaper?0:k<kCapPaper?k+1:k;};
++                                std::cerr<<"PORTAL "<<(request_counter-1)<<' '<<u<<' '<<gm<<' '<<dm<<' '<<parent_ops.size()<<' '<<best_ops.size()<<'\n';
++                                std::cerr<<"INITIAL";for(int k:initial.order)std::cerr<<' '<<id(k);std::cerr<<'\n';
++                                auto print=[&](const char*label,const auto&path){std::cerr<<label;for(auto[k,d]:path)std::cerr<<' '<<id(k)<<':'<<d;std::cerr<<'\n';};
++                                print("BEFORE",parent_ops);print("AFTER",best_ops);
++                            }
++                        }
++                    }
++                }
++            }
++            edits=anchorize(best_ops);
++        }
++
+         if(only_eject && neutral_collect && edits.size()>=2){
+             const auto base=edits;
+             std::array<u64,K> wrong_color;for(int k=0;k<K;k++)wrong_color[k]=(paper[k].black^A[u])&paper[k].opaque;
+@@ -5243,6 +5299,18 @@
+             std::cerr<<"INITIAL";for(int k:st0.order)std::cerr<<' '<<outid(k);std::cerr<<'\n';
+             auto show=[&](const char*label,const auto&path){std::cerr<<label;for(auto[k,d]:path)std::cerr<<' '<<outid(k)<<':'<<d;std::cerr<<'\n';};
+             show("BEFORE",neutral_before_path);show("NEUTRAL",neutral_witness);show("AFTER",chosen_path);
++        }
++        if(env_int("PORTAL_GROUP")){
++            const int before=chosen_path.size();const auto accepted=portal_accepts;
++            portal_mode=true;
++            chosen_path=post_optimize(st0,std::move(chosen_path),u,true);
++            portal_mode=false;
++            if(portal_accepts>accepted){
++                ++portal_queries;
++                chosen_path=post_optimize(st0,std::move(chosen_path),u,false);
++                chosen_path=post_optimize(st0,std::move(chosen_path),u,true);
++            }
++            portal_saved+=before-int(chosen_path.size());
+         }
+         post_secondary_saved+=original_length-int(chosen_path.size());
+         return chosen_path;
+@@ -5812,6 +5880,7 @@
+     }
+     std::cerr << "neutral_direct_saved = " << solver.neutral_direct_saved << "\nneutral_escape_saved = " << solver.neutral_escape_saved << "\n";
+     std::cerr << "neutral_total = " << solver.neutral_total << "\nneutral_accepted = " << solver.neutral_accepted << "\n";
++    std::cerr << "portal_trials = "<<solver.portal_trials<<"\nportal_accepts = "<<solver.portal_accepts<<"\nportal_queries = "<<solver.portal_queries<<"\nportal_saved = "<<solver.portal_saved<<"\n";
+     std::cerr << "triple_trials = " << solver.triple_trials << "\ntriple_repairs = " << solver.triple_repairs << "\ntriple_accepts = " << solver.triple_accepts << "\n";
+     std::cerr << "eject_pairs = " << solver.mid_pairs << "\neject_trials = " << solver.mid_trials << "\neject_accepts = " << solver.mid_accepts << "\neject_inside = " << solver.mid_inside << '\n';
+     std::cerr << "post_alternate = " << solver.post_alternate << "\npost_candidate_calls = " << solver.post_candidate_calls << "\npost_secondary_saved = " << solver.post_secondary_saved << '\n';

@@ -1,0 +1,136 @@
+--- neutral-escape.cpp
++++ neutral-permutation.cpp
+@@ -4517,6 +4517,8 @@
+     static inline int mid_eject_mode=2;
+     
+     long long triple_trials=0,triple_repairs=0,triple_accepts=0;
++    long long round_calls=0,round_changes=0;
++    long long swap_trials=0,swap_accepts=0;
+     struct NeutralCandidate{State state;std::vector<std::pair<int,int>> path;double value;u64 signature;};
+     bool neutral_collect=false;
+     std::vector<NeutralCandidate> neutral_candidates;
+@@ -4529,9 +4531,34 @@
+     long long rewrite_trials=0,rewrite_accepts=0,rewrite_same_column=0,rewrite_same_paper=0;
+     long long post_saved = 0, post_pair_trials = 0, post_pair_accepts = 0;
+     static constexpr bool byte_links=true;
++    struct PostMemo {
++        u64 hash;
++        bool only_eject;
++        State seed, result;
++        std::vector<std::pair<int,int>> input, output;
++        long long accept_delta, saved_delta;
++    };
++    std::vector<PostMemo> post_memo;
++    long long post_memo_hits=0,post_memo_misses=0;
+     std::vector<std::pair<int,int>> post_optimize(const State& initial,std::vector<std::pair<int,int>> input_ops,int u,bool only_eject=false){
+-        if(byte_links)return post_optimize_links<uint8_t>(initial,std::move(input_ops),u,only_eject);
+-        return post_optimize_links<int>(initial,std::move(input_ops),u,only_eject);
++        const bool cache=env_int("CACHE_POST")&&!neutral_collect;
++        u64 key=781231231ULL^unsigned(only_eject);
++        if(cache){
++            for(auto[k,d]:input_ops)key=(key^u64(193*k+d))*0x100000001b3ULL;
++            for(int k:order)key=(key^u64(k))*0x100000001b3ULL;
++            key=(key^u64(top_d+1))*0x100000001b3ULL;
++            for(auto f:fillers)key=(key^u64(4096*f.paper+64*f.lvl+f.hi))*0x100000001b3ULL;
++            for(const auto&e:post_memo)if(e.hash==key&&e.only_eject==only_eject&&e.input==input_ops&&e.seed.order==order&&e.seed.top_d==top_d&&same_fillers(e.seed.fillers,fillers)){
++                ++post_memo_hits;restore(e.result);mid_accepts+=e.accept_delta;post_saved+=e.saved_delta;return e.output;
++            }
++            ++post_memo_misses;
++        }
++        PostMemo entry;
++        if(cache){entry.hash=key;entry.only_eject=only_eject;entry.seed=save();entry.input=input_ops;}
++        const auto before_accepts=mid_accepts,before_saved=post_saved;
++        auto result=byte_links?post_optimize_links<uint8_t>(initial,std::move(input_ops),u,only_eject):post_optimize_links<int>(initial,std::move(input_ops),u,only_eject);
++        if(cache){entry.result=save();entry.output=result;entry.accept_delta=mid_accepts-before_accepts;entry.saved_delta=post_saved-before_saved;post_memo.push_back(std::move(entry));}
++        return result;
+     }
+     template<class Link>
+     std::vector<std::pair<int, int>> post_optimize_links(const State& initial, std::vector<std::pair<int, int>> input_ops,
+@@ -4694,7 +4721,7 @@
+             if (!fillers_reachable()) return false;
+             const double value = score(path.size());
+ 
+-            if(neutral_collect && path.size()<=input_ops.size() && value<=best_score+.75 && order!=seed.order){
++            if(neutral_collect && path.size()<=input_ops.size() && value<=best_score+(std::getenv("NEUTRAL_MARGIN")?std::atof(std::getenv("NEUTRAL_MARGIN")):.75) && order!=seed.order){
+                 u64 seen=0,twice=0,signature=7819213141;
+                 for(int k:order){u64 op=paper[k].opaque;if(op&~(neutral_signature_mode==1?seen:twice))signature=(signature^u64(k+1))*0x100000001b3ULL;twice|=seen&op;seen|=op;if(twice==~u64(0))break;}
+                 bool found=false;
+@@ -4747,7 +4774,7 @@
+         // papers out of the columns (a generic sheet).
+         for (int i = int(edits.size()) - 1; i >= 0; i--) {
+             const int k = edits[i].paper;
+-            if (!initial_extra[k]) {
++            if (!initial_extra[k] && !(neutral_collect && env_int("REROUTE_ALL"))) {
+                 int repeats = 0;
+                 for (const auto& e : edits) repeats += e.paper == k;
+                 if (repeats < 2) continue;
+@@ -4970,7 +4997,21 @@
+             edits=anchorize(best_ops);
+         }
+ 
+-        if(only_eject && neutral_collect && edits.size()>=2){
++        if(only_eject && neutral_collect && env_int("SWAP_EDITS")){
++            const auto base=edits;
++            for(int i=0;i<int(base.size());++i)for(int j=i+1;j<int(base.size());++j){
++                for(int mode=0;mode<3;++mode){
++                    auto trial=base;
++                    if(mode==0)std::swap(trial[i].anchor,trial[j].anchor);
++                    if(mode==1)std::swap(trial[i].paper,trial[j].paper);
++                    if(mode==2)std::swap(trial[i],trial[j]);
++                    if(trial[i].paper==trial[i].anchor||trial[j].paper==trial[j].anchor)continue;
++                    ++swap_trials;if(evaluate(trial))++swap_accepts;
++                }
++            }
++            edits=anchorize(best_ops);
++        }
++        if(only_eject && neutral_collect && !env_int("SWAP_ONLY") && edits.size()>=2){
+             const auto base=edits;
+             std::array<u64,K> wrong_color;for(int k=0;k<K;k++)wrong_color[k]=(paper[k].black^A[u])&paper[k].opaque;
+             for(int y=int(base.size())-1;y>=1;y--)for(int x=y-1;x>=0;x--){
+@@ -5075,7 +5116,7 @@
+     long long post_alternate=0,post_candidate_calls=0,post_secondary_saved=0;
+     std::vector<std::pair<int, int>> process(int u) {
+         init_adaptive();
+-        ++request_counter;
++        ++request_counter;post_memo.clear();
+         adaptive_request = u;
+         const State st0 = save();
+         if (fast_mode) {
+@@ -5209,10 +5250,15 @@
+             chosen_path=post_optimize(st0,std::move(chosen_path),u,true);
+         }
+ 
++        const int max_rounds=std::getenv("NEUTRAL_ROUNDS")?std::max(1,env_int("NEUTRAL_ROUNDS")):1;
++        for(int nr=0;nr<max_rounds;++nr){
++        ++round_calls;
++        const double entry_value=chosen_path.size()+filler_charge()+kEndWeight*adaptive_next_cost();
+         const auto neutral_before_path=chosen_path;
+         int neutral_before=chosen_path.size();
+         neutral_candidates.clear();neutral_collect=true;
+-        chosen_path=post_optimize(st0,std::move(chosen_path),u,true);
++        if(env_int("REROUTE_ALL"))chosen_path=post_optimize(st0,std::move(chosen_path),u,false);
++        if(env_int("REROUTE_ONLY")==0)chosen_path=post_optimize(st0,std::move(chosen_path),u,true);
+         neutral_collect=false;
+         neutral_direct_saved+=neutral_before-int(chosen_path.size());
+         int escape_before=chosen_path.size();
+@@ -5243,6 +5289,10 @@
+             std::cerr<<"INITIAL";for(int k:st0.order)std::cerr<<' '<<outid(k);std::cerr<<'\n';
+             auto show=[&](const char*label,const auto&path){std::cerr<<label;for(auto[k,d]:path)std::cerr<<' '<<outid(k)<<':'<<d;std::cerr<<'\n';};
+             show("BEFORE",neutral_before_path);show("NEUTRAL",neutral_witness);show("AFTER",chosen_path);
++        }
++
++        if(incumbent_value>=entry_value-1e-9)break;
++        ++round_changes;
+         }
+         post_secondary_saved+=original_length-int(chosen_path.size());
+         return chosen_path;
+@@ -5812,6 +5862,9 @@
+     }
+     std::cerr << "neutral_direct_saved = " << solver.neutral_direct_saved << "\nneutral_escape_saved = " << solver.neutral_escape_saved << "\n";
+     std::cerr << "neutral_total = " << solver.neutral_total << "\nneutral_accepted = " << solver.neutral_accepted << "\n";
++    std::cerr << "post_memo_hits = "<<solver.post_memo_hits<<"\npost_memo_misses = "<<solver.post_memo_misses<<"\n";
++    std::cerr << "swap_trials = "<<solver.swap_trials<<"\nswap_accepts = "<<solver.swap_accepts<<"\n";
++    std::cerr << "round_calls = "<<solver.round_calls<<"\nround_changes = "<<solver.round_changes<<"\n";
+     std::cerr << "triple_trials = " << solver.triple_trials << "\ntriple_repairs = " << solver.triple_repairs << "\ntriple_accepts = " << solver.triple_accepts << "\n";
+     std::cerr << "eject_pairs = " << solver.mid_pairs << "\neject_trials = " << solver.mid_trials << "\neject_accepts = " << solver.mid_accepts << "\neject_inside = " << solver.mid_inside << '\n';
+     std::cerr << "post_alternate = " << solver.post_alternate << "\npost_candidate_calls = " << solver.post_candidate_calls << "\npost_secondary_saved = " << solver.post_secondary_saved << '\n';
