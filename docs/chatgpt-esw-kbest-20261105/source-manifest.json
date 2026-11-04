@@ -1,0 +1,40 @@
+{
+  "baseline": {
+    "repository_path": "solutions/eject-single-window/main.cpp",
+    "git_blob": "8136e2455cc70038e3f7993ac1e7979d3ed2767f",
+    "sha256": "5f58f1c24f8a643c589124bad0b93d29c35d029a2c7d6ca9f2964726ff7b4bdd"
+  },
+  "profiles": {
+    "lean": {
+      "patches": [
+        "kbest.patch"
+      ],
+      "sha256": "c83b4b8f4be0d1f0a4de0d182be723e2c9753c553329158f6373921a32a61c71"
+    },
+    "research": {
+      "patches": [
+        "research.patch.gz"
+      ],
+      "sha256": "36df8ea1c276fd3431c78ce828947bb58b3a0377ab255b457decde4247879a1b"
+    },
+    "wide": {
+      "patches": [
+        "research.patch.gz",
+        "wide-profile.patch"
+      ],
+      "sha256": "9dc633371253fa14f9bbb91afc6bd8497948485fd9a7ca1085e46f3aefeb5c5c"
+    }
+  },
+  "patches": {
+    "kbest.patch": "85ad50a91da179b849411344b03d3adf3b9bb3fbca412e31dce7e6bb759134ef",
+    "research.patch.gz": "230247238b01996438bbc34f58500d24a2044956e0dbab45d5c368d08fa2d2f8",
+    "wide-profile.patch": "d86cb058f045437c81db8a18889d77b7c7cdd1c3a4931fb0f6ff74e3e9aeeefe"
+  },
+  "patch_parts": {
+    "research.patch.gz": [
+      "patch-parts/research.patch.gz.000",
+      "patch-parts/research.patch.gz.001",
+      "patch-parts/research.patch.gz.002"
+    ]
+  }
+}

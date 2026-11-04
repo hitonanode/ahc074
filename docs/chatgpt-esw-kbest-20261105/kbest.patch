@@ -1,0 +1,193 @@
+--- a/main.cpp
++++ b/main.cpp
+@@ -1,3 +1,8 @@
++// Research candidate: retain three distinct alternate filler families in two plan contexts.
++// No changes to paper design or column MDP. DP_CACHE=1 enables an optional exact DP memo.
++// LOCAL_BENCH disables time-triggered request degradation. FIXED_WORK=1 also
++// disables design-stage global deadlines; use the documented fixed iteration counts.
++// This file is standalone C++23; measured against eject-single-window, not esw-pace.
+ // AHC074: six-sheet comparator, paired product papers, and visible access columns.
+ // The 63 active windows consist of G=38 generic windows and H=25 handles;
+ // window 63 belongs to a fixed black cap. Each generic window compares two
+@@ -58,6 +63,7 @@
+ #endif
+ const auto kStartTime = std::chrono::steady_clock::now();
+ double elapsed_sec() {
++    if(std::getenv("FIXED_WORK"))return 0.0;
+     return CLOCK_SCALE * std::chrono::duration<double>(std::chrono::steady_clock::now() - kStartTime).count();
+ }
+ 
+@@ -3277,10 +3283,88 @@
+         int idx = -1;
+         bool post = false;
+     };
++    // ==== Research: expose alternate solutions inside the filler interval DP ====
++    static inline int dp_ranks=3,dp_contexts=2,no_filler_plans=0;
++    int dp_rank=0;
++    long long dp_alternate_trials=0,dp_alternate_valid=0,dp_alternate_wins=0;
++
++    struct IntervalMemo {
++        std::vector<std::vector<Cand>> input;
++        std::vector<std::vector<Cand>> result;
++    };
++    static inline int dp_cache_enabled=0;
++    mutable std::vector<IntervalMemo> interval_memo;
++    long long interval_cache_hits=0;
++    static bool equal_intervals(const std::vector<std::vector<Cand>>&a,const std::vector<std::vector<Cand>>&b){
++        if(a.size()!=b.size())return false;
++        for(size_t j=0;j<a.size();++j){
++            if(a[j].size()!=b[j].size())return false;
++            for(size_t i=0;i<a[j].size();++i){const auto&x=a[j][i];const auto&y=b[j][i];
++                if(x.lvl!=y.lvl||x.gain!=y.gain||x.c!=y.c||x.depth!=y.depth||x.kind!=y.kind||x.idx!=y.idx||x.post!=y.post)return false;
++            }
++        }
++        return true;
++    }
++
++    static inline int dp_families=1;
++    std::vector<Cand> alternate_interval_families(const std::vector<std::vector<Cand>>&cand) const {
++        if(dp_cache_enabled)for(const auto&e:interval_memo)if(equal_intervals(e.input,cand))return dp_rank<=int(e.result.size())?e.result[dp_rank-1]:std::vector<Cand>{};
++        using Signature=std::vector<std::array<int,5>>;
++        auto signature=[](const std::vector<Cand>&p){
++            Signature key;for(const auto&c:p)key.push_back({c.kind,c.c,c.depth,c.idx,int(c.post)});return key;
++        };
++        // Recover the exact family chosen by the original (one-best) recurrence.
++        std::vector<double>first(H+1);std::vector<int>which(H+1,-1);
++        for(int c=0;c<H;c++){
++            first[c+1]=first[c];
++            for(int i=0;i<int(cand[c].size());i++)if(first[cand[c][i].lvl]+cand[c][i].gain>first[c+1]+1e-9){first[c+1]=first[cand[c][i].lvl]+cand[c][i].gain;which[c+1]=i;}
++        }
++        std::vector<Cand>original;
++        for(int j=H;j>0;){if(which[j]<0){j--;continue;}original.push_back(cand[j-1][which[j]]);j=original.back().lvl;}
++        std::reverse(original.begin(),original.end());const Signature original_key=signature(original);
++        struct Node{long long score=0;std::vector<Cand>picks;Signature key;};
++        const int keep=(dp_cache_enabled?std::max(dp_ranks,dp_rank):dp_rank)+1;
++        std::vector<std::vector<Node>>dp(H+1);dp[0].push_back({});
++        for(int c=0;c<H;c++){
++            auto pool=dp[c];
++            for(const auto&cd:cand[c])for(const auto&prev:dp[cd.lvl]){
++                Node n=prev;n.score+=std::llround(10*cd.gain);n.picks.push_back(cd);n.key.push_back({cd.kind,cd.c,cd.depth,cd.idx,int(cd.post)});pool.push_back(std::move(n));
++            }
++            std::stable_sort(pool.begin(),pool.end(),[](const auto&a,const auto&b){return a.score>b.score;});
++            for(auto&n:pool){
++                bool duplicate=false;for(const auto&e:dp[c+1])if(n.key==e.key){duplicate=true;break;}
++                if(!duplicate)dp[c+1].push_back(std::move(n));
++                if(int(dp[c+1].size())==keep)break;
++            }
++        }
++        std::vector<std::vector<Cand>> solutions;
++        for(auto&n:dp[H])if(n.key!=original_key){auto result=n.picks;std::reverse(result.begin(),result.end());solutions.push_back(std::move(result));}
++        if(dp_cache_enabled)interval_memo.push_back({cand,solutions});
++        return dp_rank<=int(solutions.size())?solutions[dp_rank-1]:std::vector<Cand>{};
++    }
++
++    std::vector<Cand> alternate_intervals(const std::vector<std::vector<Cand>>&cand) const {
++        struct Node { double score=0;std::vector<Cand> picks; };
++        const int keep=dp_rank+1;
++        std::vector<std::vector<Node>>table(H+1);table[0].push_back({});
++        for(int c=0;c<H;c++){
++            auto pool=table[c];
++            for(const auto&cd:cand[c])for(const auto&prev:table[cd.lvl]){
++                Node next=prev;next.score+=cd.gain;next.picks.push_back(cd);pool.push_back(std::move(next));
++            }
++            std::stable_sort(pool.begin(),pool.end(),[](const auto&a,const auto&b){return a.score>b.score;});
++            if(int(pool.size())>keep)pool.resize(keep);table[c+1]=std::move(pool);
++        }
++        if(table[H].size()<=size_t(dp_rank))return {};
++        auto result=table[H][dp_rank].picks;
++        std::reverse(result.begin(),result.end());return result;
++    }
++
+     // Weighted interval scheduling over the handle indices (cand[c]: the candidates ending at c): the
+     // best set of disjoint intervals, deepest first. Disjoint intervals never cover each other's
+     // column handles, so their gains add up.
+     std::vector<Cand> best_intervals(const std::vector<std::vector<Cand>>& cand) const {
++        if(dp_rank>0)return dp_families?alternate_interval_families(cand):alternate_intervals(cand);
+         std::vector<double> best(H + 1, 0);
+         std::vector<int> pick(H + 1, -1);
+         for (int c = 0; c < H; c++) {
+@@ -4967,11 +5051,12 @@
+     // an invisible paper, or more than 2K moves: fillers may hide each other), the full search, and
+     // as the last resort no move at all (a wrong display, never an illegal output).
+     long long unsafe_plans = 0;
+-    static constexpr int kPostCandidates=2;
++    static inline int kPostCandidates=2;
+     long long post_alternate=0,post_candidate_calls=0,post_secondary_saved=0;
+     std::vector<std::pair<int, int>> process(int u) {
+         init_adaptive();
+         adaptive_request = u;
++        interval_memo.clear();
+         const State st0 = save();
+         if (fast_mode) {
+             fast_requests++;
+@@ -4999,6 +5084,8 @@
+             for (int rm = 1; rm <= 2; rm++) opts.push_back({rm, 5, true});
+         if (prev_ok)
+             for (int fm : fms) opts.push_back({4, fm, true});
++        if(no_filler_plans){auto originals=opts;for(auto o:originals)if(o.fret_mode!=5){o.use_filler=false;opts.push_back(o);}}
++        double best_joint=1e18;PlanOpt best_joint_opt;
+         double best = 1e18, best_normal = 1e18;
+         std::vector<std::pair<int, int>> best_ops;
+         State best_state;
+@@ -5036,7 +5123,8 @@
+             double cost = ops.size() + filler_charge() + future;
+             record_future(cost);
+             if (cost < best) best = cost, best_ops = ops, best_state = save();
+-            if (o.fret_mode != 5 && cost < best_normal) best_normal = cost, best_normal_opt = o;
++            if (o.fret_mode != 5 && o.use_filler && cost < best_normal) best_normal = cost, best_normal_opt = o;
++            if(o.fret_mode==5&&cost<best_joint)best_joint=cost,best_joint_opt=o;
+         }
+         tail_cache_on = false;
+         int source = 0, chain_count = 0;  // the plan kept: 0 the options, 1 the chain search, 2 helpers
+@@ -5054,6 +5142,21 @@
+                 double cost = ops.size() + filler_charge() + kEndWeight * adaptive_next_cost();
+                 record_future(cost);
+                 if (cost < best) best = cost, best_ops = ops, best_state = save(), source = 1;
++            }
++        }
++        if(dp_ranks){
++            for(int rank=1;rank<=dp_ranks;rank++)for(int context=0;context<dp_contexts;context++){
++                if(context==0&&best_normal>=1e17)continue;
++                if(context==1&&best_joint>=1e17)continue;
++                restore(st0);ops.clear();invalid=false;dp_rank=rank;
++                dp_alternate_trials++;
++                run_plan(u,context?best_joint_opt:best_normal_opt);
++                dp_rank=0;
++                if(invalid||ops.size()>2*K||display()!=A[u]||!fillers_reachable())continue;
++                dp_alternate_valid++;
++                const double cost=ops.size()+filler_charge()+kEndWeight*adaptive_next_cost();
++                record_future(cost);
++                if(cost<best){best=cost;best_ops=ops;best_state=save();source=0;dp_alternate_wins++;}
+             }
+         }
+         if (interleave && interleave->ready && d >= 0 && d != top0 && !interleave->helpers[u].empty()) {
+@@ -5415,6 +5518,10 @@
+ }  // namespace
+ 
+ int main() {
++    if(auto v=std::getenv("DP_RANKS"))Solver::dp_ranks=std::max(0,std::min(31,std::atoi(v)));
++    if(auto v=std::getenv("DP_CONTEXTS"))Solver::dp_contexts=std::max(1,std::min(2,std::atoi(v)));
++    if(auto v=std::getenv("DP_CACHE"))Solver::dp_cache_enabled=std::atoi(v);
++
+     std::ios::sync_with_stdio(false);
+     std::cin.tie(nullptr);
+     int n, k, p, R;
+@@ -5657,7 +5764,9 @@
+         if (!(std::cin >> u) || u == -1) return 0;
+         const double t_req = elapsed_sec();
+         // Safety net against a slow machine: the light plan from kFastAfter on.
+-        if (t_req > kFastAfter) solver.fast_mode = true;
++        #ifndef LOCAL_BENCH
++        if (!env_int("NO_FALLBACK") && t_req > kFastAfter) solver.fast_mode = true;
++#endif
+         auto moves = solver.process(u);
+         req_sec += elapsed_sec() - t_req;
+         wrong += solver.display() != A[u];
+@@ -5669,6 +5778,7 @@
+         std::cout << output << std::flush;
+         total += moves.size();
+     }
++    std::cerr << "dp_trials = " << solver.dp_alternate_trials << "\ndp_valid = " << solver.dp_alternate_valid << "\ndp_wins = " << solver.dp_alternate_wins << '\n';
+     std::cerr << "eject_pairs = " << solver.mid_pairs << "\neject_trials = " << solver.mid_trials << "\neject_accepts = " << solver.mid_accepts << "\neject_inside = " << solver.mid_inside << '\n';
+     std::cerr << "post_alternate = " << solver.post_alternate << "\npost_candidate_calls = " << solver.post_candidate_calls << "\npost_secondary_saved = " << solver.post_secondary_saved << '\n';
+     std::cerr << "self_wrong = " << wrong << "\ngeneric_moves = " << generic << "\ntotal_moves = " << total
