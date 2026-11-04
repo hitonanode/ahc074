@@ -112,7 +112,9 @@ def cmd_runs(args) -> None:
         print("no finished run")
         return
     seeds = set(replay.all_seeds())
-    full = [r for r in runs if seeds <= r[2].keys()]
+    # Runs on saved designs (pahcer_run.py --design-from) have no true scores: only listed with --all,
+    # never the default ref.
+    full = [r for r in runs if seeds <= r[2].keys() and not r[1].get("design_from")]
     if args.ref:
         ref_dir = replay.resolve_run(args.ref)
         ref = next((r for r in runs if r[0] == ref_dir), None)
@@ -128,10 +130,16 @@ def cmd_runs(args) -> None:
           " ± standard error; W/D/L = seeds better / equal / worse than ref. Mean score, E, T leave WA out.")
     rows = []
     for d, meta, scores in runs:
-        if not args.all and not seeds <= scores.keys():
+        source = meta.get("design_from")
+        if not args.all and (not seeds <= scores.keys() or source):
             continue
         summary = meta.get("summary", {})
-        comment = ("[no-record] " if not meta.get("record", True) else "") + (meta.get("comment") or "")
+        if source:
+            orders = source.get("orders", 1)
+            mark = f"[design-from {source['run']}" + (f" x{orders}" if orders > 1 else "") + "] "
+        else:
+            mark = "[no-record] " if not meta.get("record", True) else ""
+        comment = mark + (meta.get("comment") or "")
         rows.append((d, len(scores), sum(s == 0 for s in scores.values()),
                      mean_valid(s or None for s in scores.values()), summary.get("average_E"),
                      summary.get("average_T"), log_ratio(scores, ref[2], scores.keys()),
@@ -426,7 +434,9 @@ def main() -> int:
 
     p = sub.add_parser("runs", help="評価済みの run を一覧し、基準の run と比べる")
     p.add_argument("--ref", help="基準の run（省略時は全ケースで平均スコアが最も良い run）")
-    p.add_argument("--all", action="store_true", help="全ケースを評価していない run も表示する")
+    p.add_argument("--all", action="store_true",
+                   help="全ケースを評価していない run と、保存した設計を読み込んだ run (pahcer_run.py --design-from。"
+                        "1 本目の注文の列のスコア) も表示する")
     p.add_argument("--sort", choices=["ratio", "time"], default="ratio", help="並び順: 基準との差 (既定) か新しい順")
     p.add_argument("--top", type=int, default=30, help="表示する run の数")
     p.set_defaults(func=cmd_runs)
