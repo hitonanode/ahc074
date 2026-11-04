@@ -41,8 +41,13 @@
 - PACE_SIM=f: 注文処理の段の時計の読みを f 倍に伸ばし、LOCAL_BENCH でもペース配分を使う（esw-pace-slow14・17・20）。ジャッジの遅さを手元で真似る。`--design-from` で使える。
 - PACE_CLIFF=1: ペース配分の代わりに、改良元と同じく kCliffAfter = 1.80 秒から軽い計画にする（esw-pace-slow*-cliff。対照）。
 
+## 解析用の出力（LOCAL_BENCH）
+
+- 手元の評価だけで、紙の属性（`@paper role/col/depth0/hcolor/perf/targets`）と操作のラベル（`@ops`）を、solutions/esw-roles と同じ書式・同じ意味で stderr に出す（一覧と付け方は esw-roles の README、書式は AGENTS.md の「分析」）。手間 1・2 で後処理を省いたときも、返す操作列とラベルは 1 対 1。提出版（LOCAL_BENCH なし）の計算と出力は変わらない。
+
 ## stderr の指標
 
+- op_label_errors: ラベルの数が操作の数と合わなかった注文の数（0 のはず。LOCAL_BENCH のみ）
 - effort1_requests・effort2_requests・effort3_requests: 手間 1・2・3 で処理した注文の数
 - pace_wait_sec: 注文を待つ時間の平均（頭打ち込み）
 - pace_full_sec: 最後の full（倍率込みの秒）

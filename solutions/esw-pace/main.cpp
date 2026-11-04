@@ -36,6 +36,7 @@
 // Contents (each part starts with a line "// ==== <name> ===="; `grep -n '// ====' main.cpp` lists them
 // with their lines):
 //   Common: constants, clock, random numbers
+//   Analysis output (LOCAL_BENCH): move labels
 //   Generic layer: the comparator of the six sheets
 //   Generic layer: exact mean moves of a partial order (PosetSums)
 //   Window assignment: pair relations and their fast evaluation
@@ -66,6 +67,7 @@
 //   design_papers: handle perforation
 //   Saving and loading the design state (LOCAL_BENCH: DesignStore)
 //   Request pacing (Pacer)
+//   Analysis output (LOCAL_BENCH): paper attributes
 //   main: input
 //   main: the design (designed, or loaded under LOCAL_BENCH)
 //   main: helper tables and the generic look-ahead
@@ -158,6 +160,63 @@ struct XorShift {
     int below(int n) { return int(((unsigned __int128)next() * unsigned(n)) >> 64); }
     double real() { return (next() >> 11) * 0x1.0p-53; }
 };
+
+// ==== Analysis output (LOCAL_BENCH): move labels ====
+
+// Local evaluation only (AGENTS.md, the analysis section; README): every move gets a label telling the
+// part of the request processing that made it, printed as `@ops <r> = <label> ...` (scripts/observe.py
+// reads it). The Solver keeps the label of each move of `ops` in op_tags (pushed by move / move_after
+// with the current label op_tag, which OP_LABEL sets for the rest of a scope), and every copy of a
+// move list carries its labels along (OP_TAG). The labels are never read by the computation, and
+// without LOCAL_BENCH both macros expand to nothing (the submitted code is unchanged).
+#ifdef LOCAL_BENCH
+enum OpLabel : uint8_t {
+    kOpOther,    // no label set (a bug of the labels if it shows)
+    kOpRet,      // the previous lifted paper back into its column
+    kOpFret,     // an old filler back into its column
+    kOpReuse,    // the previous lifted paper moved to a filler level
+    kOpRelevel,  // an old filler moved to another level
+    kOpGen,      // a generic sheet moved to order the generic layer
+    kOpDig,      // a dig of the requested paper's column (its top paper back into the column)
+    kOpLift,     // the requested paper to the top
+    kOpFdig,     // a dig of a column to reach a new filler
+    kOpFill,     // a new filler placed at its level
+    kOpHdig,     // a dig of a column to reach a helper
+    kOpHelp,     // a helper inserted into the generic layer
+    kOpFix,      // a dig of a column until its handle shows the requested color
+    kOpRepair,   // the repair move added by the eject pass of the post-processing
+    kOpLabels
+};
+constexpr const char* kOpLabelName[kOpLabels] = {"other", "ret",  "fret", "reuse", "relevel", "gen",  "dig",
+                                                 "lift",  "fdig", "fill", "hdig",  "help",    "fix", "repair"};
+#define OP_TAG(...) __VA_ARGS__
+#define OP_LABEL_CAT2(a, b) a##b
+#define OP_LABEL_CAT(a, b) OP_LABEL_CAT2(a, b)
+// Sets the label of the moves made in the rest of the enclosing scope (restored at its end).
+#define OP_LABEL(label) const OpLabelScope OP_LABEL_CAT(op_label_scope_, __LINE__)(op_tag, label)
+struct OpLabelScope {
+    uint8_t& slot;
+    uint8_t saved;
+    OpLabelScope(uint8_t& s, uint8_t label) : slot(s), saved(s) { s = label; }
+    ~OpLabelScope() { slot = saved; }
+};
+// `@ops <r> = ...` with runs of one label written as `<label>*<n>`.
+void append_op_labels(std::string& out, int r, const std::vector<uint8_t>& tags) {
+    out += "@ops " + std::to_string(r) + " =";
+    for (size_t i = 0; i < tags.size();) {
+        size_t j = i;
+        while (j < tags.size() && tags[j] == tags[i]) j++;
+        out += ' ';
+        out += kOpLabelName[tags[i]];
+        if (j - i > 1) out += '*' + std::to_string(j - i);
+        i = j;
+    }
+    out += '\n';
+}
+#else
+#define OP_TAG(...)
+#define OP_LABEL(label)
+#endif
 
 // ==== Generic layer: the comparator of the six sheets ====
 
@@ -3061,6 +3120,10 @@ struct Solver {
     };
     std::vector<Filler> fillers;
     std::vector<std::pair<int, int>> ops;  // moves (paper, depth) of the plan being simulated
+#ifdef LOCAL_BENCH
+    std::vector<uint8_t> op_tags;  // the label of each move of ops (OpLabel)
+    uint8_t op_tag = kOpOther;     // the label of the moves made now (OP_LABEL)
+#endif
     explicit Solver(std::vector<u64> a) : A(std::move(a)) {}
 
     // The handle windows (h_j = window handle[j]; H set already) and the table of handle_bits:
@@ -3090,6 +3153,7 @@ struct Solver {
     // Orders the generic sheets (contiguous in the stack) so that the generic holes `holes` of the
     // paper of u show A_u (Comparator::plan).
     void set_generic(int u, u64 holes) {
+        OP_LABEL(kOpGen);
         holes &= gmask;
         if (!holes) return;
         int offset = -1;
@@ -3463,6 +3527,7 @@ struct Solver {
         if (check_vis && !visible_at(k, i)) invalid = true;
         shift_paper(i, d);
         ops.push_back({k, d});
+        OP_TAG(op_tags.push_back(op_tag);)
     }
     // Moves paper k just below paper x.
     void move_after(int k, int x) {
@@ -3476,6 +3541,7 @@ struct Solver {
         const int dest = ix - int(ix > i) + 1;  // just below x once k is taken out
         shift_paper(i, dest);
         ops.push_back({k, dest});
+        OP_TAG(op_tags.push_back(op_tag);)
     }
     // Is paper k, at position i, visible?
     bool visible_at(int k, int i) const {
@@ -3534,6 +3600,7 @@ struct Solver {
     // at the cap window requests black by stopping immediately below the cap;
     // otherwise the usual top insertion shows its own (correct) printed color.
     void move_to_target_top(int d) {
+        OP_LABEL(kOpLift);
         const bool needs_cap = (A[adaptive_request] & kCapBit) && !(paper[d].black & kCapBit);
         if (!needs_cap)
             move(d, 0);
@@ -3550,6 +3617,7 @@ struct Solver {
                 invalid = true;
                 return;
             }
+            OP_LABEL(kOpDig);
             dig(c, d);
         }
         move_to_target_top(d);
@@ -3557,6 +3625,7 @@ struct Solver {
     }
     // Digs column l until its handle shows `color` (until the first paper of that color is on top).
     void set_handle(int l, int color) {
+        OP_LABEL(kOpFix);
         int barrier = -1;
         for (int k : order)
             if (in_column(k, l) && int(paper[k].black >> handle[l] & 1) == color) {
@@ -3658,9 +3727,13 @@ struct Solver {
                 invalid = true;
                 return;
             }
+            OP_LABEL(kOpFdig);
             dig(c, x);
         }
-        move_to_level(x, lvl);
+        {
+            OP_LABEL(kOpFill);
+            move_to_level(x, lvl);
+        }
         fillers.push_back({x, lvl, c});
         hh &= ~shown_by(fillers.back());
     }
@@ -3668,6 +3741,7 @@ struct Solver {
     // depth (adaptive_insert; mode 1 adds the top penalty); below u's paper if that paper is still in
     // place in the same column (the column is dug for it in this request).
     void return_paper(int x, int u, int mode) {
+        OP_LABEL(x == top_d ? kOpRet : kOpFret);
         const int d = u >= 0 ? ded[u] : -1;
         adaptive_insert(x, u, d >= 0 && d != x && col_of[d] == col_of[x] && in_column(d, col_of[x]) ? d : -1, mode);
     }
@@ -3872,7 +3946,10 @@ struct Solver {
                 continue;
             }
             drop_filler(x);
-            move_to_level(x, lvl, true, gen_harm(x, d, u));
+            {
+                OP_LABEL(kOpRelevel);
+                move_to_level(x, lvl, true, gen_harm(x, d, u));
+            }
             placed.push_back({x, lvl, cf});
             pre_cov |= cov;
         }
@@ -3996,6 +4073,7 @@ struct Solver {
         if (x0 >= 0) {
             if (x0_lvl >= 0) {
                 top_d = -1;
+                OP_LABEL(kOpReuse);
                 move_to_level(x0, x0_lvl, true, gen_harm(x0, d, u));
                 fillers.push_back({x0, x0_lvl, col_of[x0]});
             } else {
@@ -4009,6 +4087,7 @@ struct Solver {
             int x = olds[i].paper;
             for (auto& f : fillers)
                 if (f.paper == x) f.lvl = old_lvl[i], f.hi = col_of[x];
+            OP_LABEL(kOpRelevel);
             if (old_dec[i] == 1) move_to_level(x, old_lvl[i], true, gen_harm(x, d, u));
         }
         for (auto& f : fillers)
@@ -4072,7 +4151,10 @@ struct Solver {
                     return_visible_fillers(olds, u, opt.fret_mode);
             };
             put_back(vis_old);
-            move_to_level(x, lvl);
+            {
+                OP_LABEL(kOpReuse);
+                move_to_level(x, lvl);
+            }
             top_d = -1;
             put_back(def_old);
             for (auto& f : placed) fillers.push_back(f);
@@ -4107,16 +4189,18 @@ struct Solver {
                 top_d = e.out_top;
                 fillers = e.out_fillers;
                 ops.insert(ops.end(), e.out_ops.begin(), e.out_ops.end());
+                OP_TAG(op_tags.insert(op_tags.end(), e.out_tags.begin(), e.out_tags.end());)
                 invalid = e.out_invalid;
                 return;
             }
-        TailEntry e{h, order, top_d, fillers, pre_cov, opt.use_filler, {}, -1, {}, {}, false};
+        TailEntry e{h, order, top_d, fillers, pre_cov, opt.use_filler, {}, -1, {}, {}, false OP_TAG(, {})};
         const size_t prefix = ops.size();
         run_plan_tail(u, opt, pre_cov);
         e.out_order = order;
         e.out_top = top_d;
         e.out_fillers = fillers;
         e.out_ops.assign(ops.begin() + prefix, ops.end());
+        OP_TAG(e.out_tags.assign(op_tags.begin() + prefix, op_tags.end());)
         e.out_invalid = invalid;
         tail_cache.push_back(std::move(e));
     }
@@ -4136,6 +4220,7 @@ struct Solver {
         std::vector<Filler> out_fillers;
         std::vector<std::pair<int, int>> out_ops;
         bool out_invalid;
+        OP_TAG(std::vector<uint8_t> out_tags;)  // the labels of out_ops
     };
     std::vector<TailEntry> tail_cache;
     bool tail_cache_on = false;
@@ -4443,8 +4528,10 @@ struct Solver {
                 invalid = true;
                 return;
             }
+            OP_LABEL(kOpFdig);
             dig(pick.c, x);
         }
+        OP_LABEL(kOpFill);
         auto& placed = placement_chains[pick.chain_id];
         int successor = -1, predecessor = -1;
         for (int i = pick.chain_rank + 1; i < (int)placed.size(); i++)
@@ -4634,15 +4721,20 @@ struct Solver {
     void run_interleave(int u, const Interleave::Pick& pk) {
         const int d = ded[u], c = col_of[pk.paper], l = col_of[d];
         const int s = interleave->state(order);
-        for (auto [k, depth] : comparator.path(s, pk.goal)) move(k, depth + 1);
+        {
+            OP_LABEL(kOpGen);
+            for (auto [k, depth] : comparator.path(s, pk.goal)) move(k, depth + 1);
+        }
         auto get_helper = [&](bool after_target) {
             for (int it = 0; column_top(c) != pk.paper; it++) {
                 if (it >= K || invalid) {
                     invalid = true;
                     return;
                 }
+                OP_LABEL(kOpHdig);
                 dig(c, pk.paper);
             }
+            OP_LABEL(kOpHelp);
             move(pk.paper, 1 + pk.depth + (after_target ? 1 : 0));
             fillers.push_back({pk.paper, 0, c});
         };
@@ -4655,7 +4747,10 @@ struct Solver {
     void run_interleave_pair(int u, const PairHelperPick& pk) {
         const int d = ded[u], l = col_of[d];
         const int s = interleave->state(order);
-        for (auto [k, depth] : comparator.path(s, pk.goal)) move(k, depth + 1);
+        {
+            OP_LABEL(kOpGen);
+            for (auto [k, depth] : comparator.path(s, pk.goal)) move(k, depth + 1);
+        }
         int placed = 0;
         bool lifted = false;
         auto get = [&](int x, int depth) {
@@ -4666,8 +4761,10 @@ struct Solver {
                     invalid = true;
                     return;
                 }
+                OP_LABEL(kOpHdig);
                 dig(c, x);
             }
+            OP_LABEL(kOpHelp);
             move(x, 1 + depth + placed + (lifted ? 1 : 0));
             fillers.push_back({x, 0, c});
             placed++;
@@ -4684,6 +4781,7 @@ struct Solver {
         const int d = ded[u];
         restore(st0);
         ops.clear();
+        OP_TAG(op_tags.clear();)
         invalid = false;
         if (top_d >= 0) return_paper(top_d, u, 1);
         const auto olds = fillers;
@@ -4694,6 +4792,7 @@ struct Solver {
             if (order[i + 1] >= M) return;
         const State clean = save();
         const auto clean_ops = ops;
+        OP_TAG(const auto clean_tags = op_tags;)
         const int s = interleave->state(order);
         std::vector<int> current(order.begin() + 1, order.begin() + 1 + M);
         const int base_generic = comparator.plan(current, A[u], ~paper[d].opaque & gmask).size();
@@ -4756,6 +4855,7 @@ struct Solver {
         for (const auto& item : pair_picks) {
             restore(clean);
             ops = clean_ops;
+            OP_TAG(op_tags = clean_tags;)
             invalid = false;
             interleave_trials++;
             run_interleave_pair(u, item.second);
@@ -4764,6 +4864,7 @@ struct Solver {
         for (const auto& item : picks) {
             restore(clean);
             ops = clean_ops;
+            OP_TAG(op_tags = clean_tags;)
             invalid = false;
             interleave_trials++;
             run_interleave(u, item.second);
@@ -4790,10 +4891,12 @@ struct Solver {
     long long post_saved = 0;
     struct Edit {
         int paper, anchor;
+        OP_TAG(uint8_t tag = kOpRepair;)  // the label of its move (anchorize sets it; a new edit is a repair)
     };
     // Scratch buffers of post_optimize and eject_repairs (esw-fast: kept to avoid allocations).
     std::vector<Edit> trial_buffer, eject_trial, eject_next;
     std::vector<std::pair<int, int>> path_buffer;
+    OP_TAG(std::vector<uint8_t> path_tag_buffer;)  // the labels of path_buffer
     std::vector<int> eject_anchors;
     // esw-fast: an order of the K papers as bytes, for the replays of the post-processing (memchr finds
     // a paper, memmove shifts the papers between two positions).
@@ -4814,21 +4917,23 @@ struct Solver {
     // bottom, byte links.
     using Links = std::array<uint8_t, K + 1>;
     static constexpr int kRoot = K;
+    // Under LOCAL_BENCH, tags holds the labels of input_ops and receives those of the result.
     std::vector<std::pair<int, int>> post_optimize(const State& initial, std::vector<std::pair<int, int>> input_ops,
-                                                   int u, bool eject = false) {
+                                                   int u OP_TAG(, std::vector<uint8_t>& tags), bool eject = false) {
         if (input_ops.empty()) return input_ops;
-        auto anchorize = [&](const std::vector<std::pair<int, int>>& path) {
+        auto anchorize = [&](const std::vector<std::pair<int, int>>& path OP_TAG(, const std::vector<uint8_t>& labels)) {
             std::vector<int> ord = initial.order;
             std::vector<Edit> edits;
             edits.reserve(path.size());
             for (auto [k, d] : path) {
                 ord.erase(std::find(ord.begin(), ord.end(), k));
                 edits.push_back({k, d ? ord[d - 1] : -1});
+                OP_TAG(edits.back().tag = labels[edits.size() - 1];)
                 ord.insert(ord.begin() + d, k);
             }
             return edits;
         };
-        auto edits = anchorize(input_ops);
+        auto edits = anchorize(input_ops OP_TAG(, tags));
         std::array<bool, K> initial_extra{};  // the old lifted paper and old fillers
         if (initial.top_d >= 0) initial_extra[initial.top_d] = true;
         for (const auto& f : initial.fillers) initial_extra[f.paper] = true;
@@ -4837,6 +4942,7 @@ struct Solver {
         const State seed = save();
         State best_state = seed;
         auto best_ops = input_ops;
+        OP_TAG(auto best_tags = std::move(tags);)  // the labels of best_ops (tags gets them back at the end)
         double best_score = plan_cost(best_ops.size());
         // The initial order as a linked list, and the position of every paper in it.
         Links initial_next, initial_prev;
@@ -4912,14 +5018,14 @@ struct Solver {
                 std::array<u64, 3> moved{}, breaks{};
                 auto set_break = [&](int q) { breaks[q >> 6] |= 1ULL << (q & 63); };
                 auto next = initial_next, prev = initial_prev;
-                for (auto [k, anchor] : trial) {
-                    int a = anchor < 0 ? root : anchor;
+                for (const Edit& e : trial) {
+                    const int k = e.paper, a = e.anchor < 0 ? root : e.anchor;
                     if (a == k) return false;
                     moved[k >> 6] |= 1ULL << (k & 63);
                     const int p = initial_position[k];
                     set_break(p);
                     if (p > 0) set_break(p - 1);
-                    if (anchor >= 0) set_break(initial_position[anchor]);
+                    if (e.anchor >= 0) set_break(initial_position[e.anchor]);
                     if (prev[k] == a) continue;
                     next[prev[k]] = next[k];
                     prev[next[k]] = prev[k];
@@ -4962,7 +5068,10 @@ struct Solver {
             cover[0] = 0;
             auto& path = path_buffer;
             path.clear();
-            for (auto [k, a] : trial) {
+            OP_TAG(auto& path_tags = path_tag_buffer;)
+            OP_TAG(path_tags.clear();)
+            for (const Edit& e : trial) {
+                const int k = e.paper, a = e.anchor;
                 const int p = find_paper(ord, k);
                 int dest = a < 0 ? 0 : find_paper(ord, a) + 1;
                 if (p < dest) dest--;
@@ -4974,6 +5083,7 @@ struct Solver {
                 shift_byte(ord, p, dest);
                 cover_valid = std::min(cover_valid, std::min(p, dest));  // the papers above both stay
                 path.push_back({k, dest});
+                OP_TAG(path_tags.push_back(e.tag);)
             }
             // Preserve the invariant needed by contiguous generic planning
             // and the +1 offset of helper insertion. The cap itself is never
@@ -4990,6 +5100,7 @@ struct Solver {
             if (value + 1e-8 >= best_score) return false;
             best_score = value;
             best_ops = path;
+            OP_TAG(best_tags = path_tags;)
             best_state = save();
             return true;
         };
@@ -5000,7 +5111,7 @@ struct Solver {
                 trial.assign(edits.begin(), edits.end());
                 trial.erase(trial.begin() + i);
                 if (evaluate(trial)) {
-                    edits = anchorize(best_ops);
+                    edits = anchorize(best_ops OP_TAG(, best_tags));
                     any = true;
                     i = std::min(i, int(edits.size()));  // other edits may have become no-ops
                 }
@@ -5015,7 +5126,7 @@ struct Solver {
             const int k = edits[i].paper;
             ByteOrder ord = initial_bytes;
             for (int t = 0; t < i; t++) {
-                auto [x, a] = edits[t];
+                const int x = edits[t].paper, a = edits[t].anchor;
                 const int p = find_paper(ord, x);
                 int dest = a < 0 ? 0 : find_paper(ord, a) + 1;
                 if (p < dest) dest--;  // x goes just below a once taken out
@@ -5052,7 +5163,7 @@ struct Solver {
             if (edits.size() >= 2)
                 eject_repairs(initial, edits, u, initial_next, initial_prev, initial_bytes, evaluate);
             if (eject_accepts > accepted_before) {
-                edits = anchorize(best_ops);
+                edits = anchorize(best_ops OP_TAG(, best_tags));
                 for (int pass = 0; pass < 3; pass++)
                     if (!delete_singles()) break;
             }
@@ -5073,7 +5184,7 @@ struct Solver {
                     if (a == edits[i].anchor) continue;
                     trial.assign(edits.begin(), edits.end());
                     trial[i].anchor = a;
-                    if (evaluate(trial)) chosen = anchorize(best_ops);
+                    if (evaluate(trial)) chosen = anchorize(best_ops OP_TAG(, best_tags));
                 }
                 edits = std::move(chosen);
                 i = std::min(i, int(edits.size()));
@@ -5101,7 +5212,7 @@ struct Solver {
                             trial.erase(trial.begin() + j);
                             rewrite_trials++;
                             if (evaluate(trial)) {
-                                chosen = anchorize(best_ops);
+                                chosen = anchorize(best_ops OP_TAG(, best_tags));
                                 rewrite_accepts++;
                                 rewrite_same_column += col_of[k] == col_of[removed];
                             }
@@ -5114,6 +5225,7 @@ struct Solver {
         }
         post_saved += int(input_ops.size()) - int(best_ops.size());
         restore(best_state);
+        OP_TAG(tags = std::move(best_tags);)
         return best_ops;
     }
 
@@ -5172,8 +5284,8 @@ struct Solver {
                 int processed = K;
                 {
                     auto nx = initial_next, pv = initial_prev;
-                    for (auto [k, anchor] : trial) {
-                        int a = anchor < 0 ? root : anchor;
+                    for (const Edit& e : trial) {
+                        const int k = e.paper, a = e.anchor < 0 ? root : e.anchor;
                         if (pv[k] == a) continue;
                         nx[pv[k]] = nx[k];
                         pv[nx[k]] = pv[k];
@@ -5312,7 +5424,7 @@ struct Solver {
                                 latest = t;
                             }
                             if (t == length) break;
-                            auto [x, a] = trial[t];
+                            const int x = trial[t].paper, a = trial[t].anchor;
                             const int p = find_paper(replay_order, x);
                             int dest = a < 0 ? 0 : find_paper(replay_order, a) + 1;
                             if (p < dest) dest--;
@@ -5364,6 +5476,7 @@ struct Solver {
         if (fast_mode) {
             fast_requests++;
             ops.clear();
+            OP_TAG(op_tags.clear();)
             invalid = false;
             check_vis = true;
             run_plan(u, PlanOpt{});
@@ -5389,6 +5502,7 @@ struct Solver {
             for (int fm : fms) opts.push_back({4, fm, true});
         double best = 1e18, best_normal = 1e18;
         std::vector<std::pair<int, int>> best_ops;
+        OP_TAG(std::vector<uint8_t> best_tags;)  // the labels of best_ops, then of chosen_path
         State best_state;
         // The candidates for the post-processing, cheapest first, of distinct final orders and
         // moved-paper sequences: different insertion depths of the same moved-paper sequence often
@@ -5398,6 +5512,7 @@ struct Solver {
             double cost;
             State state;
             std::vector<std::pair<int, int>> path;
+            OP_TAG(std::vector<uint8_t> tags;)  // the labels of path
         };
         std::vector<FutureCandidate> future_candidates;
         auto same_family = [](const auto& a, const auto& b) {
@@ -5412,12 +5527,12 @@ struct Solver {
             for (auto& candidate : future_candidates)
                 if (candidate.state.order == order || same_family(candidate.path, ops)) {
                     if (cost < candidate.cost) {
-                        candidate = {cost, save(), ops};
+                        candidate = {cost, save(), ops OP_TAG(, op_tags)};
                         std::sort(future_candidates.begin(), future_candidates.end(), by_cost);
                     }
                     return;
                 }
-            future_candidates.push_back({cost, save(), ops});
+            future_candidates.push_back({cost, save(), ops OP_TAG(, op_tags)});
             std::sort(future_candidates.begin(), future_candidates.end(), by_cost);
             if (future_candidates.size() > kPostCandidates) future_candidates.pop_back();
         };
@@ -5428,12 +5543,13 @@ struct Solver {
         for (const PlanOpt& o : opts) {
             restore(st0);
             ops.clear();
+            OP_TAG(op_tags.clear();)
             invalid = false;
             run_plan(u, o);
             if (invalid || ops.size() > 2 * K || display() != A[u] || !fillers_reachable()) continue;
             double cost = plan_cost(ops.size());
             record_future(cost);
-            if (cost < best) best = cost, best_ops = ops, best_state = save();
+            if (cost < best) best = cost, best_ops = ops OP_TAG(, best_tags = op_tags), best_state = save();
             if (o.fret_mode != 5 && cost < best_normal) best_normal = cost, best_normal_opt = o;
         }
         tail_cache_on = false;
@@ -5441,6 +5557,7 @@ struct Solver {
         if (best_normal < 1e17) {
             restore(st0);
             ops.clear();
+            OP_TAG(op_tags.clear();)
             invalid = false;
             beam_enabled = true;
             run_plan(u, best_normal_opt);
@@ -5451,14 +5568,14 @@ struct Solver {
             if (!invalid && ops.size() <= 2 * K && display() == A[u] && fillers_reachable()) {
                 double cost = plan_cost(ops.size());
                 record_future(cost);
-                if (cost < best) best = cost, best_ops = ops, best_state = save(), source = 1;
+                if (cost < best) best = cost, best_ops = ops OP_TAG(, best_tags = op_tags), best_state = save(), source = 1;
             }
         }
         if (interleave && interleave->ready && d >= 0 && d != top0 && !interleave->helpers[u].empty()) {
             bool used = false;
             try_helpers(u, st0, [&](double cost) {
                 record_future(cost);
-                if (cost < best) best = cost, best_ops = ops, best_state = save(), used = true;
+                if (cost < best) best = cost, best_ops = ops OP_TAG(, best_tags = op_tags), best_state = save(), used = true;
             });
             interleave_selected += used;
             if (used) source = 2;
@@ -5468,6 +5585,7 @@ struct Solver {
             plan_failures++;
             restore(st0);
             ops.clear();
+            OP_TAG(op_tags.clear();)
             invalid = false;
             run_plan(u, PlanOpt{});
             check_vis = false;
@@ -5475,13 +5593,14 @@ struct Solver {
                 unsafe_plans++;
                 restore(st0);
                 ops.clear();
+                OP_TAG(op_tags.clear();)
             }
             return ops;
         }
         check_vis = false;
         restore(best_state);
         canonicalize();
-        auto chosen_path = post_optimize(st0, std::move(best_ops), u);
+        auto chosen_path = post_optimize(st0, std::move(best_ops), u OP_TAG(, best_tags));
         post_candidate_calls++;
         const int original_length = chosen_path.size();
         if (future_candidates.size() > 1 && effort < 2) {
@@ -5493,13 +5612,15 @@ struct Solver {
                 if (candidate.state.order == original_order) continue;
                 restore(candidate.state);
                 canonicalize();
-                auto path = post_optimize(st0, candidate.path, u);
+                OP_TAG(auto tags = std::move(candidate.tags);)  // (the candidates are not used afterwards)
+                auto path = post_optimize(st0, candidate.path, u OP_TAG(, tags));
                 post_candidate_calls++;
                 double next = plan_cost(path.size());
                 if (next < value - 1e-9) {
                     value = next;
                     chosen = save();
                     chosen_path = std::move(path);
+                    OP_TAG(best_tags = std::move(tags);)
                     changed = true;
                 }
             }
@@ -5508,15 +5629,17 @@ struct Solver {
         }
         if (effort >= 1) {
             post_secondary_saved += original_length - int(chosen_path.size());
+            OP_TAG(op_tags = std::move(best_tags);)  // the labels of the moves returned
             return chosen_path;
         }
         for (int round = 0; round < 4; round++) {  // esw-ptune: the eject passes repeated (formerly 2)
             const auto before_eject = eject_accepts;
-            if (round) chosen_path = post_optimize(st0, std::move(chosen_path), u, false);
-            chosen_path = post_optimize(st0, std::move(chosen_path), u, true);
+            if (round) chosen_path = post_optimize(st0, std::move(chosen_path), u OP_TAG(, best_tags), false);
+            chosen_path = post_optimize(st0, std::move(chosen_path), u OP_TAG(, best_tags), true);
             if (eject_accepts == before_eject) break;
         }
         post_secondary_saved += original_length - int(chosen_path.size());
+        OP_TAG(op_tags = std::move(best_tags);)  // the labels of the moves returned
         return chosen_path;
     }
 };
@@ -5533,6 +5656,17 @@ int emergency_design(const std::vector<u64>& A, int R) {
         output += row + '\n';
     }
     std::cout << output << std::flush;
+#ifdef LOCAL_BENCH
+    // the analysis output (AGENTS.md): paper k < 64 is white on window k, 64 <= k < 128 black on
+    // window k - 64, the rest blank; every move flips one window
+    std::string labels = "@paper role =", windows = "@paper window =";
+    for (int k = 0; k < K; k++) {
+        labels += k < 64 ? " white" : k < 128 ? " black" : " blank";
+        windows += k < 128 ? ' ' + std::to_string(k % 64) : std::string(" -");
+    }
+    std::cerr << labels << '\n' << windows << '\n';
+    labels.clear();
+#endif
     u64 current = 0;
     long long total = 0;
     for (int r = 0; r < R; r++) {
@@ -5545,9 +5679,17 @@ int emergency_design(const std::vector<u64>& A, int R) {
             output += std::to_string(k) + " 191\n";
             total++;
         }
+#ifdef LOCAL_BENCH
+        const int flips = __builtin_popcountll(different);
+        labels += "@ops " + std::to_string(r) + " =" +
+                  (flips == 0 ? "" : flips == 1 ? " flip" : " flip*" + std::to_string(flips)) + '\n';
+#endif
         current = A[u];
         std::cout << output << std::flush;
     }
+#ifdef LOCAL_BENCH
+    std::cerr << labels;
+#endif
     std::cerr << "total_moves = " << total << "\nemergency_design = 1\n";
     return 0;
 }
@@ -6343,6 +6485,70 @@ struct Pacer {
     }
 };
 
+#ifdef LOCAL_BENCH
+// ==== Analysis output (LOCAL_BENCH): paper attributes ====
+
+// Local evaluation only (AGENTS.md, the analysis section; README): one line
+// `@paper <name> = <value of output paper 0> ... <value of output paper K-1>` per attribute ('-': no
+// value), from the design state (never from the patterns):
+//   role     cap (the black cap on window 63), generic (a sheet of the comparator), pair / single (a
+//            column paper serving two targets / one target);
+//   col      the column c of a column paper (its handle is h_c);
+//   depth0   its depth in its column at the start (0: the column top);
+//   hcolor   its color on its own handle h_c;
+//   perf     the handles that the handle perforation made holes: the printed paper of column c is opaque
+//            on h_0..h_c except where the two targets of a pair differ (design_papers: printing);
+//   targets  the targets it serves (a or a,b: the barcode numbers of the input).
+// initial_order: the stack before the first request (top first, internal numbers); out_index: the
+// output number of an internal paper number.
+template <class OutIndex>
+void print_paper_attributes(const DesignState& state, const std::vector<int>& initial_order, OutIndex out_index) {
+    std::vector<std::string> role(K, "-"), col(K, "-"), depth0(K, "-"), hcolor(K, "-"), perf(K, "-"), targets(K, "-");
+    std::vector<std::vector<int>> served(K);
+    for (int u = 0; u < P; u++)
+        if (state.ded[u] >= 0) served[state.ded[u]].push_back(u);
+    std::vector<int> rank(state.H, 0);
+    for (int k : initial_order)
+        if (state.columns[k] >= 0) depth0[k] = std::to_string(rank[state.columns[k]]++);
+    for (int k = 0; k < K; k++) {
+        const int c = state.columns[k];
+        if (k == kCapPaper)
+            role[k] = "cap";
+        else if (k < state.M)
+            role[k] = "generic";
+        else
+            role[k] = served[k].size() == 2 ? "pair" : served[k].size() == 1 ? "single" : "none";
+        if (c < 0) continue;
+        col[k] = std::to_string(c);
+        hcolor[k] = std::to_string(state.papers[k].black >> state.handle[c] & 1);
+        u64 printed = 0;
+        for (int j = 0; j <= c; j++) printed |= 1ULL << state.handle[j];
+        if (served[k].size() == 2) printed &= ~(state.A[served[k][0]] ^ state.A[served[k][1]]);
+        perf[k] = std::to_string(__builtin_popcountll(printed & ~state.papers[k].opaque));
+        std::string t;
+        for (int u : served[k]) t += (t.empty() ? "" : ",") + std::to_string(u);
+        if (!t.empty()) targets[k] = t;
+    }
+    std::vector<int> internal(K);
+    for (int k = 0; k < K; k++) internal[out_index(k)] = k;
+    std::string out;
+    auto line = [&](const char* name, const std::vector<std::string>& values) {
+        out += "@paper ";
+        out += name;
+        out += " =";
+        for (int o = 0; o < K; o++) out += ' ' + values[internal[o]];
+        out += '\n';
+    };
+    line("role", role);
+    line("col", col);
+    line("depth0", depth0);
+    line("hcolor", hcolor);
+    line("perf", perf);
+    line("targets", targets);
+    std::cerr << out;
+}
+#endif
+
 }  // namespace
 
 int main() {
@@ -6450,6 +6656,11 @@ int main() {
         output += row + '\n';
     }
     std::cout << output << std::flush;
+#ifdef LOCAL_BENCH
+    print_paper_attributes(state, solver.order, out_index);
+    std::string op_labels;  // the `@ops` lines, printed after the requests
+    int op_label_errors = 0;
+#endif
 
     // ==== main: requests ====
 
@@ -6489,6 +6700,12 @@ int main() {
             generic += x < M;
         }
         std::cout << output << std::flush;
+#ifdef LOCAL_BENCH
+        // the labels of the moves (an error of the labels: none at all for this request), after the
+        // output so that the tester gets the moves first
+        if (solver.op_tags.size() != moves.size()) op_label_errors++, solver.op_tags.clear();
+        append_op_labels(op_labels, r, solver.op_tags);
+#endif
         total += moves.size();
         t_out = elapsed_sec();
         pacer.record(effort, t_out - t_req);
@@ -6496,6 +6713,9 @@ int main() {
 
     // ==== main: statistics ====
 
+#ifdef LOCAL_BENCH
+    std::cerr << op_labels << "op_label_errors = " << op_label_errors << '\n';
+#endif
     std::cerr << "eject_pairs = " << solver.eject_pairs << "\neject_trials = " << solver.eject_trials
               << "\neject_accepts = " << solver.eject_accepts << "\neject_inside = " << solver.eject_inside << '\n';
     std::cerr << "post_alternate = " << solver.post_alternate
