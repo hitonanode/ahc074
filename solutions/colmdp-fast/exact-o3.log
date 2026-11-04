@@ -1,0 +1,51 @@
+[pahcer_run] run-id: 20261105-031607_esw-colmdp
+[pahcer_run] run-id: 20261105-031607_colmdp-fast
+In file included from /usr/include/c++/13/algorithm:60,
+                 from /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/colmdp-fast/main.cpp:85:
+In static member function ‘static void std::__copy_move<false, false, std::random_access_iterator_tag>::__assign_one(_Tp*, _Up*) [with _Tp = unsigned char; _Up = unsigned char]’,
+    inlined from ‘static constexpr _Up* std::__copy_move<_IsMove, true, std::random_access_iterator_tag>::__copy_m(_Tp*, _Tp*, _Up*) [with _Tp = unsigned char; _Up = unsigned char; bool _IsMove = false]’ at /usr/include/c++/13/bits/stl_algobase.h:440:20,
+    inlined from ‘constexpr _OI std::__copy_move_a2(_II, _II, _OI) [with bool _IsMove = false; _II = unsigned char*; _OI = unsigned char*]’ at /usr/include/c++/13/bits/stl_algobase.h:506:30,
+    inlined from ‘constexpr _OI std::__copy_move_a1(_II, _II, _OI) [with bool _IsMove = false; _II = unsigned char*; _OI = unsigned char*]’ at /usr/include/c++/13/bits/stl_algobase.h:533:42,
+    inlined from ‘constexpr _OI std::__copy_move_a(_II, _II, _OI) [with bool _IsMove = false; _II = unsigned char*; _OI = unsigned char*]’ at /usr/include/c++/13/bits/stl_algobase.h:540:31,
+    inlined from ‘constexpr _OI std::copy(_II, _II, _OI) [with _II = unsigned char*; _OI = unsigned char*]’ at /usr/include/c++/13/bits/stl_algobase.h:633:7,
+    inlined from ‘void {anonymous}::Solver::shift_paper(int, int)’ at /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/colmdp-fast/main.cpp:4161:22,
+    inlined from ‘void {anonymous}::Solver::move_from(int, int, int)’ at /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/colmdp-fast/main.cpp:4137:20,
+    inlined from ‘void {anonymous}::Solver::move(int, int)’ at /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/colmdp-fast/main.cpp:4132:40,
+    inlined from ‘void {anonymous}::Solver::move_to_target_top(int)’ at /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/colmdp-fast/main.cpp:4212:17,
+    inlined from ‘void {anonymous}::Solver::run_joint(int, const PlanOpt&)’ at /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/colmdp-fast/main.cpp:4707:31,
+    inlined from ‘void {anonymous}::Solver::run_plan(int, const PlanOpt&)’ at /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/colmdp-fast/main.cpp:4725:22:
+/usr/include/c++/13/bits/stl_algobase.h:398:17: warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+  398 |         { *__to = *__from; }
+      |           ~~~~~~^~~~~~~~~
+In file included from /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/colmdp-fast/main.cpp:86:
+/usr/include/c++/13/array: In member function ‘void {anonymous}::Solver::run_plan(int, const PlanOpt&)’:
+/usr/include/c++/13/array:109:55: note: at offset [-2147483648, -1] into destination object ‘std::array<unsigned char, 192>::_M_elems’ of size 192
+  109 |       typename __array_traits<_Tp, _Nm>::_Type        _M_elems;
+      |                                                       ^~~~~~~~
+[pahcer_run] 2 個の解法を比べます (seed 0〜47、24 並列、seed ごとに続けて実行、20261104-224750_esw-fixiter の設計を読み込む)
+[pahcer_run] 4/48 seed 完了 (経過 0.0 分、残り約 0.1 分)
+[pahcer_run] 8/48 seed 完了 (経過 0.0 分、残り約 0.1 分)
+[pahcer_run] 12/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 16/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 20/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 24/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 28/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 32/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 36/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 40/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 44/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 48/48 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261105-031607_esw-colmdp                       48   0     10365.88    0.000   10365.9   +0.000%  0.000%     0/ 48/   0    0.449s
+    実行時間: 99% 点 0.554 s、99.9% 点 0.554 s、最大 0.554 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 2.085 s、1.8 s 超え 45・1.9 s 超え 30・2.0 s 超え 8 ケース (48 ケース中)
+  20261105-031607_colmdp-fast                      48   0     10365.88    0.000   10365.9   +0.000%  0.000%     0/ 48/   0    0.425s
+    実行時間: 99% 点 0.503 s、99.9% 点 0.503 s、最大 0.503 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 2.046 s、1.8 s 超え 45・1.9 s 超え 26・2.0 s 超え 4 ケース (48 ケース中)
+  設計             : 20261104-224750_esw-fixiter が保存した設計を全部の解法が読み込んだ（注文処理だけの比較。本当のスコアではない）
+  pahcer/ への記録 : しない (--design-from)
+  所要時間         : 0.0 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.27 コア、最大 0.27 コア (2 秒ごとに 1.9 秒間測定。短いので目安とは比べない)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html
