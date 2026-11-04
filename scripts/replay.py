@@ -23,6 +23,12 @@ Conventions (the same as the tester):
   below the top d of the remaining papers (d = 0: top, d = K - 1: bottom).
 - The solution's stdout is runs/<run-id>/out/<seed>.txt. Its stderr, followed by the tester's
   verdict lines (an error message, then "Score = ..."), is runs/<run-id>/err/<seed>.txt.
+- A solution may print its structure to stderr (the roles of the papers and the purpose of every
+  move: `@paper` / `@ops` lines, AGENTS.md). parse_annotations reads them:
+
+    ann = replay.parse_annotations(err_text, inp.k)
+    ann.papers["role"][k]          # attribute of paper k (output numbering), '-' for none
+    ann.labels_of(r, len(out.queries[r]))   # one label per move of request r
 """
 
 from __future__ import annotations
@@ -447,13 +453,182 @@ def case_metrics(inp: Input, out: Output) -> dict:
 
 def stderr_stats(text: str) -> dict[str, float]:
     """Values printed to stderr as `name = number` (the last one wins). The tester's `Score = ...`
-    line at the end of the err file is left out."""
+    line at the end of the err file and the structure lines (`@...`, parse_annotations) are left out."""
     found = {}
     for line in text.splitlines():
+        if line.startswith("@"):
+            continue
         match = _STAT_LINE.match(line)
         if match and match[1] != "Score":
             found[match[1]] = float(match[2])
     return found
+
+
+# ---------------------------------------------------------------- annotations (the solution's structure)
+
+# Bump when the contents of annotations.json change.
+ANNOTATIONS_VERSION = 1
+# Per case, moves are counted by the value of the moved paper's attributes that have at most this many
+# distinct values (the others, e.g. the targets of a paper, are only shown per paper), and per label and
+# value for the attributes with at most ANNOTATION_CROSS_VALUES values.
+ANNOTATION_ATTR_VALUES = 40
+ANNOTATION_CROSS_VALUES = 8
+_ANNOTATION_LINE = re.compile(r"^@(\w+)\s+(\S+)\s*=(.*)$")
+
+
+@dataclass
+class Annotations:
+    """The structure that a solution prints to stderr (AGENTS.md, the analysis section), independent of
+    the solution:
+
+        @paper <name> = <value of paper 0> <value of paper 1> ... <value of paper K-1>
+        @ops <r> = <label of move 0 of request r> <label of move 1> ...
+
+    Papers are numbered as output; '-' is no value. `label*n` stands for n times the label. Lines of
+    other kinds `@<kind> ...` are kept in `other` and not interpreted.
+    """
+    papers: dict[str, list[str]] = field(default_factory=dict)  # attribute -> value per paper
+    ops: dict[int, list[str]] = field(default_factory=dict)     # request -> label per move
+    other: list[str] = field(default_factory=list)
+    problems: list[str] = field(default_factory=list)           # lines that do not fit the format
+
+    def __bool__(self) -> bool:
+        return bool(self.papers or self.ops)
+
+    def value(self, name: str, k: int) -> str:
+        values = self.papers.get(name)
+        return values[k] if values and 0 <= k < len(values) else "-"
+
+    def labels_of(self, r: int, moves: int) -> list[str]:
+        """The labels of the moves of request r ('?' where missing or of the wrong number)."""
+        labels = self.ops.get(r)
+        return labels if labels is not None and len(labels) == moves else ["?"] * moves
+
+
+def _expand_labels(tokens: list[str]) -> list[str]:
+    labels = []
+    for t in tokens:
+        name, star, count = t.rpartition("*")
+        if star and name and count.isdigit():
+            labels.extend([name] * int(count))
+        else:
+            labels.append(t)
+    return labels
+
+
+def parse_annotations(text: str, k: int | None = None) -> Annotations:
+    """The `@` lines of a stderr text (the last line of a name or request wins). With k, `@paper` lines
+    of another length are problems (and left out)."""
+    ann = Annotations()
+    for line in text.splitlines():
+        if not line.startswith("@"):
+            continue
+        match = _ANNOTATION_LINE.match(line.rstrip())
+        if not match:
+            ann.problems.append(f"bad line: {line[:60]}")
+            continue
+        kind, key, values = match[1], match[2], match[3].split()
+        if kind == "paper":
+            if k is not None and len(values) != k:
+                ann.problems.append(f"@paper {key}: {len(values)} values for {k} papers")
+                continue
+            ann.papers[key] = values
+        elif kind == "ops":
+            if not key.isdigit():
+                ann.problems.append(f"@ops {key}: not a request number")
+                continue
+            ann.ops[int(key)] = _expand_labels(values)
+        else:
+            ann.other.append(line)
+    return ann
+
+
+def check_annotations(ann: Annotations, out: Output) -> list[str]:
+    """The problems of the annotations of an output: format problems, and requests whose `@ops` line
+    has another number of labels than the request has moves (or is missing while others are there)."""
+    problems = list(ann.problems)
+    if not ann.ops:
+        return problems
+    for r, ops in enumerate(out.queries):
+        labels = ann.ops.get(r)
+        if labels is None:
+            if ops:
+                problems.append(f"request {r}: no @ops line for {len(ops)} moves")
+        elif len(labels) != len(ops):
+            problems.append(f"request {r}: {len(labels)} labels for {len(ops)} moves")
+    extra = [r for r in ann.ops if r >= len(out.queries)]
+    if extra:
+        problems.append(f"@ops of {len(extra)} requests not in the output (e.g. {min(extra)})")
+    return problems
+
+
+def annotation_metrics(out: Output, ann: Annotations) -> dict:
+    """Per-case counts of the moves by label and by the moved paper's attributes (stats)."""
+    problems = check_annotations(ann, out)
+    labels: dict[str, int] = {}
+    label_requests: dict[str, int] = {}
+    attrs = {name: values for name, values in ann.papers.items() if len(set(values)) <= ANNOTATION_ATTR_VALUES}
+    cross_attrs = [name for name, values in attrs.items() if len(set(values)) <= ANNOTATION_CROSS_VALUES]
+    by_attr: dict[str, dict[str, int]] = {name: {} for name in attrs}
+    cross: dict[str, dict[str, dict[str, int]]] = {name: {} for name in cross_attrs}
+    for r, ops in enumerate(out.queries):
+        names = ann.labels_of(r, len(ops)) if ann.ops else []
+        for name in set(names):
+            label_requests[name] = label_requests.get(name, 0) + 1
+        for i, (k, _) in enumerate(ops):
+            label = names[i] if names else None
+            if label is not None:
+                labels[label] = labels.get(label, 0) + 1
+            for name, values in attrs.items():
+                v = values[k] if k < len(values) else "-"
+                by_attr[name][v] = by_attr[name].get(v, 0) + 1
+                if label is not None and name in cross:
+                    row = cross[name].setdefault(label, {})
+                    row[v] = row.get(v, 0) + 1
+    return {"requests": len(out.queries), "labels": labels, "label_requests": label_requests,
+            "attrs": by_attr, "cross": cross, "problems": len(problems), "problem_examples": problems[:3]}
+
+
+def has_annotations(text: str) -> bool:
+    return any(line.startswith(("@paper ", "@ops ")) for line in text.splitlines())
+
+
+def _annotations_job(job: tuple[str, int]) -> tuple[int, dict]:
+    run, seed = job
+    run_dir = Path(run)
+    inp = load_input(seed)
+    path, err = out_path(run_dir, seed), err_path(run_dir, seed)
+    out = parse_output(inp, path.read_text(errors="replace") if path.exists() else "")
+    ann = parse_annotations(err.read_text(errors="replace") if err.exists() else "", inp.k)
+    return seed, annotation_metrics(out, ann)
+
+
+def run_annotations(run_dir: Path, processes: int | None = None) -> dict[int, dict]:
+    """Per-seed annotation_metrics of a run, cached in runs/<run-id>/annotations.json ({} if the first
+    err files have no `@paper` / `@ops` line: a solution that does not print its structure)."""
+    cache = run_dir / "annotations.json"
+    result_mtime = (run_dir / "result.json").stat().st_mtime
+    if cache.exists() and cache.stat().st_mtime >= result_mtime:
+        try:
+            data = json.loads(cache.read_text())
+            if data.get("version") == ANNOTATIONS_VERSION:
+                return {int(s): m for s, m in data["cases"].items()}
+        except (OSError, ValueError, KeyError):
+            pass
+    seeds = sorted(run_cases(run_dir))
+    probe = [err_path(run_dir, s) for s in seeds[:3]]
+    if not any(p.exists() and has_annotations(p.read_text(errors="replace")) for p in probe):
+        return {}
+    jobs = [(str(run_dir), s) for s in seeds]
+    procs = processes or min(8, os.cpu_count() or 1)
+    if procs > 1 and len(jobs) > 8:
+        import multiprocessing
+        with multiprocessing.get_context("fork").Pool(procs) as pool:
+            computed = dict(pool.map(_annotations_job, jobs, chunksize=4))
+    else:
+        computed = dict(map(_annotations_job, jobs))
+    write_json_atomic(cache, {"version": ANNOTATIONS_VERSION, "cases": {str(s): m for s, m in computed.items()}})
+    return computed
 
 
 def _metrics_job(job: tuple[str, int]) -> tuple[int, dict]:
