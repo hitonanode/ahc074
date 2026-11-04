@@ -1041,3 +1041,16 @@
 - 外した部品の戻し方（最終日の最適化用）:
   - post-prune（2 操作の同時削除。効果は +0.020 ± 0.027%（124908）、+0.045 ± 0.031%（104051））: solutions/esw-tidy の `// ==== Post-processing: deletions and new anchors of the edits ====` の post_optimize で、編集の段の最初の delete_singles の 3 回の後にある「A return of the old lifted paper or an old filler may be needed ...」の 2 重ループ（i < j の 2 操作のうち一方が initial_extra の紙なら両方消して evaluate）を、「Other anchors for an old extra」の前に戻す。stderr の post_pair_trials・post_pair_accepts と、段の冒頭のコメントも戻す。
   - 穴埋めの山登りは外していない。as6-canon の山登りに替えるなら solutions/esw-lean-climb の `// ==== Filler climb: columns of the units for the filler value ====`（canon_filler_gain と filler_climb）を使う（効果は esw-tidy と差なし）。
+
+## 2026-11-04 設計を固定した注文処理の比較（--save-design / --design-from / --orders）
+
+- 仕組み: solutions/esw-noprune と esw-tidy に、LOCAL_BENCH のときだけ設計の状態（DesignState）を保存・読み込みする DesignStore を足した（設計を design_papers、Solver の準備を make_solver に分けた。提出版の計算は同じ）。読み込んだ run は設計を飛ばし、時計を保存した設計の終わりから続ける。scripts/pahcer_run.py に `--save-design`、`--design-from RUN`、`--orders N`（同じバーコードで注文の列だけを変えた入力を足す）。使い方は AGENTS.md の評価の節、中身は esw-noprune の README。
+- 完全性（擬似時計。読むたびに一定時間進む）: 両解法で 61 件（20 µs 40 件、200 µs 16 件で設計の各段が早く打ち切られ補助紙の表もあきらめる、2 ms 5 件で緊急設計）。改良前と stdout・時計を読む回数が一致（LOCAL_BENCH あり・なし）。保存した run と読み込んだ run の stdout が一致し、stderr も end_sec などの時刻まで一致（補助紙の表をあきらめたときの helper_papers だけ違う）。軽い計画を止めない版（時刻で手が変わる）でも一致し、読み込みで時計をずらさない版では 6 件中 6 件が不一致。注文の列だけ変えた入力でも保存ファイルが同じで、読み込みが保存した run と一致。
+- 同じ解法どうし（esw-noprune 2 つ）: 2000 件で全件同点（131620）。同じ設計・同じ注文の列なら注文処理は決定的なので、比べ直しても同じ値になる（132032 の 1 本目は 131620 と同じ差）。
+- 感度（esw-noprune の kEndWeight 1.0 → 1.3 / 1.5、solutions/dfrom-end13・dfrom-end15。2000 件。差は候補 − 基準で正なら悪い）:
+  - 通常の `--compare`（130741、設計を保存）: +0.071 ± 0.026%（924/8/1068）、+0.112 ± 0.026%（921/4/1075）。ケースの実行 6.8 分（1 解法 2.3 分）。
+  - `--design-from 130741_esw-noprune`（131620）: +0.056 ± 0.003%（600/70/1330）、+0.141 ± 0.003%（310/26/1664）。ケースごとの標準偏差 0.12・0.15%（通常は 1.15%）。2.4 分（4 解法。1 解法 0.6 分）。
+  - `--orders 4`（132032）: +0.057 ± 0.0013%、+0.142 ± 0.0018%（seed ごとの標準偏差は 1/√4 に下がり、seed ごとの雑音はほぼ注文の列による）。6.8 分（3 解法。1 解法 2.3 分）。標準誤差² × 時間は `--orders 1` と同じで、seed を N 倍にするのとほぼ同じ効率。
+  - 向きは両方で一致し、大きさも通常の比較の誤差の中（0.5 SE、1.2 SE）。設計のコードが同じなので、設計の分布は基準も候補も同じで、期待値は一致するはず。設計と注文処理の両方を変えた候補では一致しない。
+- 時間: 読み込んだ run は 1 件 0.40〜0.43 s（通常 1.61 s）。req_sec は通常の 0.333 s に対し 0.36〜0.38 s（24 並列が同時に注文処理をするためと、評価の外の負荷。131620 は平均 1.12 コアの警告つき）で、end_sec の 1.8 秒超えが 238〜855 件に増える（通常 93〜122 件）。解法の間の req_sec の差（dfrom-end15 − 基準）は 0.0054・0.0051・0.0049 s で通常と同じなので、時間の比較は同じ run の中の差で読む。
+- 使うときの注意: 保存した 1 組の設計の上での差なので、設計を変える変更には使えない。採用は通常の `--compare` で確かめてから。基準の run の設計を使う。
