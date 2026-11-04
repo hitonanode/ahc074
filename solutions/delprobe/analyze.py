@@ -32,6 +32,11 @@ def load(run):
             if len(v) > 15 and not v[19].lstrip('-').isdigit():  # the format with filler counts and labels
                 extra = dict(nfb=int(v[15]), nft=int(v[16]), nbb=int(v[17]), nbt=int(v[18]), labels=v[19])
                 rest = v[20:]
+                if rest and rest[0] == 'A':  # anchor-pass features of the moved paper
+                    a = rest[1:9]
+                    extra.update(ak=int(a[0]), acol=int(a[1]), r0=int(a[2]), r1=int(a[3]), csize=int(a[4]),
+                                 aw=float(a[5]), above0=float(a[6]), above1=float(a[7]))
+                    rest = rest[9:]
             else:
                 rest = v[15:]
             seqs = [(int(rest[i]), int(rest[i + 1]), float(rest[i + 2]), float(rest[i + 3])) for i in range(0, len(rest), 4)]

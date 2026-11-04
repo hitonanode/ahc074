@@ -5734,8 +5734,12 @@ struct Solver {
         int len_base, len_trial, kind;
         double value_base, value_trial;
         std::string labels;  // the labels removed (-) and added (+) by the trial, e.g. "-ret+fill"
+        int anchor_paper = -1;  // the paper whose anchor the anchor pass changes (-1: other trials)
     };
     bool probing = false;
+    // the anchor pass of the edit pass being evaluated: 0 none, 1 an old extra, 2 a paper moved
+    // twice, 3 any other paper (only with REANCHOR=1, as solutions/reanchor)
+    int probe_anchor_context = 0, probe_anchor_paper = -1;
     std::vector<PendingProbe> pending_probes;
     long long dprobe_eligible = 0, dprobe_recorded = 0;
     std::string probe_log;
@@ -5768,6 +5772,38 @@ struct Solver {
                 for (double x : parts[side]) line += ' ' + num(x);
             line += ' ' + std::to_string(nf[0]) + ' ' + std::to_string(nf[1]) + ' ' + std::to_string(nbelow[0]) + ' ' +
                     std::to_string(nbelow[1]) + ' ' + (pp.labels.empty() ? std::string("=") : pp.labels);
+            {
+                // anchor-pass features: paper k, its column, its rank in each state (-1: not in its
+                // column), the column size, its adaptive weight and the summed weight of the in-column
+                // papers above it in each state
+                const int k = pp.anchor_paper;
+                int rank[2] = {-2, -2};
+                double above[2] = {0, 0};
+                int csize = 0;
+                if (k >= 0 && col_of[k] >= 0) {
+                    for (int side = 0; side < 2; side++) {
+                        const State& st = side == 0 ? pp.base : pp.trial;
+                        std::array<bool, K> extra{};
+                        if (st.top_d >= 0) extra[st.top_d] = true;
+                        for (const auto& f : st.fillers) extra[f.paper] = true;
+                        int r = 0, size = 0;
+                        rank[side] = -1;
+                        for (int x : st.order) {
+                            if (col_of[x] != col_of[k] || extra[x]) continue;
+                            if (x == k) rank[side] = r;
+                            if (rank[side] < 0) above[side] += adaptive_weights[x];
+                            r++;
+                            size++;
+                        }
+                        if (extra[k]) rank[side] = -1;
+                        csize = size;
+                    }
+                }
+                char b[160];
+                std::snprintf(b, sizeof b, " A %d %d %d %d %d %.4f %.4f %.4f", k, k >= 0 ? col_of[k] : -1, rank[0], rank[1],
+                              csize, k >= 0 ? adaptive_weights[k] : 0.0, above[0], above[1]);
+                line += b;
+            }
             for (int m = 0; m < seqs; m++) {
                 std::mt19937_64 rr(1000003ULL * r + 7919ULL * m + 104729ULL * i + 17);
                 std::vector<int> targets(len);
@@ -6301,8 +6337,10 @@ struct Solver {
 #ifdef LOCAL_BENCH
             {
                 static const int del_every = env_int("DELPROBE");
+                static const int del_mode = env_int("DELPROBE_MODE");  // 0: fewer moves, 1: the same number
                 static const double del_window = std::getenv("DELPROBE_WINDOW") ? std::atof(std::getenv("DELPROBE_WINDOW")) : 1.5;
-                if (del_every > 0 && !probing && path.size() < best_ops.size() && std::abs(value - best_score) <= del_window &&
+                const bool length_ok = del_mode == 1 ? path.size() == best_ops.size() : path.size() < best_ops.size();
+                if (del_every > 0 && !probing && length_ok && std::abs(value - best_score) <= del_window &&
                     ++dprobe_eligible % del_every == 0) {
                     dprobe_recorded++;
                     std::array<int, kOpLabels> diff{};
@@ -6312,8 +6350,9 @@ struct Solver {
                     for (int g = 0; g < kOpLabels; g++)
                         for (int c = 0; c < std::abs(diff[g]); c++) labels += (diff[g] > 0 ? "-" : "+") + std::string(kOpLabelName[g]);
                     pending_probes.push_back({best_state, save(), int(best_ops.size()), int(path.size()),
-                                              (eject ? 1 : 0) + (neutral_collect ? 2 : 0) + 4 * trial_operator, best_score,
-                                              value, labels});
+                                              (eject ? 1 : 0) + (neutral_collect ? 2 : 0) + 4 * trial_operator +
+                                                  64 * probe_anchor_context,
+                                              best_score, value, labels, probe_anchor_context ? probe_anchor_paper : -1});
                 }
             }
 #endif
@@ -6425,19 +6464,28 @@ struct Solver {
             // Other anchors for an old extra / a paper moved twice.
             for (int i = int(edits.size()) - 1; !delete_only && i >= 0; i--) {
                 const int k = edits[i].paper;
+                // delprobe: REANCHOR=1 (as solutions/reanchor) tries other anchors for every edit
+                static const int reanchor = env_int("REANCHOR");
+                int anchor_context = 1;
                 if (!initial_extra[k]) {
                     int repeats = 0;
                     for (const auto& e : edits) repeats += e.paper == k;
-                    if (repeats < 2) continue;
+                    if (repeats < 2) {
+                        if (reanchor != 1) continue;
+                        anchor_context = 3;
+                    } else
+                        anchor_context = 2;
                 }
                 const auto anchors = anchor_candidates(i);
                 auto chosen = edits;
+                OP_TAG(probe_anchor_context = anchor_context; probe_anchor_paper = k;)
                 for (int a : anchors) {
                     if (a == edits[i].anchor) continue;
                     trial.assign(edits.begin(), edits.end());
                     trial[i].anchor = a;
                     if (evaluate(trial)) chosen = anchorize(best_ops OP_TAG(, best_tags));
                 }
+                OP_TAG(probe_anchor_context = 0;)
                 edits = std::move(chosen);
                 i = std::min(i, int(edits.size()));
             }
