@@ -34,7 +34,7 @@ AtCoder Heuristic Contest 074（A - Layered Barcode Display）の問題を解く
 - AtCoder のジャッジは GCC 15.2 の `-std=gnu++23 -O2 -march=native`（Xeon Platinum 8488C）。この問題での実測（trial_log.md の clock-probe）では、同じ仕事にジャッジは、空いた手元（Core Ultra 9 285K）の約 1.35 倍、手元の 24 並列の評価の約 1.1 倍の時間がかかる（時間で打ち切らない部分は 24 並列の約 1.15 倍）。時間いっぱい探索する解法は、解法の中で時間を測って打ち切り、打ち切りはジャッジの時間で 1.8 秒程度までにする。
 - 手元の評価は 24 並列で動く。285K は P コア 8 個と E コア 16 個で速さが違うため、時間で打ち切る解法の探索量はケースごと・評価ごとにぶれる。
 - **時計の倍率（CLOCK_SCALE）。** 手元の評価がジャッジと同じだけ探索するように、時間で打ち切る解法は、時計の読みをすべて `CLOCK_SCALE` 倍する（solutions/audit4-flip-clk の `elapsed_sec()`。`#ifndef CLOCK_SCALE` で既定値 1.0 を置く）。scripts/pahcer_run.py は `-DCLOCK_SCALE=1.1` でコンパイルし、ジャッジでは定義されないので、提出はそのまま実時間で動く。
-  - 新しい解法は、これを入れた解法（solutions/audit4-flip-clk か、その子孫。現在のベースは solutions/esw-noprune）から作る。時計を読む関数を増やすときも、必ずこの倍率を掛ける（esw-tidy とその子孫では、時計はすべて `scaled_since()` で読む。LOCAL_BENCH の設計の保存・読み込みが開始時刻を記録してずらすところだけは、倍率を掛けない生の時計）。
+  - 新しい解法は、これを入れた解法（solutions/audit4-flip-clk か、その子孫。現在のベースは solutions/esw-pace）から作る。時計を読む関数を増やすときも、必ずこの倍率を掛ける（esw-tidy とその子孫では、時計はすべて `scaled_since()` で読む。LOCAL_BENCH の設計の保存・読み込みが開始時刻を記録してずらすところだけは、倍率を掛けない生の時計）。
   - 倍率を入れていない解法（audit4-flip-clk より前の全解法）は、手元ではジャッジより 1.1 倍多く探索する。入れた解法と `--compare` で比べると、入れていない方が探索量の分だけ有利になる。基準には倍率を入れた解法を使う。
   - stderr に出す経過時間（`*_sec`）も倍率が掛かった値で、ジャッジでの時間の見積りになる。手元の実行時間（result.json、「2 s 超え」）は実時間のまま。
 - **手元の評価だけの印（LOCAL_BENCH）。** scripts/pahcer_run.py は `-DLOCAL_BENCH` も付けてコンパイルする（ジャッジでは定義されない。meta.json の compile_command に残る）。
