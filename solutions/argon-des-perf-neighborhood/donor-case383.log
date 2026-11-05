@@ -1,0 +1,79 @@
+seed 383 first_changed_query 7 target 166
+[20261106-022157_argon-des-perf-gaincache] seed 0383
+score=10286 (= 2K*E + T = 384*0 + 10286); E=0 T=10286 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r=   7 a=166 m= 10 ok=Y mis= 0  110(single,17)@0>114:ret 4(generic,-)@3>1:gen 41(pair,8)@41>43:dig 42(pair,8)@41>43:dig 43(pair,8)@41>1:lift 107(pair,17)@107>109:hdig 109(pair,17)@107>109:hdig 180(pair,24)@180>181:fix 108(pair,17)@107>5:repair 147(pair,21)@146>6:repair
+r=   8 a=254 m=  9 ok=Y mis= 0  147(pair,21)@6>149:fret 108(pair,17)@5>109:fret 43(pair,8)@1>26:reuse 98(pair,16)@82>99:fret 99(pair,16)@98>82:repair 6(generic,-)@5>6:gen 107(pair,17)@107>0:lift 23(pair,4)@23>24:fix 169(pair,23)@168>169:fix
+[20261106-022157_argon-des-perf-gaincache] seed 0383: state after request 7 (a=166)
+so far: E=0 T=70
+moves of request 7 (k>d:label): 110>114:ret 4>1:gen 41>43:dig 42>43:dig 43>1:lift 107>109:hdig 109>109:hdig 180>181:fix 108>5:repair 147>6:repair
+display             1011001001000101101011000110111001100010010000011000111001111111
+requested           1011001001000101101011000110111001100010010000011000111001111111
+mismatch                                                                              (0 windows)
+windows (window 0 first): '0'/'1' = this paper is the visible paper there (white/black), '-' = opaque but covered by a paper above, ' ' = hole
+pos paper  vis role    col depth0 hcolor perf targets    windows
+  0     0    1 cap     -   -      -      -    -                                                                         1
+  1    43   34 pair    8   2      1      0    166,223     0 1 01001 00  11  0 10      11 011  0    000 011 001 10  1 1 1-
+  2     4    4 generic -   -      -      -    -               -         --    -    10                   -   -   -   1 1  
+  3     3    2 generic -   -      -      -    -                          -0 -          -      -     -   -     1-   -- -- 
+  4     1    4 generic -   -      -      -    -           -  0-   -             0  --1 -   -     0           -           
+  5   108   10 pair    17  1      0      0    46,49      1- ---- -- -- 0 -  -1 --0  ----0- -0 -10- - -     ---- -01- -  -
+  6   147    6 pair    21  1      1      0    6,18       - 1------ 0--1   -1--   - -- - -----0---  ---0--- -  - - - -  --
+  7     5    0 generic -   -      -      -    -                     -         --     -    -          - - -        -    - 
+  8     6    0 generic -   -      -      -    -           -         -   -       -        ---  -  - --  - -    - -    -   
+  9     2    0 generic -   -      -      -    -              -    -       - -  -         -         - -      -- -  -- -   
+ 10     7    0 pair    0   0      0      0    64,198      -  --   -     --- - --       - - -  -    --  ---  ---- ---- ---
+ 11     8    0 pair    0   1      1      0    159,165     -  --   - -   --  - - -   -- -         - - - - -  -   ---- ----
+ 12     9    0 single  0   2      1      0    216         -  --   - -   --- - ---  --- - ---  -  - --- ---  -------------
+ 13    10    0 pair    1   0      0      0    41,239      -    -  -     --  - - -  --- - -    -  -  -- ---   ------  -- -
+ 14    11    0 single  1   1      1      0    155         -  ---  - -   --- - ---  --- - ---  -  - --- ---  -------------
+ 15    12    0 single  1   2      1      0    30          -  ---  - -   --- - ---  --- - ---  -  - --- ---  -------------
+ 16    13    0 single  1   3      1      0    142         -  ---  - -   --- - ---  --- - ---  -  - --- ---  -------------
+ 17    14    0 pair    2   0      0      0    57,103      -  - -    -   --- - --    --           -  -    - -   ---  -----
+ 18    15    0 pair    2   1      1      0    102,120     -  - -  -       - - - -    - - ---  -  - --- - - --- -- -  -- -
+ 19    16    0 single  2   2      1      0    39          -  ---  - -   --- - ---  --- - ---  -  - --- --- --------------
+ 20    17    0 single  2   3      1      0    0           -  ---  - -   --- - ---  --- - ---  -  - --- --- --------------
+ 21    19    0 pair    3   1      1      0    26,78       -   --  - --    - -       --   ---  -  - --- -   - -- -  - -- -
+ 22    18    0 pair    3   0      0      0    97,188      -   --  - --  --  - - -  ---     -  -  -   - --  -  -- --  ----
+ 23    20    0 single  3   2      0      0    48          -  ---  - --  --- - ---  --- - ---  -  - --- --- --------------
+... 168 more papers; visible among them (paper@pos:windows): 157@157:1 169@168:1 182@180:1
+windows not covered by the top 24 papers: 3
+[20261106-022157_argon-des-perf-donorhole] seed 0383
+score=10335 (= 2K*E + T = 384*0 + 10335); E=0 T=10335 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r=   7 a=166 m= 10 ok=Y mis= 0  110(single,17)@0>110:ret 4(generic,-)@3>1:gen 41(pair,8)@41>43:dig 42(pair,8)@41>43:dig 43(pair,8)@41>1:lift 107(pair,17)@107>109:hdig 109(pair,17)@107>109:hdig 180(pair,24)@180>181:fix 108(pair,17)@107>5:repair 147(pair,21)@146>6:repair
+r=   8 a=254 m=  7 ok=Y mis= 0  108(pair,17)@5>110:fret 147(pair,21)@5>149:fret 43(pair,8)@1>26:reuse 6(generic,-)@5>6:gen 107(pair,17)@107>0:lift 23(pair,4)@23>24:fix 169(pair,23)@168>169:fix
+[20261106-022157_argon-des-perf-donorhole] seed 0383: state after request 7 (a=166)
+so far: E=0 T=70
+moves of request 7 (k>d:label): 110>110:ret 4>1:gen 41>43:dig 42>43:dig 43>1:lift 107>109:hdig 109>109:hdig 180>181:fix 108>5:repair 147>6:repair
+display             1011001001000101101011000110111001100010010000011000111001111111
+requested           1011001001000101101011000110111001100010010000011000111001111111
+mismatch                                                                              (0 windows)
+windows (window 0 first): '0'/'1' = this paper is the visible paper there (white/black), '-' = opaque but covered by a paper above, ' ' = hole
+pos paper  vis role    col depth0 hcolor perf targets    windows
+  0     0    1 cap     -   -      -      -    -                                                                         1
+  1    43   34 pair    8   2      1      0    166,223     0 1 01001 00  11  0 10      11 011  0    000 011 001 10  1 1 1-
+  2     4    4 generic -   -      -      -    -               -         --    -    10                   -   -   -   1 1  
+  3     3    2 generic -   -      -      -    -                          -0 -          -      -     -   -     1-   -- -- 
+  4     1    4 generic -   -      -      -    -           -  0-   -             0  --1 -   -     0           -           
+  5   108   10 pair    17  1      0      0    46,49      1- ---- -- -- 0 -  -1 --0  ----0- -0 -10- - -     ---- -01- -  -
+  6   147    6 pair    21  1      1      0    6,18       - 1------ 0--1   -1--   - -- - -----0---  ---0--- -  - - - -  --
+  7     5    0 generic -   -      -      -    -                     -         --     -    -          - - -        -    - 
+  8     6    0 generic -   -      -      -    -           -         -   -       -        ---  -  - --  - -    - -    -   
+  9     2    0 generic -   -      -      -    -              -    -       - -  -         -         - -      -- -  -- -   
+ 10     7    0 pair    0   0      0      0    64,198      -  --   -     --- - --       - - -  -    --  ---  ---- ---- ---
+ 11     8    0 pair    0   1      1      0    159,165     -  --   - -   --  - - -   -- -         - - - - -  -   ---- ----
+ 12     9    0 single  0   2      1      0    216         -  --   - -   --- - ---  --- - ---  -  - --- ---  -------------
+ 13    10    0 pair    1   0      0      0    41,239      -    -  -     --  - - -  --- - -    -  -  -- ---   ------  -- -
+ 14    11    0 single  1   1      1      0    155         -  ---  - -   --- - ---  --- - ---  -  - --- ---  -------------
+ 15    12    0 single  1   2      1      0    30          -  ---  - -   --- - ---  --- - ---  -  - --- ---  -------------
+ 16    13    0 single  1   3      1      0    142         -  ---  - -   --- - ---  --- - ---  -  - --- ---  -------------
+ 17    14    0 pair    2   0      0      0    57,103      -  - -    -   --- - --    --           -  -    - -   ---  -----
+ 18    15    0 pair    2   1      1      0    102,120     -  - -  -       - - - -    - - ---  -  - --- - - --- -- -  -- -
+ 19    16    0 single  2   2      1      0    39          -  ---  - -   --- - ---  --- - ---  -  - --- --- --------------
+ 20    17    0 single  2   3      1      0    0           -  ---  - -   --- - ---  --- - ---  -  - --- --- --------------
+ 21    19    0 pair    3   1      1      0    26,78       -   --  - --    - -       --   ---  -  - --- -   - -- -  - -- -
+ 22    18    0 pair    3   0      0      0    97,188      -   --  - --  --  - - -  ---     -  -  -   - --  -  -- --  ----
+ 23    20    0 single  3   2      0      0    48          -  ---  - --  --- - ---  --- - ---  -  - --- --- --------------
+... 168 more papers; visible among them (paper@pos:windows): 157@157:1 169@168:1 182@180:1
+windows not covered by the top 24 papers: 3
