@@ -1,0 +1,7 @@
+改良元: solutions/argon-des-perf-condbound
+
+R2の状態価値付き共同DP計画が、通常の候補編集後に負けてejectを受けない場合を補う。既存のplan_cacheにある編集済み結果を使い、現在の完成結果とは積層が異なり、評価値差が0.5以内の候補だけに既存のpolish_ejectsを適用する。既に通常の勝者としてejectを受けた候補は繰り返さない。完成したplan_costを厳密に改善した場合だけ採用する。
+
+候補のDP・編集を解き直さず、中立探索の追加実行もしない。通常の全候補と探索予算、目的関数、設計、将来注文を見ない性質は基準のまま。既存のログ、スイッチ、プロファイラ、DesignStore、section markerと目次を維持する。常に0のvalue_filler_zero/value_filler_zero_usefulのみ削除した。新しい環境変数はない。
+
+追加のstderr指標はvalue_seed_trials（追加eject数）、value_seed_valid（完成計画の有効数）、value_seed_accepts（採用数）、value_seed_gain（完成評価値の改善合計）、value_seed_saved（採用時の即時手数差）。実現した総手数の差とは区別する。
