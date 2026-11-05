@@ -1,0 +1,70 @@
+{
+  "sha256": "64111a4f19e063141a301db4c971cfe5e8e416626996b55b35b78f665d1f9206",
+  "results": [
+    {
+      "name": "gcc-judge",
+      "exit": 0,
+      "warnings": 0,
+      "command": [
+        "/usr/bin/g++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/argon-des-perf-strata32-v2/main.cpp",
+        "-o",
+        "/tmp/argon-des-build-6fxgo2hr/gcc-judge"
+      ]
+    },
+    {
+      "name": "gcc-local",
+      "exit": 0,
+      "warnings": 0,
+      "command": [
+        "/usr/bin/g++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/argon-des-perf-strata32-v2/main.cpp",
+        "-o",
+        "/tmp/argon-des-build-6fxgo2hr/gcc-local"
+      ]
+    },
+    {
+      "name": "clang-judge",
+      "exit": 0,
+      "warnings": 0,
+      "command": [
+        "/usr/bin/clang++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/argon-des-perf-strata32-v2/main.cpp",
+        "-o",
+        "/tmp/argon-des-build-6fxgo2hr/clang-judge"
+      ]
+    },
+    {
+      "name": "clang-local",
+      "exit": 0,
+      "warnings": 0,
+      "command": [
+        "/usr/bin/clang++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/argon-des-perf-strata32-v2/main.cpp",
+        "-o",
+        "/tmp/argon-des-build-6fxgo2hr/clang-local"
+      ]
+    }
+  ],
+  "temporary_binaries_removed": true
+}
