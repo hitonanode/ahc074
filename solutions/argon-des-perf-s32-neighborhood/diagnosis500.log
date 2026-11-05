@@ -1,0 +1,55 @@
+[pahcer_run] run-id: 20261106-053405_argon-req-filterblocks-v2
+[pahcer_run] run-id: 20261106-053442_argon-des-perf-nonheadzero32
+[pahcer_run] run-id: 20261106-053456_argon-des-perf-nonheadowner32
+[pahcer_run] run-id: 20261106-053456_argon-des-perf-rematch
+[pahcer_run] run-id: 20261106-053456_argon-des-perf-rematchhalf
+[pahcer_run] 5 個の解法を比べます (seed 0〜499、24 並列、seed ごとに続けて実行)
+[pahcer_run] 50/500 seed 完了 (経過 0.3 分、残り約 2.9 分)
+[pahcer_run] 100/500 seed 完了 (経過 0.5 分、残り約 2.1 分)
+[pahcer_run] 150/500 seed 完了 (経過 0.7 分、残り約 1.7 分)
+[pahcer_run] 200/500 seed 完了 (経過 1.0 分、残り約 1.4 分)
+[pahcer_run] 250/500 seed 完了 (経過 1.2 分、残り約 1.2 分)
+[pahcer_run] 300/500 seed 完了 (経過 1.4 分、残り約 0.9 分)
+[pahcer_run] 350/500 seed 完了 (経過 1.6 分、残り約 0.7 分)
+[pahcer_run] 400/500 seed 完了 (経過 1.8 分、残り約 0.5 分)
+[pahcer_run] 450/500 seed 完了 (経過 2.1 分、残り約 0.2 分)
+[pahcer_run] 500/500 seed 完了 (経過 2.3 分、残り約 0.0 分)
+Process ForkPoolWorker-18:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 363, in _exit_function
+    _run_finalizers()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 294, in _run_finalizers
+    keys = [key for key in list(_finalizer_registry) if f(key)]
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261106-053405_argon-req-filterblocks-v2       500   0     10319.77    0.000   10319.8   +0.000%  0.000%     0/500/   0    1.280s
+    実行時間: 99% 点 1.417 s、99.9% 点 1.470 s、最大 1.470 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.607 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261106-053442_argon-des-perf-nonheadzero32    500   0     10319.63    0.000   10319.6   -0.001%  0.003%   138/219/ 143    1.293s
+    実行時間: 99% 点 1.427 s、99.9% 点 1.567 s、最大 1.567 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.677 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261106-053456_argon-des-perf-nonheadowner32    500   0     10319.60    0.000   10319.6   -0.002%  0.001%    21/465/  14    1.295s
+    実行時間: 99% 点 1.468 s、99.9% 点 1.473 s、最大 1.473 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.611 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261106-053456_argon-des-perf-rematch          500   0     10316.93    0.000   10316.9   -0.028%  0.010%   204/117/ 179    1.285s
+    実行時間: 99% 点 1.422 s、99.9% 点 1.471 s、最大 1.471 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.596 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261106-053456_argon-des-perf-rematchhalf      500   0     10336.07    0.000   10336.1   +0.158%  0.018%   177/  2/ 321    1.284s
+    実行時間: 99% 点 1.422 s、99.9% 点 1.472 s、最大 1.472 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.612 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  設計の保存       : 20261106-053405_argon-req-filterblocks-v2/design/ に 500 ケース (--design-from で読み込める)
+  設計の保存       : 20261106-053442_argon-des-perf-nonheadzero32/design/ に 500 ケース (--design-from で読み込める)
+  設計の保存       : 20261106-053456_argon-des-perf-nonheadowner32/design/ に 500 ケース (--design-from で読み込める)
+  設計の保存       : 20261106-053456_argon-des-perf-rematch/design/ に 500 ケース (--design-from で読み込める)
+  設計の保存       : 20261106-053456_argon-des-perf-rematchhalf/design/ に 500 ケース (--design-from で読み込める)
+  pahcer/ への記録 : した
+  所要時間         : 2.3 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.17 コア、最大 1.05 コア (2 秒ごとに 136.1 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html

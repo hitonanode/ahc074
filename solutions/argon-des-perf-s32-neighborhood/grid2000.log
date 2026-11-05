@@ -1,0 +1,44 @@
+[pahcer_run] run-id: 20261106-045540_argon-des-design-packed
+[pahcer_run] run-id: 20261106-050229_argon-des-perf-s32w75
+[pahcer_run] run-id: 20261106-050229_argon-des-perf-s32w80
+[pahcer_run] 3 個の run に seed を追加します (seed 500〜1999 のうち未評価の 4500 ケース、24 並列、seed ごとに続けて実行)
+[pahcer_run] 150/1500 seed 完了 (経過 0.4 分、残り約 4.0 分)
+[pahcer_run] 300/1500 seed 完了 (経過 0.8 分、残り約 3.4 分)
+[pahcer_run] 450/1500 seed 完了 (経過 1.2 分、残り約 2.9 分)
+[pahcer_run] 600/1500 seed 完了 (経過 1.6 分、残り約 2.4 分)
+[pahcer_run] 750/1500 seed 完了 (経過 2.1 分、残り約 2.1 分)
+[pahcer_run] 900/1500 seed 完了 (経過 2.5 分、残り約 1.6 分)
+[pahcer_run] 1050/1500 seed 完了 (経過 2.8 分、残り約 1.2 分)
+[pahcer_run] 1200/1500 seed 完了 (経過 3.2 分、残り約 0.8 分)
+[pahcer_run] 1350/1500 seed 完了 (経過 3.7 分、残り約 0.4 分)
+[pahcer_run] 1500/1500 seed 完了 (経過 4.1 分、残り約 0.0 分)
+Process ForkPoolWorker-12:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 337, in _exit_function
+    _run_finalizers(0)
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 294, in _run_finalizers
+    keys = [key for key in list(_finalizer_registry) if f(key)]
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+Interrupted
+[pahcer_run] seed の追加が終わりました
+  差は最初の run に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。「追加分」は今回評価した seed だけ（seed ごとに続けて実行したので、マシンの速さの影響がそろう）
+  run-id                                         ケース  WA      平均スコア     追加分の平均     追加分の差       ±     全体の差       ±
+  20261106-045540_argon-des-design-packed        2000   0     10322.79       10323.80     +0.000%  0.000%   +0.000%  0.000%
+    実行時間: 99% 点 1.428 s、99.9% 点 1.484 s、最大 1.523 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.623 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (2000 ケース中)
+  20261106-050229_argon-des-perf-s32w75          2000   0     10322.88       10323.98     +0.002%  0.003%   +0.001%  0.003%
+    実行時間: 99% 点 1.432 s、99.9% 点 1.525 s、最大 1.533 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.653 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (2000 ケース中)
+  20261106-050229_argon-des-perf-s32w80          2000   0     10322.84       10324.08     +0.003%  0.004%   +0.000%  0.003%
+    実行時間: 99% 点 1.435 s、99.9% 点 1.594 s、最大 1.634 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.746 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (2000 ケース中)
+  設計の保存       : 20261106-045540_argon-des-design-packed/design/ に 2000 ケース (--design-from で読み込める)
+  設計の保存       : 20261106-050229_argon-des-perf-s32w75/design/ に 2000 ケース (--design-from で読み込める)
+  設計の保存       : 20261106-050229_argon-des-perf-s32w80/design/ に 2000 ケース (--design-from で読み込める)
+  所要時間         : 4.1 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.14 コア、最大 0.40 コア (2 秒ごとに 243.8 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html
