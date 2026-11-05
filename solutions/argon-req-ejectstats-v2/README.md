@@ -1,0 +1,15 @@
+改良元: solutions/argon-req-filterblocks-v2
+
+抽出直後の積層価値を使う共同DPの計画が、通常の候補編集後に負けてejectを受けない場合を補う。既存のplan_cacheにある編集済み結果を使い、完成した最良結果と積層が異なり、評価値差が0.5以内の候補だけに既存のpolish_ejectsを適用する。通常の勝者として既にejectを受けた候補は処理しない。ハンドル修正後の重みを使うDPへの追加ejectは時間効率が低いため行わない。完成したplan_costを厳密に改善した場合だけ採用する。
+
+候補のDPや編集は解き直さず、中立探索の追加実行もしない。除外できる候補はplan_costを計算する前に省く。追加処理は重いトレースの出力前に行い、#heavyにも実際の最終操作列を残す。
+
+既存の設計、目的関数、探索予算、乱数は変更しない。将来の注文を参照しない。ログ、スイッチ、プロファイラ、CLOCK_SCALE、LOCAL_BENCH、DesignStore、@paper/@ops、段の目印と目次を維持する。新しい環境変数はない。既存の候補キャッシュが有効な設定でだけ働く。
+
+追加stderr指標: value_seed_trials（追加eject数）、value_seed_valid（有効数）、value_seed_accepts（採用数）、value_seed_gain（完成評価値の改善合計）、value_seed_saved（採用時の即時手数差）。gain/savedは、その後の注文も含む実現スコア差とは区別する。F3_PROFILEでは既存の追加計画段、heavy traceではplans.directとして記録する。
+
+追加ejectの保存・復元・編集処理を専用の非インライン関数finish_weighted_planへまとめ、通常のprocessのスタックフレームと命令列から分ける。
+
+追加のvalue_seed_*統計だけをプロセス単位の静的領域に置き、Solverのサイズ・既存メンバ配置を保つ。通常実行は1ケース1プロセスの集計となる。SIM_HARNESSや測定用のSolverコピーを動かした場合は、そのプロセスでの全試行を合算する。既存のSolverごとのカウンタと全実験スイッチは変更しない。
+
+PR #143の設計・要求処理の完全一致高速化を保持し、旧argon-req-ejectstatsの要求処理差分だけを移植した版。追加ejectの候補条件・順序・回数は旧版と同じ。
