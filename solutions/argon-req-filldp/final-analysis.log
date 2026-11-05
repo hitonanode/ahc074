@@ -1,0 +1,45 @@
+python3 solutions/argon-req-filldp/analyze.py 20261106-000746_esw-slim 20261106-000746_argon-req-filldp-positive --json solutions/argon-req-filldp/normal-final.json
+20261106-000746_esw-slim seeds 2000 cases 2000 log% 0.0 SE 0.0 W/T/L [0, 2000, 0] WA 0
+req 0.419998951 -> 0.419998951 ratio 1.0
+judge mean/p99/max 1.55394952371 1.7197295934999999 1.81170125 -> 1.55394952371 1.7197295934999999 1.81170125 over2 0 -> 0
+stages {'map_end_sec': 0.453585, 'anneal_end_sec': 0.838909, 'climb_end_sec': 0.864109, 'match_end_sec': 0.888763, 'perforation_end_sec': 0.904216, 'helper_end_sec': 0.936207}
+models {'gobj_after': 9.84881, 'model_cost': 8.239682, 'proxy_after': 0.546344, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+20261106-000746_argon-req-filldp-positive seeds 2000 cases 2000 log% -0.028919849141942653 SE 0.0018834943838490082 W/T/L [1225, 91, 684] WA 0
+req 0.419998951 -> 0.4272117665 ratio 1.0171734131307388
+judge mean/p99/max 1.55394952371 1.7197295934999999 1.81170125 -> 1.555708690095 1.721920406 1.87509265 over2 0 -> 0
+stages {'map_end_sec': 0.44635, 'anneal_end_sec': 0.830786, 'climb_end_sec': 0.856037, 'match_end_sec': 0.880684, 'perforation_end_sec': 0.896197, 'helper_end_sec': 0.928407}
+models {'gobj_after': 9.84881, 'model_cost': 8.239682, 'proxy_after': 0.546344, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+python3 solutions/argon-req-filldp/analyze.py 20261105-235755_argon-req-filldp-positive 20261105-235755_argon-req-filldp-joint-fast --json solutions/argon-req-filldp/zero-increment.json
+20261105-235755_argon-req-filldp-positive seeds 2000 cases 4000 log% 0.0 SE 0.0 W/T/L [0, 2000, 0] WA 0
+req 0.4428712655 -> 0.4428712655 ratio 1.0
+judge mean/p99/max 1.586823878575 1.7573811544999998 2.29893505 -> 1.586823878575 1.7573811544999998 2.29893505 over2 2 -> 2
+stages {'map_end_sec': 0.453596, 'anneal_end_sec': 0.838921, 'climb_end_sec': 0.864218, 'match_end_sec': 0.888975, 'perforation_end_sec': 0.904433, 'helper_end_sec': 0.936215}
+models {'gobj_after': 9.84881, 'model_cost': 8.239682, 'proxy_after': 0.546344, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+20261105-235755_argon-req-filldp-joint-fast seeds 2000 cases 4000 log% 0.0007131996948464367 SE 0.00023321703624353983 W/T/L [424, 1063, 513] WA 0
+req 0.4428712655 -> 0.45619292025 ratio 1.0300801966344777
+judge mean/p99/max 1.586823878575 1.7573811544999998 2.29893505 -> 1.6052118053975 1.7814592184999998 2.2877124499999995 over2 2 -> 2
+stages {'map_end_sec': 0.453596, 'anneal_end_sec': 0.838921, 'climb_end_sec': 0.864218, 'match_end_sec': 0.888975, 'perforation_end_sec': 0.904433, 'helper_end_sec': 0.936229}
+models {'gobj_after': 9.84881, 'model_cost': 8.239682, 'proxy_after': 0.546344, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+python3 solutions/argon-req-filldp/audit_final.py 20261106-000746_esw-slim 20261106-000746_argon-req-filldp-positive 20261105-235755_argon-req-filldp-positive
+source_sha256 ace5b612cbd45dc501f64542b10911acf9cbbe7e440433ce3242f36b840bdb5f
+changed_sections ['// ==== Request plans: options, fillers and the joint interval DP ====', '// ==== Request processing (process) ====', '// ==== main: statistics ====']
+normal_cases 2000 different_designs [] different_paper_labels [] missing_or_reordered_base_metrics [] normal_fixed_output_differences []
+20261106-000746_esw-slim design_files 2000 outside_load {'mean_cores': 0.122, 'max_cores': 0.78, 'interval_sec': 2.0, 'seconds': 213.7}
+20261106-000746_argon-req-filldp-positive design_files 2000 outside_load {'mean_cores': 0.122, 'max_cores': 0.78, 'interval_sec': 2.0, 'seconds': 213.7}
+audit_passed
+python3 solutions/argon-req-filldp/analyze.py 20261105-234021_esw-slim 20261105-234021_argon-req-filldp 20261105-234021_argon-req-filldp-model --json solutions/argon-req-filldp/model-screen.json
+20261105-234021_esw-slim seeds 200 cases 400 log% 0.0 SE 0.0 W/T/L [0, 200, 0] WA 0
+req 0.43460384 -> 0.43460384 ratio 1.0
+judge mean/p99/max 1.6096096074 1.9099803169999998 2.2683065 -> 1.6096096074 1.9099803169999998 2.2683065 over2 2 -> 2
+stages {'map_end_sec': 0.477457, 'anneal_end_sec': 0.86966, 'climb_end_sec': 0.895036, 'match_end_sec': 0.919917, 'perforation_end_sec': 0.935525, 'helper_end_sec': 0.967541}
+models {'gobj_after': 9.848195, 'model_cost': 8.238733, 'proxy_after': 0.550207, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+20261105-234021_argon-req-filldp seeds 200 cases 400 log% 0.010683121546745224 SE 0.00489129478600103 W/T/L [86, 0, 114] WA 0
+req 0.43460384 -> 0.4931048425 ratio 1.1346076521091022
+judge mean/p99/max 1.6096096074 1.9099803169999998 2.2683065 -> 1.6890385965749999 1.9615767094999998 2.3708272 over2 2 -> 3
+stages {'map_end_sec': 0.477457, 'anneal_end_sec': 0.86966, 'climb_end_sec': 0.895036, 'match_end_sec': 0.919917, 'perforation_end_sec': 0.935525, 'helper_end_sec': 0.967543}
+models {'gobj_after': 9.848195, 'model_cost': 8.238733, 'proxy_after': 0.550207, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+20261105-234021_argon-req-filldp-model seeds 200 cases 400 log% -0.042223683811867384 SE 0.005451893013872436 W/T/L [147, 0, 53] WA 0
+req 0.43460384 -> 0.52591399 ratio 1.2100997312863135
+judge mean/p99/max 1.6096096074 1.9099803169999998 2.2683065 -> 1.7334971795 2.0051270589999994 2.35901865 over2 2 -> 5
+stages {'map_end_sec': 0.477457, 'anneal_end_sec': 0.86966, 'climb_end_sec': 0.895036, 'match_end_sec': 0.919917, 'perforation_end_sec': 0.935525, 'helper_end_sec': 0.96755}
+models {'gobj_after': 9.848195, 'model_cost': 8.238733, 'proxy_after': 0.550207, 'self_wrong': 0.0, 'op_label_errors': 0.0}

@@ -1,0 +1,83 @@
+python3 solutions/argon-req-filldp/analyze.py 20261105-234921_esw-slim 20261105-234921_argon-req-filldp-joint-fast 20261105-234921_argon-req-filldp-positive 20261105-234921_argon-req-filldp-jcharge --json solutions/argon-req-filldp/joint-screen.json
+20261105-234921_esw-slim seeds 200 cases 400 log% 0.0 SE 0.0 W/T/L [0, 200, 0] WA 0
+req 0.4332261675 -> 0.4332261675 ratio 1.0
+judge mean/p99/max 1.607624707525 1.8708990715 2.2414297 -> 1.607624707525 1.8708990715 2.2414297 over2 2 -> 2
+stages {'map_end_sec': 0.477457, 'anneal_end_sec': 0.86966, 'climb_end_sec': 0.895036, 'match_end_sec': 0.919917, 'perforation_end_sec': 0.935525, 'helper_end_sec': 0.967539}
+models {'gobj_after': 9.848195, 'model_cost': 8.238733, 'proxy_after': 0.550207, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+20261105-234921_argon-req-filldp-joint-fast seeds 200 cases 400 log% -0.04022915495671981 SE 0.004122424911733258 W/T/L [147, 0, 53] WA 0
+req 0.4332261675 -> 0.4534291375 ratio 1.0466337712622127
+judge mean/p99/max 1.607624707525 1.8708990715 2.2414297 -> 1.635030039825 1.9188507969999997 2.2792497 over2 2 -> 2
+stages {'map_end_sec': 0.477457, 'anneal_end_sec': 0.86966, 'climb_end_sec': 0.895036, 'match_end_sec': 0.919917, 'perforation_end_sec': 0.935525, 'helper_end_sec': 0.967549}
+models {'gobj_after': 9.848195, 'model_cost': 8.238733, 'proxy_after': 0.550207, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+20261105-234921_argon-req-filldp-positive seeds 200 cases 400 log% -0.04045877318433836 SE 0.004116788600090322 W/T/L [151, 0, 49] WA 0
+req 0.4332261675 -> 0.443708545 ratio 1.024196085754677
+judge mean/p99/max 1.607624707525 1.8708990715 2.2414297 -> 1.62241731695 1.8762680584999993 2.2683625 over2 2 -> 2
+stages {'map_end_sec': 0.477457, 'anneal_end_sec': 0.86966, 'climb_end_sec': 0.895036, 'match_end_sec': 0.919917, 'perforation_end_sec': 0.935525, 'helper_end_sec': 0.967549}
+models {'gobj_after': 9.848195, 'model_cost': 8.238733, 'proxy_after': 0.550207, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+20261105-234921_argon-req-filldp-jcharge seeds 200 cases 400 log% -0.0027287462971936575 SE 0.002790312023254561 W/T/L [100, 2, 98] WA 0
+req 0.4332261675 -> 0.43725544 ratio 1.009300621251139
+judge mean/p99/max 1.607624707525 1.8708990715 2.2414297 -> 1.6134602482 1.866710074999999 2.24008345 over2 2 -> 2
+stages {'map_end_sec': 0.477457, 'anneal_end_sec': 0.86966, 'climb_end_sec': 0.895036, 'match_end_sec': 0.919917, 'perforation_end_sec': 0.935525, 'helper_end_sec': 0.967541}
+models {'gobj_after': 9.848195, 'model_cost': 8.238733, 'proxy_after': 0.550207, 'self_wrong': 0.0, 'op_label_errors': 0.0}
+python3 solutions/argon-req-filldp/check_saved.py 20261105-234500_argon-req-filldp-joint 20261105-234921_argon-req-filldp-joint-fast
+stdout 400 differences 0 []
+{
+  "value_filler_trials": 11526.08,
+  "value_filler_zero": 8337.9125,
+  "value_filler_zero_useful": 52.9975,
+  "value_filler_plans": 965.5325,
+  "value_filler_better": 161.24,
+  "value_filler_gain": 11.800011175
+}
+errors {'self_wrong': 0.0, 'op_label_errors': 0.0}
+python3 solutions/argon-req-filldp/check_saved.py 20261105-235342_esw-slim 20261105-235342_argon-req-filldp-oracle
+stdout 400 differences 0 []
+{
+  "r2_zero_same": 1022.5975,
+  "r2_zero_better": 0.25,
+  "r2_zero_worse": 0.375,
+  "r2_zero_gain": 0.03643864191,
+  "r2_zero_loss": 0.0847876412975,
+  "r2_zero_moves": 0.02,
+  "r2_zero_ceiling": 0.025,
+  "r2_oracle_same": 972.925,
+  "r2_oracle_better": 12.9525,
+  "r2_oracle_worse": 5.425,
+  "r2_oracle_neutral": 32.7,
+  "r2_oracle_value_gain": 4.4931503125,
+  "r2_oracle_value_loss": 1.726815555225,
+  "r2_oracle_move_gain": 2.34,
+  "r2_oracle_ceiling_moves": 2.565,
+  "r2_oracle_zero_trials": 8334.465,
+  "r2_oracle_zero_useful": 53.2075,
+  "r2_oracle_zero_picks": 17.3275,
+  "r2_oracle_zero_better": 3.8025,
+  "value_filler_trials": 0.0,
+  "value_filler_zero": 0.0,
+  "value_filler_zero_useful": 0.0,
+  "value_filler_zero_picks": 0.0,
+  "value_filler_zero_better": 0.0,
+  "value_filler_plans": 0.0,
+  "value_filler_better": 0.0,
+  "value_filler_gain": 0.0
+}
+errors {'self_wrong': 0.0, 'op_label_errors': 0.0}
+python3 scripts/observe.py cases 20261105-234921_argon-req-filldp-positive --vs 20261105-234921_esw-slim --top 4
+A = 20261105-234921_argon-req-filldp-positive
+B = 20261105-234921_esw-slim
+200 seeds (lower is better; WA excluded: none)
+mean score: A 10327.0, B 10331.3; mean log(A/B) -0.041% ± 0.006%; A better on 133, equal on 6, worse on 61
+
+A is worse than B (largest A/B):
+seed       A  E_A    T_A       B  E_B    T_B     A/B
+0095   10275    0  10275   10262    0  10262  1.0013
+0133   10383    0  10383   10370    0  10370  1.0013
+0064   10345    0  10345   10333    0  10333  1.0012
+0037   10390    0  10390   10378    0  10378  1.0012
+
+A is better than B (smallest A/B):
+seed       A  E_A    T_A       B  E_B    T_B     A/B
+0180   10247    0  10247   10282    0  10282  0.9966
+0176   10330    0  10330   10355    0  10355  0.9976
+0061   10308    0  10308   10331    0  10331  0.9978
+0045   10304    0  10304   10326    0  10326  0.9979
