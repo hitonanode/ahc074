@@ -1,0 +1,58 @@
+[pahcer_run] run-id: 20261106-054203_argon-req-ejectstats-v2
+[pahcer_run] run-id: 20261106-054203_argon-req-oldfull-v2
+[pahcer_run] run-id: 20261106-054203_argon-req-oldfull-consistent
+[pahcer_run] run-id: 20261106-054203_argon-req-oldfull-probe
+[pahcer_run] run-id: 20261106-054203_argon-req-oldfull-consistent-probe
+[pahcer_run] 実行中の評価の終了を待っています: 20261106-054135_argon-req-ejectstats-v2 ほか 3 個の比較 (pid 2, 2026-11-06T05:42:15+09:00 から) (scripts/pahcer_run.py --status で状況を見られる)
+[pahcer_run] 5 個の解法を比べます (seed 0〜199、24 並列、seed ごとに続けて実行、20261106-051524_argon-req-ejectstats-v2 の設計を読み込む、注文の列 2 本)
+[pahcer_run] 20/200 seed 完了 (経過 0.1 分、残り約 0.8 分)
+[pahcer_run] 40/200 seed 完了 (経過 0.2 分、残り約 0.7 分)
+[pahcer_run] 60/200 seed 完了 (経過 0.3 分、残り約 0.6 分)
+[pahcer_run] 80/200 seed 完了 (経過 0.3 分、残り約 0.5 分)
+[pahcer_run] 100/200 seed 完了 (経過 0.4 分、残り約 0.4 分)
+[pahcer_run] 120/200 seed 完了 (経過 0.5 分、残り約 0.3 分)
+[pahcer_run] 140/200 seed 完了 (経過 0.5 分、残り約 0.2 分)
+[pahcer_run] 160/200 seed 完了 (経過 0.6 分、残り約 0.2 分)
+[pahcer_run] 180/200 seed 完了 (経過 0.7 分、残り約 0.1 分)
+[pahcer_run] 200/200 seed 完了 (経過 0.8 分、残り約 0.0 分)
+Process ForkPoolWorker-37:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 336, in _exit_function
+    debug('running all "atexit" finalizers with priority >= 0')
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 48, in debug
+    def debug(msg, *args):
+    
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261106-054203_argon-req-ejectstats-v2         200   0     10319.83    0.000   10319.8   +0.000%  0.000%     0/200/   0    0.471s
+    実行時間: 99% 点 0.520 s、99.9% 点 0.543 s、最大 0.543 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.572 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054203_argon-req-oldfull-v2            200   0     10319.86    0.000   10319.9   -0.002%  0.002%   100/ 14/  86    0.498s
+    実行時間: 99% 点 0.568 s、99.9% 点 0.580 s、最大 0.580 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.614 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054203_argon-req-oldfull-consistent    200   0     10319.82    0.000   10319.8   -0.001%  0.003%   107/  2/  91    0.514s
+    実行時間: 99% 点 0.575 s、99.9% 点 0.615 s、最大 0.615 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.600 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054203_argon-req-oldfull-probe         200   0     10319.83    0.000   10319.8   +0.000%  0.000%     0/200/   0    0.558s
+    実行時間: 99% 点 0.621 s、99.9% 点 0.670 s、最大 0.670 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.680 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054203_argon-req-oldfull-consistent-probe    200   0     10319.83    0.000   10319.8   +0.000%  0.000%     0/200/   0    0.603s
+    実行時間: 99% 点 0.669 s、99.9% 点 0.694 s、最大 0.694 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.695 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  設計             : 20261106-051524_argon-req-ejectstats-v2 が保存した設計を全部の解法が読み込んだ（注文処理だけの比較。本当のスコアではない）
+  注文の列         : seed ごとに 2 本（1 本目は tools/in、2 本目からは runs/.orders/ に生成）。差は seed ごとに 2 本の log スコア比を平均してから seed の間で取った。上の平均スコアは 1 本目
+    20261106-054203_argon-req-ejectstats-v2      全部の注文の列の平均スコア 10322.78
+    20261106-054203_argon-req-oldfull-v2         全部の注文の列の平均スコア 10322.60
+    20261106-054203_argon-req-oldfull-consistent 全部の注文の列の平均スコア 10322.71
+    20261106-054203_argon-req-oldfull-probe      全部の注文の列の平均スコア 10322.78
+    20261106-054203_argon-req-oldfull-consistent-probe 全部の注文の列の平均スコア 10322.78
+  pahcer/ への記録 : しない (--design-from)
+  所要時間         : 0.8 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.19 コア、最大 0.41 コア (2 秒ごとに 47.3 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html

@@ -1,0 +1,7 @@
+#!/bin/sh
+# pahcer compiles before acquiring its evaluation lock. Avoid compiling over
+# another evaluator's timed cases; the actual compiler and flags are unchanged.
+if [ "$1" = --version ]; then
+    exec /usr/bin/g++ "$@"
+fi
+exec flock -x /home/sato/ahc074/runs/.lock /usr/bin/g++ "$@"

@@ -1,0 +1,7 @@
+改良元: solutions/argon-des-perf-latew105
+
+R5の時間配分改修版。argon-req-budget-adaptと同じく、中立探索の継続利得0.05、追加計画4本、通常eject後が11手以下の注文のみ3削除を使う。追加計画は安い削除処理後のplan_costが通常計画より1.0以内のときだけ、本格的な編集・ejectへ進める。初版で追加段が約80ms/ケースを使ったため、事前に分かる完成度で予算を選別する。
+
+ARGON_ADAPT=0で新配分を無効にする。MODE=0/2と明示したF3_*予算を優先する。特にF3_PLAN_GAPが明示された場合は追加の1.0判定を使わず、従来の指定範囲に従う。目的関数は変更せず、時計や未来注文を判断に使わない。全ログ・スイッチ・プロファイラ・CLOCK_SCALE・LOCAL_BENCH・DesignStore・目次・節を維持する。
+
+budget_requestsは新配分を使った注文数、budget_triplesは3削除を有効にした注文数、budget_plan_skippedは安い削除後の値差により本格処理を省いた計画数。既存指標は維持する。
