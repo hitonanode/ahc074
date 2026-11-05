@@ -1,0 +1,7 @@
+改良元: solutions/argon-des-perf-stratacut
+
+設計段の出力を変えない高速化を調べるための分析用ディレクトリ。main.cppは基準と同じ。
+保存済みrunの時刻差から段ごとの時間を集計する。新しい採用候補は別ディレクトリに作る。
+stage_times.pyが既存の*_end_secとAF_PROFILEの指標をまとめる。
+identity.pyはstdoutと時刻以外のstderrの一致、check_builds.pyは4構成の警告なしビルドを確認する。
+ビルド用の実行ファイルは/tmpに作り、検査後に削除する。
