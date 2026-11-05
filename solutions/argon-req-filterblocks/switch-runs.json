@@ -1,0 +1,28 @@
+[
+  {
+    "case": "wide-trace",
+    "env": {
+      "F3_MODE": "2",
+      "F3_NS_TRIPLES": "1",
+      "F3_NS_INTERIOR": "4",
+      "F3_HEAVY_TRACE": "1",
+      "F3_HEAVY_PREDICT": "1"
+    },
+    "runs": [
+      "20261106-044718_argon-des-perf-stratacut",
+      "20261106-045335_argon-req-filterblocks"
+    ]
+  },
+  {
+    "case": "uncached-mdpoff",
+    "env": {
+      "F3_MEMO": "0",
+      "F3_PREFIX": "0",
+      "COLMDP": "0"
+    },
+    "runs": [
+      "20261106-045356_argon-des-perf-stratacut",
+      "20261106-045418_argon-req-filterblocks"
+    ]
+  }
+]
