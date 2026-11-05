@@ -1,0 +1,127 @@
+{
+  "base": "argon-req-ejectstats-v2",
+  "candidate": "argon-des-perf-rematch-v2",
+  "source_sha256": "5c8ec543901a00c8ba4f151af66d6c23664585aad00fea3bd418cc8eaff410dd",
+  "n": 2000,
+  "score": {
+    "mean": -0.025081196342628478,
+    "se": 0.0053709558937265235
+  },
+  "wtl": [
+    856,
+    458,
+    686
+  ],
+  "time": [
+    {
+      "run": "20261106-054641_argon-req-ejectstats-v2",
+      "judge": {
+        "mean": 1.570014354265,
+        "se": 0.0016607181648851577,
+        "p99": 1.7441293990000002,
+        "max": 1.8821663,
+        "over2": 0
+      },
+      "metrics": {
+        "req_sec": 0.4316153715,
+        "helper_end_sec": 0.9360854185,
+        "end_sec": 1.3815055575
+      }
+    },
+    {
+      "run": "20261106-054641_argon-des-perf-rematch-v2",
+      "judge": {
+        "mean": 1.57996973787,
+        "se": 0.0016449087897559746,
+        "p99": 1.746714127,
+        "max": 1.9149701000000001,
+        "over2": 0
+      },
+      "metrics": {
+        "req_sec": 0.434497625,
+        "helper_end_sec": 0.9418679905,
+        "end_sec": 1.3902208495
+      }
+    }
+  ],
+  "judge_delta": {
+    "mean": 0.009955383605000001,
+    "se": 0.0014772392775594522,
+    "p99": 0.0025847279999997586
+  },
+  "gain_per_judge_second": 2.519360110848132,
+  "changed_designs": 1564,
+  "retained_pre_stage_metrics": [
+    "climb_forced_steps",
+    "gobj_before",
+    "gobj_after",
+    "gopt_steps",
+    "map_iters",
+    "anneal_iters",
+    "colswap_tried",
+    "colswap_accepted",
+    "replace_tried",
+    "replace_accepted",
+    "climb_iters",
+    "climb_accepted",
+    "climb_evaluated",
+    "climb_cached",
+    "proxy_before",
+    "proxy_after",
+    "match_iterations",
+    "match_cycles",
+    "match_changed",
+    "match_decrease",
+    "cap_window",
+    "model_cost",
+    "model_col",
+    "model_hole",
+    "model_gc",
+    "perf_owner_bound_checks",
+    "perf_owner_bound_skips",
+    "perf_owner_raw",
+    "perf_owner_conditioned",
+    "perf_donor_gain",
+    "perf_cache_rows",
+    "perf_cache_skips",
+    "perforation_holes",
+    "perforation_trials",
+    "perforation_accepts"
+  ],
+  "source_scope_verified": true,
+  "physical_papers_verified": 2000,
+  "warning_free_builds": 4,
+  "outside_load": [
+    {
+      "mean_cores": 0.346,
+      "max_cores": 1.244,
+      "interval_sec": 2.0,
+      "seconds": 109.4
+    },
+    {
+      "mean_cores": 0.148,
+      "max_cores": 0.509,
+      "interval_sec": 2.0,
+      "seconds": 324.6
+    },
+    {
+      "mean_cores": 0.346,
+      "max_cores": 1.244,
+      "interval_sec": 2.0,
+      "seconds": 109.4
+    },
+    {
+      "mean_cores": 0.148,
+      "max_cores": 0.509,
+      "interval_sec": 2.0,
+      "seconds": 324.6
+    }
+  ],
+  "criteria": {
+    "score_2se": true,
+    "practical": true,
+    "free_budget": true,
+    "efficiency": true,
+    "p99": true
+  }
+}
