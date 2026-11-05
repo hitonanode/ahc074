@@ -1,0 +1,64 @@
+[pahcer_run] run-id: 20261106-054848_argon-req-ejectstats-v2
+[pahcer_run] run-id: 20261106-054848_argon-req-k2-v3
+[pahcer_run] run-id: 20261106-054848_argon-req-k2local-v3
+[pahcer_run] run-id: 20261106-054848_argon-req-k2-probe
+[pahcer_run] run-id: 20261106-054848_argon-req-k2local-probe
+[pahcer_run] run-id: 20261106-054848_argon-req-seedfinish
+[pahcer_run] 実行中の評価の終了を待っています: 20261106-054641_argon-req-ejectstats-v2 ほか 3 個への seed の追加 (pid 2, 2026-11-06T05:51:15+09:00 から) (scripts/pahcer_run.py --status で状況を見られる)
+[pahcer_run] 6 個の run に seed を追加します (seed 24〜199 のうち未評価の 1056 ケース、24 並列、seed ごとに続けて実行)
+[pahcer_run] 17/176 seed 完了 (経過 0.1 分、残り約 1.0 分)
+[pahcer_run] 34/176 seed 完了 (経過 0.2 分、残り約 0.9 分)
+[pahcer_run] 51/176 seed 完了 (経過 0.3 分、残り約 0.8 分)
+[pahcer_run] 68/176 seed 完了 (経過 0.3 分、残り約 0.5 分)
+[pahcer_run] 85/176 seed 完了 (経過 0.4 分、残り約 0.5 分)
+[pahcer_run] 102/176 seed 完了 (経過 0.5 分、残り約 0.4 分)
+[pahcer_run] 119/176 seed 完了 (経過 0.5 分、残り約 0.3 分)
+[pahcer_run] 136/176 seed 完了 (経過 0.7 分、残り約 0.2 分)
+[pahcer_run] 153/176 seed 完了 (経過 0.7 分、残り約 0.1 分)
+[pahcer_run] 170/176 seed 完了 (経過 0.8 分、残り約 0.0 分)
+[pahcer_run] 176/176 seed 完了 (経過 0.9 分、残り約 0.0 分)
+Process ForkPoolWorker-7:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 339, in _exit_function
+    if current_process() is not None:
+       ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 37, in current_process
+    def current_process():
+    
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+Interrupted
+[pahcer_run] seed の追加が終わりました
+  差は最初の run に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。「追加分」は今回評価した seed だけ（seed ごとに続けて実行したので、マシンの速さの影響がそろう）
+  run-id                                         ケース  WA      平均スコア     追加分の平均     追加分の差       ±     全体の差       ±
+  20261106-054848_argon-req-ejectstats-v2         200   0     10319.83       10315.84     +0.000%  0.000%   +0.000%  0.000%
+    実行時間: 99% 点 0.565 s、99.9% 点 0.571 s、最大 0.571 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.541 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054848_argon-req-k2-v3                 200   0     10319.55       10315.41     -0.003%  0.003%   -0.001%  0.003%
+    実行時間: 99% 点 0.553 s、99.9% 点 0.569 s、最大 0.569 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.582 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054848_argon-req-k2local-v3            200   0     10319.60       10315.55     -0.001%  0.002%   -0.000%  0.002%
+    実行時間: 99% 点 0.565 s、99.9% 点 0.566 s、最大 0.566 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.593 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054848_argon-req-k2-probe              200   0     10319.83       10315.84     +0.000%  0.000%   +0.000%  0.000%
+    実行時間: 99% 点 0.772 s、99.9% 点 0.775 s、最大 0.775 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.841 s、1.8 s 超え 2・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054848_argon-req-k2local-probe         200   0     10319.83       10315.84     +0.000%  0.000%   +0.000%  0.000%
+    実行時間: 99% 点 0.671 s、99.9% 点 0.722 s、最大 0.722 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.705 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261106-054848_argon-req-seedfinish            200   0     10319.12       10315.04     -0.004%  0.002%   -0.003%  0.002%
+    実行時間: 99% 点 0.529 s、99.9% 点 0.566 s、最大 0.566 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.567 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  設計             : 20261106-051524_argon-req-ejectstats-v2 が保存した設計を全部の解法が読み込んだ（注文処理だけの比較。本当のスコアではない）
+  注文の列         : seed ごとに 2 本（1 本目は tools/in、2 本目からは runs/.orders/ に生成）。差は seed ごとに 2 本の log スコア比を平均してから seed の間で取った。上の平均スコアは 1 本目
+    20261106-054848_argon-req-ejectstats-v2      全部の注文の列の平均スコア 10322.78
+    20261106-054848_argon-req-k2-v3              全部の注文の列の平均スコア 10322.65
+    20261106-054848_argon-req-k2local-v3         全部の注文の列の平均スコア 10322.75
+    20261106-054848_argon-req-k2-probe           全部の注文の列の平均スコア 10322.78
+    20261106-054848_argon-req-k2local-probe      全部の注文の列の平均スコア 10322.78
+    20261106-054848_argon-req-seedfinish         全部の注文の列の平均スコア 10322.47
+  所要時間         : 0.9 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.18 コア、最大 0.40 コア (2 秒ごとに 51.1 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html

@@ -1,0 +1,7 @@
+改良元: solutions/argon-des-perf-latew105
+
+R5の探索時間配分。1周の評価改善が0.05未満なら中立探索を打ち切り、その時間を追加計画4本（短い経路だけに限定しない）と3削除へ回す。3削除は通常の編集・eject終了時の経路が11手以下の注文だけに使う。測定では長い経路の3削除は時間に比べて利得が小さかったため。目的関数、設計、候補生成器、他の予算は変更しない。時計・未来注文を探索判断に使わない。
+
+ARGON_ADAPT=0で新しい配分を無効にする。MODE=0/2のプリセットは従来通り。F3_POST_CANDIDATES、F3_PLAN_SHORTLIST、F3_REPEAT_MIN、F3_NS_TRIPLESを明示した場合は個別指定を優先し、他のF3_*、全てのログ・プロファイラ・CLOCK_SCALE・LOCAL_BENCH・DesignStore・節と目次も維持する。
+
+追加指標budget_requestsは新配分の注文数、budget_triplesはそのうち3削除を有効にした注文数。既存指標は従来の意味を保つ。

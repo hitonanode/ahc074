@@ -1,0 +1,151 @@
+
+PRICE 0
+train {'gain_case': 7.645791281125139, 'gain_se': 0.20897958305539815, 'seconds_case': 0.16970951113600008, 'counts': [0, 0, 0, 204600]}
+test {'gain_case': 7.238788683819325, 'gain_se': 0.19072706014949228, 'seconds_case': 0.16727054930849947, 'counts': [0, 0, 0, 204600]}
+all {'gain_case': 7.442289982472233, 'gain_se': 0.1418444901910388, 'seconds_case': 0.16849003022224976, 'counts': [0, 0, 0, 409200]}
+action 3 n=204600
+
+PRICE 20
+train {'gain_case': 7.645791281125139, 'gain_se': 0.20897958305539815, 'seconds_case': 0.16970951113600008, 'counts': [0, 0, 0, 204600]}
+test {'gain_case': 7.238788683819325, 'gain_se': 0.19072706014949228, 'seconds_case': 0.16727054930849947, 'counts': [0, 0, 0, 204600]}
+all {'gain_case': 7.442289982472233, 'gain_se': 0.1418444901910388, 'seconds_case': 0.16849003022224976, 'counts': [0, 0, 0, 409200]}
+action 3 n=204600
+
+PRICE 40
+train {'gain_case': 5.555930489176011, 'gain_se': 0.16899865756501126, 'seconds_case': 0.09529164965650029, 'counts': [40323, 10727, 0, 153550]}
+test {'gain_case': 5.30074676289182, 'gain_se': 0.1655481319633403, 'seconds_case': 0.09404604386099953, 'counts': [40341, 10922, 0, 153337]}
+all {'gain_case': 5.428338626033915, 'gain_se': 0.11833503308900023, 'seconds_case': 0.09466884675874992, 'counts': [80664, 21649, 0, 306887]}
+holes <= 15
+  fillers <= 0
+    action 1 n=6014
+  else
+    action 3 n=140759
+else
+  generic <= 5
+    depth <= 3
+      action 3 n=12791
+    else
+      action 0 n=4256
+  else
+    raw <= 9
+      action 1 n=4713
+    else
+      action 0 n=36067
+
+PRICE 60
+train {'gain_case': -0.2707301513730523, 'gain_se': 0.1012112054084777, 'seconds_case': -0.024654171712499666, 'counts': [74852, 42257, 56631, 30860]}
+test {'gain_case': -0.23927882313454396, 'gain_se': 0.09636936785119345, 'seconds_case': -0.024832115467499954, 'counts': [74397, 42252, 56755, 31196]}
+all {'gain_case': -0.25500448725379815, 'gain_se': 0.06970937778725056, 'seconds_case': -0.024743143589999808, 'counts': [149249, 84509, 113386, 62056]}
+holes <= 9
+  depth <= 0
+    action 3 n=8657
+  else
+    ordinary <= 10
+      action 2 n=50699
+    else
+      action 3 n=22203
+else
+  raw <= 9
+    depth <= 2
+      action 1 n=21886
+    else
+      action 2 n=5932
+  else
+    fillers <= 1
+      action 1 n=20371
+    else
+      action 0 n=74852
+
+PRICE 80
+train {'gain_case': -5.255943621090893, 'gain_se': 0.1510049420335794, 'seconds_case': -0.09810710881950001, 'counts': [28688, 71445, 98102, 6365]}
+test {'gain_case': -4.795848541106614, 'gain_se': 0.12344892834069687, 'seconds_case': -0.09893893705300025, 'counts': [29030, 70982, 98352, 6236]}
+all {'gain_case': -5.025896081098754, 'gain_se': 0.09863407136554339, 'seconds_case': -0.09852302293625013, 'counts': [57718, 142427, 196454, 12601]}
+holes <= 9
+  holes <= 0
+    action 3 n=6365
+  else
+    action 2 n=75194
+else
+  raw <= 9
+    gap <= 0.01
+      action 1 n=4910
+    else
+      action 2 n=22908
+  else
+    generic <= 5
+      action 0 n=28688
+    else
+      action 1 n=66535
+
+PRICE 100
+train {'gain_case': -7.8230461849399475, 'gain_se': 0.2003212750244919, 'seconds_case': -0.1273771491520008, 'counts': [0, 34444, 164156, 6000]}
+test {'gain_case': -7.137142618351086, 'gain_se': 0.16962266452678176, 'seconds_case': -0.12831014237800045, 'counts': [0, 34721, 163992, 5887]}
+all {'gain_case': -7.480094401645516, 'gain_se': 0.13315251338486628, 'seconds_case': -0.12784364576500062, 'counts': [0, 69165, 328148, 11887]}
+ordinary <= 12
+  gap <= 0.01
+    ordinary <= 10
+      action 2 n=16740
+    else
+      action 1 n=9824
+  else
+    holes <= 0
+      action 3 n=6000
+    else
+      action 2 n=143332
+else
+  holes <= 9
+    action 2 n=4084
+  else
+    action 1 n=24620
+
+PRICE 120
+train {'gain_case': -8.344603057697434, 'gain_se': 0.20587265432901686, 'seconds_case': -0.1318659614635009, 'counts': [0, 16893, 181342, 6365]}
+test {'gain_case': -7.664581716979804, 'gain_se': 0.18056170183805192, 'seconds_case': -0.13268549233500038, 'counts': [0, 17136, 181228, 6236]}
+all {'gain_case': -8.004592387338619, 'gain_se': 0.13868401804805522, 'seconds_case': -0.13227572689925066, 'counts': [0, 34029, 362570, 12601]}
+ordinary <= 12
+  holes <= 0
+    action 3 n=6365
+  else
+    action 2 n=169531
+else
+  holes <= 12
+    action 2 n=7008
+  else
+    fillers <= 3
+      action 1 n=16893
+    else
+      action 2 n=4803
+
+PRICE 160
+train {'gain_case': -9.252936232648649, 'gain_se': 0.225568002010392, 'seconds_case': -0.13828093576550082, 'counts': [0, 0, 198235, 6365]}
+test {'gain_case': -8.498500237427585, 'gain_se': 0.2017931113288644, 'seconds_case': -0.13926682407550026, 'counts': [0, 0, 198364, 6236]}
+all {'gain_case': -8.875718235038118, 'gain_se': 0.15329811157702158, 'seconds_case': -0.13877387992050053, 'counts': [0, 0, 396599, 12601]}
+holes <= 0
+  action 3 n=6365
+else
+  action 2 n=198235
+
+PRICE 200
+train {'gain_case': -9.252936232648649, 'gain_se': 0.225568002010392, 'seconds_case': -0.13828093576550082, 'counts': [0, 0, 198235, 6365]}
+test {'gain_case': -8.498500237427585, 'gain_se': 0.2017931113288644, 'seconds_case': -0.13926682407550026, 'counts': [0, 0, 198364, 6236]}
+all {'gain_case': -8.875718235038118, 'gain_se': 0.15329811157702158, 'seconds_case': -0.13877387992050053, 'counts': [0, 0, 396599, 12601]}
+holes <= 0
+  action 3 n=6365
+else
+  action 2 n=198235
+
+PRICE 300
+train {'gain_case': -9.252936232648649, 'gain_se': 0.225568002010392, 'seconds_case': -0.13828093576550082, 'counts': [0, 0, 198235, 6365]}
+test {'gain_case': -8.498500237427585, 'gain_se': 0.2017931113288644, 'seconds_case': -0.13926682407550026, 'counts': [0, 0, 198364, 6236]}
+all {'gain_case': -8.875718235038118, 'gain_se': 0.15329811157702158, 'seconds_case': -0.13877387992050053, 'counts': [0, 0, 396599, 12601]}
+holes <= 0
+  action 3 n=6365
+else
+  action 2 n=198235
+
+HINDSIGHT
+40 gain/case 7.661537534832328 seconds/case -0.12406985795875061
+80 gain/case 7.557564328038687 seconds/case -0.1258514214622506
+120 gain/case 7.4524603167856505 seconds/case -0.12691842832625055
+200 gain/case 7.172805645965246 seconds/case -0.1286791437140006
+400 gain/case 6.147722219999522 seconds/case -0.13212069880350058

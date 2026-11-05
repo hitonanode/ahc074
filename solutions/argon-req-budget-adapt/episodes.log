@@ -1,0 +1,614 @@
+A = 20261106-075637_argon-req-budget-adapt
+B = 20261106-075637_argon-des-perf-latew105
+200 seeds (lower is better; WA excluded: none)
+mean score: A 10311.8, B 10315.0; mean log(A/B) -0.031% ± 0.005%; A better on 133, equal on 7, worse on 60
+
+A is worse than B (largest A/B):
+seed       A  E_A    T_A       B  E_B    T_B     A/B
+0049   10156    0  10156   10135    0  10135  1.0021
+0045   10302    0  10302   10288    0  10288  1.0014
+0147   10395    0  10395   10381    0  10381  1.0013
+
+A is better than B (smallest A/B):
+seed       A  E_A    T_A       B  E_B    T_B     A/B
+0197   10300    0  10300   10324    0  10324  0.9977
+0001   10347    0  10347   10370    0  10370  0.9978
+0059   10294    0  10294   10316    0  10316  0.9979
+SEED 197 score delta -24 episodes [(68, 73, -2), (183, 183, 0), (252, 256, -2), (285, 295, -1), (342, 342, 0), (351, 362, -2), (379, 394, 2), (545, 568, 0), (615, 616, 0), (624, 752, -18), (782, 783, 1), (845, 848, 0), (862, 862, 0), (933, 934, 0), (959, 959, 0), (960, 960, 0), (965, 1023, -2)]
+SELECTED 197 (624, 752, -18)
+[20261106-075637_argon-des-perf-latew105] seed 0197
+score=10324 (= 2K*E + T = 384*0 + 10324); E=0 T=10324 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 624 a= 48 m= 12 ok=Y mis= 0  168(pair,23)@146>168:fret 126(pair,19)@68>127:fret 128(pair,19)@126>117:repair 83(pair,14)@0>88:ret 180(pair,24)@180>181:fdig 84(pair,14)@83>88:dig 85(single,14)@83>88:dig 88(single,14)@83>88:dig 87(single,14)@83>88:dig 157(pair,22)@157>158:fix 158(pair,22)@157>146:repair 90(single,14)@83>1:repair
+r= 625 a=204 m=  8 ok=Y mis= 0  90(single,14)@1>88:ret 158(pair,22)@146>157:relevel 146(pair,21)@146>108:fill 62(pair,11)@60>63:dig 60(pair,11)@60>62:dig 61(pair,11)@60>63:dig 63(single,11)@60>0:lift 168(pair,23)@168>169:fix
+[20261106-075637_argon-des-perf-latew105] seed 0197: state after request 624 (a=48)
+so far: E=0 T=6287
+moves of request 624 (k>d:label): 168>168:fret 126>127:fret 128>117:repair 83>88:ret 180>181:fdig 84>88:dig 85>88:dig 88>88:dig 87>88:dig 157>158:fix 158>146:repair 90>1:repair
+display             0110111000111111111000110011010010000010110010001110101001000011
+requested           0110111000111111111000110011010010000010110010001110101001000011
+mismatch                                                                              (0 windows)
+windows (window 0 first): '0'/'1' = this paper is the visible paper there (white/black), '-' = opaque but covered by a paper above, ' ' = hole
+pos paper  vis role    col depth0 hcolor perf targets    windows
+  0     0    1 cap     -   -      -      -    -                                                                         1
+  1    90   53 single  14  7      0      0    48         0110111 00 11111111000110011 1001000001011  10  11 010  0100001-
+  2     4    0 generic -   -      -      -    -               -      -         -- -                         --     -  -  
+  3     6    0 generic -   -      -      -    -              -   --  -    -     -     -        -  -  -    -      - -   - 
+  4     1    0 generic -   -      -      -    -           - - -     -       - -    -       -  -- -       -   -    - -    
+  5     5    0 generic -   -      -      -    -          --         -      -       -  -      -  - -       -         - -- 
+  6     2    0 generic -   -      -      -    -             -     -   -   -  -    -           - --                -      
+  7     3    0 generic -   -      -      -    -          -   -   -    -    -----           - -       -   -  -    -       
+  8     7    0 pair    0   0      0      0    40,240     --- --  -- ---   ------- --  -      -- ---  -   -  --   -    ---
+  9     8    0 pair    0   1      1      0    109,209    ------   - - -   -  -  - --  -      ------  -   -- --     -   --
+ 10     9    0 single  0   2      0      0    108        ------  -- ---   ------- --  -    - ------  -   -- --   ---- ---
+ 11    10    0 pair    1   0      0      0    86,156     ------   -  --     ----- --  -      --- -   --  -- --   - -  - -
+ 12    11    0 pair    1   1      1      0    75,171     ------  --  --   - --- - --  -    -  ---    --  -- -    ---- ---
+ 13    12    0 single  1   2      1      0    174        ------  -- ---   ------- --  -    - ------  --  -- --   ---- ---
+ 14    19    0 single  3   2      1      0    184        ------  -- ----  ------- --  -   -- ------  --  -- --   ---- ---
+ 15    13    0 pair    2   0      1      0    5,12        -----  -- ----  ---- -  -          --  --  --  -  -    ---   --
+ 16    14    0 pair    2   1      0      0    100,200    ------   -    -  --- --- -        -  -- --   -  -- --   -- - - -
+ 17    15    0 single  2   2      0      0    44         ------  -- ----  ------- --  -    - ------  --  -- --   ---- ---
+ 18    16    0 single  2   3      1      0    203        ------  -- ----  ------- --  -    - ------  --  -- --   ---- ---
+ 19    17    0 single  3   0      0      0    101        ------  -- ----  ------- --  -   -- ------  --  -- --   ---- ---
+ 20    18    0 pair    3   1      1      0    114,201    - - --  -- ----   --- -  --      -    ----  --  -- --   ---- ---
+ 21    20    0 single  3   3      1      0    219        ------  -- ----  ------- --  -   -- ------  --  -- --   ---- ---
+ 22    21    0 pair    4   0      0      0    221,254    --- --  -- -- - -   ---- --      -   -- -       -- --     -    -
+ 23    22    0 pair    4   1      1      0    42,157     - ----  -  ---- ------ -         -- ------  --     --   ----  --
+... 168 more papers; visible among them (paper@pos:windows): 91@91:1 99@99:1 108@108:1 128@117:2 136@136:1 158@146:2 168@168:1 182@180:1
+windows not covered by the top 24 papers: 10
+[20261106-075637_argon-req-budget-adapt] seed 0197
+score=10300 (= 2K*E + T = 384*0 + 10300); E=0 T=10300 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 624 a= 48 m= 12 ok=Y mis= 0  126(pair,19)@68>127:fret 83(pair,14)@0>88:ret 168(pair,23)@146>171:fdig 170(pair,23)@168>170:fdig 169(pair,23)@168>170:fdig 178(pair,23)@168>117:fill 84(pair,14)@83>88:dig 85(single,14)@83>88:dig 88(single,14)@83>88:dig 87(single,14)@83>88:dig 90(single,14)@83>0:lift 180(pair,24)@180>181:fix
+r= 625 a=204 m=  8 ok=Y mis= 0  90(single,14)@0>88:ret 178(pair,23)@117>169:fret 146(pair,21)@146>108:fill 62(pair,11)@60>63:dig 60(pair,11)@60>62:dig 61(pair,11)@60>63:dig 170(pair,23)@168>118:repair 63(single,11)@60>1:repair
+[20261106-075637_argon-req-budget-adapt] seed 0197: state after request 624 (a=48)
+so far: E=0 T=6282
+moves of request 624 (k>d:label): 126>127:fret 83>88:ret 168>171:fdig 170>170:fdig 169>170:fdig 178>117:fill 84>88:dig 85>88:dig 88>88:dig 87>88:dig 90>0:lift 180>181:fix
+display             0110111000111111111000110011010010000010110010001110101001000011
+requested           0110111000111111111000110011010010000010110010001110101001000011
+mismatch                                                                              (0 windows)
+windows (window 0 first): '0'/'1' = this paper is the visible paper there (white/black), '-' = opaque but covered by a paper above, ' ' = hole
+pos paper  vis role    col depth0 hcolor perf targets    windows
+  0    90   54 single  14  7      0      0    48         0110111 00 11111111000110011 1001000001011  10  11 010  01000011
+  1     0    0 cap     -   -      -      -    -                                                                         -
+  2     4    0 generic -   -      -      -    -               -      -         -- -                         --     -  -  
+  3     6    0 generic -   -      -      -    -              -   --  -    -     -     -        -  -  -    -      - -   - 
+  4     1    0 generic -   -      -      -    -           - - -     -       - -    -       -  -- -       -   -    - -    
+  5     5    0 generic -   -      -      -    -          --         -      -       -  -      -  - -       -         - -- 
+  6     2    0 generic -   -      -      -    -             -     -   -   -  -    -           - --                -      
+  7     3    0 generic -   -      -      -    -          -   -   -    -    -----           - -       -   -  -    -       
+  8     7    0 pair    0   0      0      0    40,240     --- --  -- ---   ------- --  -      -- ---  -   -  --   -    ---
+  9     8    0 pair    0   1      1      0    109,209    ------   - - -   -  -  - --  -      ------  -   -- --     -   --
+ 10     9    0 single  0   2      0      0    108        ------  -- ---   ------- --  -    - ------  -   -- --   ---- ---
+ 11    10    0 pair    1   0      0      0    86,156     ------   -  --     ----- --  -      --- -   --  -- --   - -  - -
+ 12    11    0 pair    1   1      1      0    75,171     ------  --  --   - --- - --  -    -  ---    --  -- -    ---- ---
+ 13    12    0 single  1   2      1      0    174        ------  -- ---   ------- --  -    - ------  --  -- --   ---- ---
+ 14    19    0 single  3   2      1      0    184        ------  -- ----  ------- --  -   -- ------  --  -- --   ---- ---
+ 15    13    0 pair    2   0      1      0    5,12        -----  -- ----  ---- -  -          --  --  --  -  -    ---   --
+ 16    14    0 pair    2   1      0      0    100,200    ------   -    -  --- --- -        -  -- --   -  -- --   -- - - -
+ 17    15    0 single  2   2      0      0    44         ------  -- ----  ------- --  -    - ------  --  -- --   ---- ---
+ 18    16    0 single  2   3      1      0    203        ------  -- ----  ------- --  -    - ------  --  -- --   ---- ---
+ 19    17    0 single  3   0      0      0    101        ------  -- ----  ------- --  -   -- ------  --  -- --   ---- ---
+ 20    18    0 pair    3   1      1      0    114,201    - - --  -- ----   --- -  --      -    ----  --  -- --   ---- ---
+ 21    20    0 single  3   3      1      0    219        ------  -- ----  ------- --  -   -- ------  --  -- --   ---- ---
+ 22    21    0 pair    4   0      0      0    221,254    --- --  -- -- - -   ---- --      -   -- -       -- --     -    -
+ 23    22    0 pair    4   1      1      0    42,157     - ----  -  ---- ------ -         -- ------  --     --   ----  --
+... 168 more papers; visible among them (paper@pos:windows): 91@91:1 99@99:1 108@108:1 178@117:4 128@127:1 136@137:1 182@180:1
+windows not covered by the top 24 papers: 10
+seed 0197
+A = 20261106-075637_argon-req-budget-adapt
+B = 20261106-075637_argon-des-perf-latew105
+metric                                         A             B
+cases (valid / WA)                         1 / 0         1 / 0
+score (2K*E + T)                         10300.0       10324.0
+E (wrong requests)                         0.000         0.000
+T (moves)                                10300.0       10324.0
+moves per request: mean                   10.059        10.082
+moves per request: median                  10.00         10.00
+moves per request: p90                     13.00         13.00
+moves per request: max                     18.00         18.00
+requests with 0 moves                      0.00%         0.00%
+mismatched windows / wrong req              0.00          0.00
+position of moved paper (0=top)            81.55         81.53
+insert depth d                             83.61         83.58
+moves to the top (d=0)                     8.06%         8.08%
+moves to the bottom (d=K-1)                0.24%         0.24%
+distinct papers moved                      191.0         191.0
+hole share of the designs                 26.44%        26.44%
+papers with only holes                      0.00          0.00
+papers without holes                        8.00          8.00
+execution time (s)                             -             -
+stderr `name = value` (mean over valid cases that print it):
+  G                                           38            38
+  anneal_end_sec                        0.869577      0.869577
+  anneal_iters                       1.11759e+07   1.11759e+07
+  as_elite                                     1             1
+  as_screen                                    0             0
+  as_work                                      1             1
+  budget_requests                           1024             -
+  budget_triples                             733             -
+  cap_window                                  63            63
+  cf_value_hits                            36532         35074
+  cf_value_misses                          84176         76412
+  chain_papers                                28            30
+  chain_selected                              11            12
+  chain_trials                                13            14
+  climb_accepted                              24            24
+  climb_cached                              6649          6649
+  climb_end_sec                         0.899084      0.899084
+  climb_evaluated                           5596          5596
+  climb_forced_steps                         197           197
+  climb_iters                             154000        154000
+  colmdp_columns                              25            25
+  colmdp_full_states                       12988         12988
+  colmdp_sec                          0.00748055    0.00581987
+  colmdp_sequences                         47830         47830
+  colswap_accepted                         19665         19665
+  colswap_tried                           224318        224318
+  complete_value_calls                      3683          3658
+  complete_value_duplicates                  958           958
+  complete_value_invalid                     286           282
+  complete_value_plans                        62            61
+  cross_accepts                              852           852
+  cross_rows                               23928         23928
+  cross_samples                            16487         16487
+  d2_extra_remaining                           8             8
+  d2_filler_final                       0.714125      0.714125
+  d2_filler_initial                     0.713669      0.713669
+  d2_model_final                         8.29321       8.29321
+  d2_model_initial                       8.29462       8.29462
+  d2_rematch_changed                          18            18
+  d2_rematch_cycles                            1             1
+  d2_rematch_decrease                -0.00189047   -0.00189047
+  d2_rematch_end_sec                     0.94951       0.94951
+  d2_rematch_iterations                        1             1
+  d2_rematch_sec                      0.00612201    0.00612201
+  design_loaded                                1             1
+  direct_checks                                0             0
+  direct_rejects                               0             0
+  direct_steps                               862           862
+  eject_accepts                              901           639
+  eject_inside                               671           491
+  eject_pairs                              99484         73381
+  eject_trials                            166499        115775
+  elite_accepts                              129           129
+  elite_attempts                            1042          1042
+  elite_candidates                           715           715
+  elite_updates                              338           338
+  end_sec                                1.53347       1.43215
+  f2_memo_hits                             23779         24044
+  f2_memo_misses                          272562        214064
+  f2_plan_reused                               0             0
+  f2_plan_screens                            381             0
+  f2_plan_skipped                           2586          2560
+  f2_plan_wins                                21             0
+  f2_prefix_steps                         722407        578378
+  f2_refine_calls                              0             0
+  f2_refine_saved                              0             0
+  f2_replay_steps                    1.71637e+06   1.41366e+06
+  filler_demand_spread                   0.12367       0.12367
+  forced_steps                               717           717
+  generic_moves                             1298          1304
+  gobj_after                             9.80157       9.80157
+  gobj_before                            9.82703       9.82703
+  gopt_steps                              133000        133000
+  helper_end_sec                        0.972663       0.97264
+  helper_papers                             3304          3304
+  interleave_selected                         67            65
+  interleave_trials                         1855          1821
+  map_end_sec                           0.473822      0.473822
+  map_iters                               450000        450000
+  match_changed                               87            87
+  match_cycles                                 4             4
+  match_decrease                      -0.0353622    -0.0353622
+  match_end_sec                         0.923443      0.923443
+  match_iterations                             4             4
+  match_sec                            0.0243478     0.0243478
+  model_col                              2.95703       2.95703
+  model_cost                             8.27472       8.27472
+  model_gc                               1.33658       1.33658
+  model_hole                              3.9811        3.9811
+  neutral_accepted                            14            15
+  neutral_direct_saved                         2             0
+  neutral_escape_saved                         1             2
+  neutral_total                             1413          1520
+  ns_changed                                 375           367
+  ns_one_accepts                             499           494
+  ns_one_trials                            23068         25304
+  ns_plan_calls                              356             0
+  ns_rounds                                 1278          1391
+  ns_saved                                     7             3
+  ns_three_accepts                             3             0
+  ns_three_trials                           5996             0
+  op_label_errors                              0             0
+  path_blocked                               327           327
+  path_complete                                4             4
+  path_internal                              419           419
+  path_starts                                920           920
+  perf_cache_rows                          14016         14016
+  perf_cache_skips                         59712         59712
+  perf_donor_gain                      0.0408691     0.0408691
+  perf_owner_bound_checks                    323           323
+  perf_owner_bound_skips                     243           243
+  perf_owner_conditioned              0.00855162    0.00855162
+  perf_owner_raw                      0.00839844    0.00839844
+  perforation_accepts                          8             8
+  perforation_end_sec                   0.943159      0.943159
+  perforation_holes                            8             8
+  perforation_sec                      0.0196789     0.0196789
+  perforation_trials                         459           459
+  plan_failures                                0             0
+  post_alternate                             129           120
+  post_candidate_calls                      2561          2560
+  post_saved                                2689          2123
+  post_secondary_saved                       135           126
+  proxy_after                           0.613368      0.613368
+  proxy_before                          0.543576      0.543576
+  replace_accepted                         14742         14742
+  replace_tried                           198504        198504
+  req_sec                                0.52195      0.413876
+  rewrite_accepts                            831           579
+  rewrite_same_column                          4             0
+  rewrite_trials                          236450        210164
+  screen_color_pairs                       68923         68923
+  screen_refreshes                          6624          6624
+  search_accept                             6784          6784
+  search_exact_evals                       85937         85937
+  search_memo_hits                           875           875
+  search_rejected                              0             0
+  search_screen_checks                         0             0
+  search_screen_hits                           0             0
+  self_wrong                                   0             0
+  tabu_skips                                2593          2593
+  tail_hits                                  227           226
+  total_moves                              10300         10324
+  transfer_empty                           21691         21691
+  transfer_many                             7649          7649
+  transfer_rows                            40591         40591
+  transfer_samples                         16907         16907
+  transfer_single                          11251         11251
+  triple_accepts                             194           195
+  triple_repairs                           11112         12232
+  triple_trials                            11222          5762
+  unsafe_plans                                 0             0
+  value_filler_better                        164           155
+  value_filler_gain                      16.7773       16.0706
+  value_filler_plans                        1014          1018
+  value_filler_trials                       6333          6288
+  value_seed_accepts                           1             2
+  value_seed_gain                       0.582069       1.45437
+  value_seed_saved                             1             1
+  value_seed_trials                           86            91
+  value_seed_valid                            86            91
+  window_rows                             121396        121396
+  window_samples                           50938         50938
+moves per request by @ops label (cases with labels: 1 / 1), and the share of requests with such a move (req):
+  label                       A          B        B-A    req A    req B
+  dig                     2.724      2.730     +0.007    78.9%    79.2%
+  fix                     1.650      1.663     +0.013    75.5%    75.9%
+  gen                     1.260      1.268     +0.008    54.7%    55.3%
+  fret                    1.180      1.173     -0.007    70.7%    70.9%
+  lift                    0.893      0.894     +0.001    89.3%    89.4%
+  ret                     0.664      0.668     +0.004    66.4%    66.8%
+  repair                  0.650      0.639     -0.012    40.5%    40.0%
+  fill                    0.414      0.409     -0.005    35.4%    35.3%
+  relevel                 0.229      0.237     +0.008    19.1%    19.7%
+  fdig                    0.158      0.173     +0.015    13.5%    14.6%
+  reuse                   0.112      0.108     -0.004    11.2%    10.8%
+  help                    0.092      0.089     -0.003     8.1%     7.7%
+  hdig                    0.032      0.031     -0.001     2.3%     2.2%
+  (all)                  10.059     10.082     +0.023
+moves per request by the moved paper's @paper role (--attr for the other attributes):
+  role                        A          B        B-A
+  generic                 1.268      1.273     +0.006
+  pair                    6.874      6.889     +0.015
+  single                  1.917      1.920     +0.003
+moves per request by the moved paper's @paper hcolor (--attr for the other attributes):
+  hcolor                      A          B        B-A
+  0                       4.375      4.395     +0.020
+  1                       4.416      4.414     -0.002
+  -                       1.268      1.273     +0.006
+moves per request by the moved paper's @paper perf (--attr for the other attributes):
+  perf                        A          B        B-A
+  0                       6.825      6.827     +0.002
+  1                       1.966      1.981     +0.016
+  -                       1.268      1.273     +0.006
+(means over valid cases; per-request metrics are means of per-case values)
+SEED 49 score delta 21 episodes [(19, 19, 0), (63, 67, 0), (129, 820, 28), (828, 829, 0), (934, 945, -3), (950, 963, -1), (992, 1018, -3)]
+SELECTED 49 (129, 820, 28)
+[20261106-075637_argon-des-perf-latew105] seed 0049
+score=10135 (= 2K*E + T = 384*0 + 10135); E=0 T=10135 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 129 a=252 m=  9 ok=Y mis= 0  65(single,11)@0>65:ret 52(pair,10)@35>17:repair 181(pair,24)@168>182:fret 6(generic,-)@1>2:gen 4(generic,-)@5>1:gen 11(pair,1)@10>4:help 157(pair,22)@146>5:help 180(pair,24)@180>181:dig 183(pair,24)@180>0:lift
+r= 130 a= 52 m= 13 ok=Y mis= 0  52(pair,10)@19>54:fret 157(pair,22)@6>158:fret 126(pair,19)@99>127:fret 183(pair,24)@0>182:ret 136(pair,20)@136>116:repair 17(pair,3)@17>19:dig 18(pair,3)@17>19:dig 20(single,3)@17>0:lift 22(pair,4)@21>22:fix 26(pair,5)@25>26:fix 74(pair,13)@74>75:fix 109(pair,17)@107>108:fix 168(pair,23)@168>169:fix
+[20261106-075637_argon-des-perf-latew105] seed 0049: state after request 129 (a=252)
+so far: E=0 T=1306
+moves of request 129 (k>d:label): 65>65:ret 52>17:repair 181>182:fret 6>2:gen 4>1:gen 11>4:help 157>5:help 180>181:dig 183>0:lift
+display             1010001011000011011111001000010001001001010010111101001111110101
+requested           1010001011000011011111001000010001001001010010111101001111110101
+mismatch                                                                              (0 windows)
+windows (window 0 first): '0'/'1' = this paper is the visible paper there (white/black), '-' = opaque but covered by a paper above, ' ' = hole
+pos paper  vis role    col depth0 hcolor perf targets    windows
+  0   183   40 pair    24  3      0      0    134,252     01 00 0 10000 10 1 110  0 0010     1 0101  101  1  0 1111110 01
+  1     0    0 cap     -   -      -      -    -                                                                         -
+  2     4    7 generic -   -      -      -    -              - 1-  - -    1      1        1 0 0--  0                --   
+  3     3    5 generic -   -      -      -    -          1  0  -    ---   - 1                -    -   -- 1   -0          
+  4     6    3 generic -   -      -      -    -                        1              - 0 -  - --        -    -       1- 
+  5    11    3 pair    1   1      0      0    133,250    -- -- --1 ----   - -   0- 0    -   ----  --  --     --    -- - -
+  6   157    5 pair    22  0      0      1    65,91       ---- ---  - ---------- ------ -0-0----  - 0--    01 -  - --- --
+  7     5    0 generic -   -      -      -    -          ----         -          -    - --  - -       -                  
+  8     1    0 generic -   -      -      -    -              -   - --       -   -        -         -         -  -   -  - 
+  9     2    0 generic -   -      -      -    -           --    --     -        -                 -    -        -    --  
+ 10     8    0 pair    0   1      1      0    179,187    -     ---   --   - -   -  -  - ---  - -- --     -    - -    -- -
+ 11     7    0 pair    0   0      0      0    153,156    -----  -- - ---  - -   -- -     -- ----- -   -- -   --      ----
+ 12     9    0 single  0   2      0      0    135        ----- --- -----  - -   -- -  - --- ----- --  -- -   -- -   -----
+ 13    10    0 pair    1   0      1      0    33,243     -  -  --- - --   - -   -- -    ---  ---- --  -- -      -  -- ---
+ 14    12    0 single  1   2      1      0    224        ----- --- -----  - -   -- -  - --- ----- --  -- -   -- -  ------
+ 15    13    0 pair    2   0      0      0    155,158    -----   - ----   -     -- -     ----  -- --     -   -- -  ---- -
+ 16    14    0 pair    2   1      1      0    34,69       - --  -- - ---    -   -- -  - ---- ---  -   -- -   --    - -- -
+ 17    15    0 single  2   2      1      0    98         ----- --- -----  - -   -- -  - --------- --  -- -   -- -  ------
+ 18    16    0 single  2   3      1      0    112        ----- --- -----  - -   -- -  - --------- --  -- -   -- -  ------
+ 19    52    1 pair    10  0      0      0    159,251    - - -   - --- ---  -   - --  - -- ---- ---- - -1    -- - --  ---
+ 20    17    0 pair    3   0      0      0    110,227    ----- - - -- -   -     -- -     ----  -- --  - --   -- -  --   -
+ 21    18    0 pair    3   1      1      0    132,201     -  - --- -----    -   --      ---- ----  -  - --   -- -  -- - -
+ 22    20    0 single  3   3      1      0    52         ----- --- -----  - -   -- -  - --------- --  ----   -- -  ------
+ 23    19    0 single  3   2      1      0    241        ----- --- -----  - -   -- -  - --------- --  ----   -- -  ------
+... 168 more papers; visible among them (paper@pos:windows): none
+windows not covered by the top 24 papers: 0
+[20261106-075637_argon-req-budget-adapt] seed 0049
+score=10156 (= 2K*E + T = 384*0 + 10156); E=0 T=10156 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 129 a=252 m=  9 ok=Y mis= 0  65(single,11)@0>65:ret 181(pair,24)@168>182:fret 6(generic,-)@1>2:gen 4(generic,-)@5>1:gen 98(pair,16)@99>4:help 126(pair,19)@99>6:repair 157(pair,22)@146>5:help 180(pair,24)@180>181:dig 183(pair,24)@180>0:lift
+r= 130 a= 52 m= 13 ok=Y mis= 0  183(pair,24)@0>182:ret 126(pair,19)@7>108:fret 157(pair,22)@5>157:fret 98(pair,16)@4>98:fret 52(pair,10)@35>52:fret 17(pair,3)@17>19:dig 18(pair,3)@17>19:dig 22(pair,4)@21>22:fix 26(pair,5)@25>26:fix 74(pair,13)@74>75:fix 168(pair,23)@168>169:fix 136(pair,20)@136>107:repair 20(single,3)@17>0:repair
+[20261106-075637_argon-req-budget-adapt] seed 0049: state after request 129 (a=252)
+so far: E=0 T=1306
+moves of request 129 (k>d:label): 65>65:ret 181>182:fret 6>2:gen 4>1:gen 98>4:help 126>6:repair 157>5:help 180>181:dig 183>0:lift
+display             1010001011000011011111001000010001001001010010111101001111110101
+requested           1010001011000011011111001000010001001001010010111101001111110101
+mismatch                                                                              (0 windows)
+windows (window 0 first): '0'/'1' = this paper is the visible paper there (white/black), '-' = opaque but covered by a paper above, ' ' = hole
+pos paper  vis role    col depth0 hcolor perf targets    windows
+  0   183   40 pair    24  3      0      0    134,252     01 00 0 10000 10 1 110  0 0010     1 0101  101  1  0 1111110 01
+  1     0    0 cap     -   -      -      -    -                                                                         -
+  2     4    7 generic -   -      -      -    -              - 1-  - -    1      1        1 0 0--  0                --   
+  3     3    5 generic -   -      -      -    -          1  0  -    ---   - 1                -    -   -- 1   -0          
+  4     6    3 generic -   -      -      -    -                        1              - 0 -  - --        -    -       1- 
+  5    98    4 pair    16  0      0      0    26,30      -- -----1  ------ --     -0 -- - -0- -  ---0- -  -    ---- -- --
+  6   157    3 pair    22  0      0      1    65,91       ---- ---  - ---------- ------ -0------  - ---    01 -  - --- --
+  7     5    0 generic -   -      -      -    -          ----         -          -    - --  - -       -                  
+  8   126    2 pair    19  0      1      1    126,147    ---   ---     - ----  -0------  --  -- ------- 1-  -   ---- -- -
+  9     1    0 generic -   -      -      -    -              -   - --       -   -        -         -         -  -   -  - 
+ 10     2    0 generic -   -      -      -    -           --    --     -        -                 -    -        -    --  
+ 11     8    0 pair    0   1      1      0    179,187    -     ---   --   - -   -  -  - ---  - -- --     -    - -    -- -
+ 12     7    0 pair    0   0      0      0    153,156    -----  -- - ---  - -   -- -     -- ----- -   -- -   --      ----
+ 13     9    0 single  0   2      0      0    135        ----- --- -----  - -   -- -  - --- ----- --  -- -   -- -   -----
+ 14    11    0 pair    1   1      0      0    133,250    -- -- --- ----   - -   -- -    -   ----  --  --     --    -- - -
+ 15    10    0 pair    1   0      1      0    33,243     -  -  --- - --   - -   -- -    ---  ---- --  -- -      -  -- ---
+ 16    12    0 single  1   2      1      0    224        ----- --- -----  - -   -- -  - --- ----- --  -- -   -- -  ------
+ 17    13    0 pair    2   0      0      0    155,158    -----   - ----   -     -- -     ----  -- --     -   -- -  ---- -
+ 18    14    0 pair    2   1      1      0    34,69       - --  -- - ---    -   -- -  - ---- ---  -   -- -   --    - -- -
+ 19    15    0 single  2   2      1      0    98         ----- --- -----  - -   -- -  - --------- --  -- -   -- -  ------
+ 20    16    0 single  2   3      1      0    112        ----- --- -----  - -   -- -  - --------- --  -- -   -- -  ------
+ 21    17    0 pair    3   0      0      0    110,227    ----- - - -- -   -     -- -     ----  -- --  - --   -- -  --   -
+ 22    18    0 pair    3   1      1      0    132,201     -  - --- -----    -   --      ---- ----  -  - --   -- -  -- - -
+ 23    20    0 single  3   3      1      0    52         ----- --- -----  - -   -- -  - --------- --  ----   -- -  ------
+... 168 more papers; visible among them (paper@pos:windows): none
+windows not covered by the top 24 papers: 0
+seed 0049
+A = 20261106-075637_argon-req-budget-adapt
+B = 20261106-075637_argon-des-perf-latew105
+metric                                         A             B
+cases (valid / WA)                         1 / 0         1 / 0
+score (2K*E + T)                         10156.0       10135.0
+E (wrong requests)                         0.000         0.000
+T (moves)                                10156.0       10135.0
+moves per request: mean                    9.918         9.897
+moves per request: median                  10.00         10.00
+moves per request: p90                     13.00         13.00
+moves per request: max                     18.00         18.00
+requests with 0 moves                      0.00%         0.00%
+mismatched windows / wrong req              0.00          0.00
+position of moved paper (0=top)            84.69         84.49
+insert depth d                             86.97         86.77
+moves to the top (d=0)                     8.54%         8.57%
+moves to the bottom (d=K-1)                0.56%         0.56%
+distinct papers moved                      190.0         190.0
+hole share of the designs                 26.52%        26.52%
+papers with only holes                      0.00          0.00
+papers without holes                        8.00          8.00
+execution time (s)                             -             -
+stderr `name = value` (mean over valid cases that print it):
+  G                                           38            38
+  anneal_end_sec                        0.822806      0.822806
+  anneal_iters                       1.11759e+07   1.11759e+07
+  as_elite                                     1             1
+  as_screen                                    0             0
+  as_work                                      1             1
+  budget_requests                           1024             -
+  budget_triples                             783             -
+  cap_window                                  63            63
+  cf_value_hits                            34339         33511
+  cf_value_misses                          82870         77018
+  chain_papers                                30            30
+  chain_selected                              13            13
+  chain_trials                                16            16
+  climb_accepted                              21            21
+  climb_cached                              5303          5303
+  climb_end_sec                         0.859154      0.859154
+  climb_evaluated                           7661          7661
+  climb_forced_steps                         186           186
+  climb_iters                             154000        154000
+  colmdp_columns                              25            25
+  colmdp_full_states                       16364         16364
+  colmdp_sec                          0.00809679    0.00864906
+  colmdp_sequences                         58118         58118
+  colswap_accepted                         19464         19464
+  colswap_tried                           223610        223610
+  complete_value_calls                      3733          3798
+  complete_value_duplicates                  956           956
+  complete_value_invalid                     281           276
+  complete_value_plans                        63            63
+  cross_accepts                              972           972
+  cross_rows                               22824         22824
+  cross_samples                            15474         15474
+  d2_extra_remaining                           7             7
+  d2_filler_final                       0.690627      0.690627
+  d2_filler_initial                     0.684153      0.684153
+  d2_model_final                         8.28681       8.28681
+  d2_model_initial                       8.28323       8.28323
+  d2_rematch_changed                          31            31
+  d2_rematch_cycles                            2             2
+  d2_rematch_decrease                -0.00321195   -0.00321195
+  d2_rematch_end_sec                    0.901598      0.901598
+  d2_rematch_iterations                        1             1
+  d2_rematch_sec                      0.00516443    0.00516443
+  design_loaded                                1             1
+  direct_checks                                0             0
+  direct_rejects                               0             0
+  direct_steps                               858           858
+  eject_accepts                              867           632
+  eject_inside                               706           539
+  eject_pairs                              90423         68430
+  eject_trials                            143458         95724
+  elite_accepts                              174           174
+  elite_attempts                            1098          1098
+  elite_candidates                           836           836
+  elite_updates                              389           389
+  end_sec                                1.40058       1.41554
+  f2_memo_hits                             22600         23498
+  f2_memo_misses                          252376        196308
+  f2_plan_reused                               0             0
+  f2_plan_screens                            331             1
+  f2_plan_skipped                           2491          2483
+  f2_plan_wins                                24             0
+  f2_prefix_steps                         669887        523898
+  f2_refine_calls                              0             0
+  f2_refine_saved                              0             0
+  f2_replay_steps                    1.61898e+06   1.33821e+06
+  filler_demand_spread                 0.0981059     0.0981059
+  forced_steps                               738           738
+  generic_moves                             1295          1296
+  gobj_after                             9.89709       9.89709
+  gobj_before                            9.97989       9.97989
+  gopt_steps                              133000        133000
+  helper_end_sec                        0.917712      0.917711
+  helper_papers                             3330          3330
+  interleave_selected                         55            55
+  interleave_trials                         1503          1519
+  map_end_sec                           0.418518      0.418518
+  map_iters                               450000        450000
+  match_changed                              156           156
+  match_cycles                                 8             8
+  match_decrease                      -0.0284713    -0.0284713
+  match_end_sec                         0.878954      0.878954
+  match_iterations                             4             4
+  match_sec                            0.0197922     0.0197922
+  model_col                              2.96875       2.96875
+  model_cost                             8.26008       8.26008
+  model_gc                               1.39615       1.39615
+  model_hole                             3.89518       3.89518
+  neutral_accepted                            32            35
+  neutral_direct_saved                         2             0
+  neutral_escape_saved                         4             6
+  neutral_total                             1454          1620
+  ns_changed                                 379           376
+  ns_one_accepts                             522           507
+  ns_one_trials                            21277         24138
+  ns_plan_calls                              316             0
+  ns_rounds                                 1259          1397
+  ns_saved                                    13             9
+  ns_three_accepts                             2             0
+  ns_three_trials                           6088             0
+  op_label_errors                              0             0
+  path_blocked                               262           262
+  path_complete                                8             8
+  path_internal                              512           512
+  path_starts                                940           940
+  perf_cache_rows                          10272         10272
+  perf_cache_skips                         55264         55264
+  perf_donor_gain                      0.0288818     0.0288818
+  perf_owner_bound_checks                    330           330
+  perf_owner_bound_skips                     237           237
+  perf_owner_conditioned               0.0109167     0.0109167
+  perf_owner_raw                        0.011377      0.011377
+  perforation_accepts                          7             7
+  perforation_end_sec                   0.896223      0.896223
+  perforation_holes                            7             7
+  perforation_sec                       0.017239      0.017239
+  perforation_trials                         467           467
+  plan_failures                                0             0
+  post_alternate                             117           124
+  post_candidate_calls                      2477          2482
+  post_saved                                2775          2239
+  post_secondary_saved                       132           129
+  proxy_after                           0.593355      0.593355
+  proxy_before                          0.533857      0.533857
+  replace_accepted                         13809         13809
+  replace_tried                           197245        197245
+  req_sec                               0.466346       0.47795
+  rewrite_accepts                            892           607
+  rewrite_same_column                          3             2
+  rewrite_trials                          241348        214511
+  screen_color_pairs                       63935         63935
+  screen_refreshes                          6348          6348
+  search_accept                             6537          6537
+  search_exact_evals                       80416         80416
+  search_memo_hits                           929           929
+  search_rejected                              0             0
+  search_screen_checks                         0             0
+  search_screen_hits                           0             0
+  self_wrong                                   0             0
+  tabu_skips                                2653          2653
+  tail_hits                                  222           225
+  total_moves                              10156         10135
+  transfer_empty                           22930         22930
+  transfer_many                             6833          6833
+  transfer_rows                            40688         40688
+  transfer_samples                         15887         15887
+  transfer_single                          10925         10925
+  triple_accepts                             171           179
+  triple_repairs                           10709         12308
+  triple_trials                            11140          5837
+  unsafe_plans                                 0             0
+  value_filler_better                        157           162
+  value_filler_gain                      7.57432       9.61451
+  value_filler_plans                        1027          1029
+  value_filler_trials                       6427          6511
+  value_seed_accepts                           2             3
+  value_seed_gain                        1.25754       1.46699
+  value_seed_saved                             3             3
+  value_seed_trials                           57            59
+  value_seed_valid                            57            59
+  window_rows                             118738        118738
+  window_samples                           44975         44975
+moves per request by @ops label (cases with labels: 1 / 1), and the share of requests with such a move (req):
+  label                       A          B        B-A    req A    req B
+  dig                     2.882      2.860     -0.021    77.3%    77.2%
+  fix                     1.483      1.485     +0.002    70.8%    70.7%
+  gen                     1.259      1.261     +0.002    53.5%    53.3%
+  fret                    1.137      1.136     -0.001    69.2%    69.3%
+  lift                    0.879      0.870     -0.009    87.9%    87.0%
+  ret                     0.671      0.670     -0.001    67.1%    67.0%
+  repair                  0.640      0.642     +0.002    40.8%    40.4%
+  fill                    0.381      0.384     +0.003    32.4%    32.7%
+  relevel                 0.235      0.230     -0.005    20.3%    19.9%
+  fdig                    0.148      0.152     +0.004    12.2%    12.7%
+  reuse                   0.094      0.098     +0.004     9.4%     9.8%
+  help                    0.082      0.079     -0.003     7.0%     6.9%
+  hdig                    0.027      0.030     +0.003     2.1%     2.2%
+  (all)                   9.918      9.897     -0.021
+moves per request by the moved paper's @paper role (--attr for the other attributes):
+  role                        A          B        B-A
+  generic                 1.265      1.266     +0.001
+  pair                    6.579      6.558     -0.021
+  single                  2.074      2.074     +0.000
+moves per request by the moved paper's @paper hcolor (--attr for the other attributes):
+  hcolor                      A          B        B-A
+  0                       4.630      4.621     -0.009
+  1                       4.023      4.011     -0.013
+  -                       1.265      1.266     +0.001
+moves per request by the moved paper's @paper perf (--attr for the other attributes):
+  perf                        A          B        B-A
+  0                       7.077      7.068     -0.009
+  1                       1.576      1.563     -0.013
+  -                       1.265      1.266     +0.001
+(means over valid cases; per-request metrics are means of per-case values)
