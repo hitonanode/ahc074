@@ -1,0 +1,50 @@
+[pahcer_run] run-id: 20261105-141926_time-alloc
+[pahcer_run] run-id: 20261105-142027_clean-design-noperf
+[pahcer_run] run-id: 20261105-142027_clean-design-nograd
+[pahcer_run] run-id: 20261105-142027_clean-design-nocolswap
+[pahcer_run] run-id: 20261105-142027_clean-design-norank
+[pahcer_run] 5 個の解法を比べます (seed 0〜499、24 並列、seed ごとに続けて実行)
+[pahcer_run] 50/500 seed 完了 (経過 0.3 分、残り約 2.7 分)
+[pahcer_run] 100/500 seed 完了 (経過 0.5 分、残り約 2.1 分)
+[pahcer_run] 150/500 seed 完了 (経過 0.8 分、残り約 1.8 分)
+[pahcer_run] 200/500 seed 完了 (経過 1.0 分、残り約 1.5 分)
+[pahcer_run] 250/500 seed 完了 (経過 1.2 分、残り約 1.2 分)
+[pahcer_run] 300/500 seed 完了 (経過 1.4 分、残り約 1.0 分)
+[pahcer_run] 350/500 seed 完了 (経過 1.6 分、残り約 0.7 分)
+[pahcer_run] 400/500 seed 完了 (経過 1.9 分、残り約 0.5 分)
+[pahcer_run] 450/500 seed 完了 (経過 2.1 分、残り約 0.2 分)
+[pahcer_run] 500/500 seed 完了 (経過 2.3 分、残り約 0.0 分)
+Process ForkPoolWorker-27:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 337, in _exit_function
+    _run_finalizers(0)
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 294, in _run_finalizers
+    keys = [key for key in list(_finalizer_registry) if f(key)]
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261105-141926_time-alloc                      500   0     10329.49    0.000   10329.5   +0.000%  0.000%     0/500/   0    1.334s
+    実行時間: 99% 点 1.522 s、99.9% 点 1.628 s、最大 1.628 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.737 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261105-142027_clean-design-noperf             500   0     10341.33    0.000   10341.3   +0.115%  0.010%   144/ 16/ 340    1.320s
+    実行時間: 99% 点 1.474 s、99.9% 点 1.622 s、最大 1.622 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.733 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261105-142027_clean-design-nograd             500   0     10336.64    0.000   10336.6   +0.069%  0.016%   208/  3/ 289    1.335s
+    実行時間: 99% 点 1.518 s、99.9% 点 1.573 s、最大 1.573 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.718 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261105-142027_clean-design-nocolswap          500   0     10363.78    0.000   10363.8   +0.331%  0.046%   176/  1/ 323    1.331s
+    実行時間: 99% 点 1.485 s、99.9% 点 1.770 s、最大 1.770 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.909 s、1.8 s 超え 1・1.9 s 超え 1・2.0 s 超え 0 ケース (500 ケース中)
+  20261105-142027_clean-design-norank             500   0     10336.13    0.000   10336.1   +0.065%  0.053%   238/  3/ 259    1.325s
+    実行時間: 99% 点 1.520 s、99.9% 点 1.577 s、最大 1.577 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.722 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  pahcer/ への記録 : した
+  所要時間         : 2.3 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.18 コア、最大 1.48 コア (2 秒ごとに 140.8 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html

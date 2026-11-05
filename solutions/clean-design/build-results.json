@@ -1,0 +1,123 @@
+{
+  "sha256": "5d17b8586c4fbba5c2156d2cb4f9b5ca36790577bca72b890332306220550299",
+  "results": [
+    {
+      "name": "gcc-judge",
+      "command": [
+        "/usr/bin/g++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-source.cpp",
+        "-o",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-gcc-judge"
+      ],
+      "exit_code": 0,
+      "warnings": 0,
+      "log": "check-gcc-judge.log"
+    },
+    {
+      "name": "gcc-local",
+      "command": [
+        "/usr/bin/g++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-source.cpp",
+        "-o",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-gcc-local"
+      ],
+      "exit_code": 0,
+      "warnings": 0,
+      "log": "check-gcc-local.log"
+    },
+    {
+      "name": "gcc-profilers",
+      "command": [
+        "/usr/bin/g++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "-DAF_PROFILE=1",
+        "-DDESIGN_PROFILE=3",
+        "-DAS_PROFILE=1",
+        "-DCOLFAST_PROFILE=1",
+        "-DF3_PROFILE=1",
+        "-DSIM_HARNESS",
+        "-DPOSET_VERIFY",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-source.cpp",
+        "-o",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-gcc-profilers"
+      ],
+      "exit_code": 0,
+      "warnings": 0,
+      "log": "check-gcc-profilers.log"
+    },
+    {
+      "name": "clang-judge",
+      "command": [
+        "/usr/bin/clang++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-source.cpp",
+        "-o",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-clang-judge"
+      ],
+      "exit_code": 0,
+      "warnings": 0,
+      "log": "check-clang-judge.log"
+    },
+    {
+      "name": "clang-local",
+      "command": [
+        "/usr/bin/clang++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-source.cpp",
+        "-o",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-clang-local"
+      ],
+      "exit_code": 0,
+      "warnings": 0,
+      "log": "check-clang-local.log"
+    },
+    {
+      "name": "clang-profilers",
+      "command": [
+        "/usr/bin/clang++",
+        "-std=c++23",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "-DAF_PROFILE=1",
+        "-DDESIGN_PROFILE=3",
+        "-DAS_PROFILE=1",
+        "-DCOLFAST_PROFILE=1",
+        "-DF3_PROFILE=1",
+        "-DSIM_HARNESS",
+        "-DPOSET_VERIFY",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-source.cpp",
+        "-o",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/clean-design/check-clang-profilers"
+      ],
+      "exit_code": 0,
+      "warnings": 0,
+      "log": "check-clang-profilers.log"
+    }
+  ]
+}

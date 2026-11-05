@@ -1,0 +1,3 @@
+#!/bin/sh
+# pahcer compiles before taking the evaluation lock. Keep compilation separate too.
+exec /usr/bin/flock -s /home/sato/ahc074/runs/.lock /usr/bin/g++ "$@"
