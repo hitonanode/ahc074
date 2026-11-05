@@ -1,0 +1,82 @@
+COMMAND: scripts/observe.py cases 20261105-225236_argon-des-genopt --vs 20261105-225223_esw-slim
+A = 20261105-225236_argon-des-genopt
+B = 20261105-225223_esw-slim
+200 seeds (lower is better; WA excluded: none)
+mean score: A 10331.3, B 10331.3; mean log(A/B) -0.000% ± 0.001%; A better on 2, equal on 194, worse on 4
+
+A is worse than B (largest A/B):
+seed       A  E_A    T_A       B  E_B    T_B     A/B
+0048   10405    0  10405   10396    0  10396  1.0009
+0040   10259    0  10259   10251    0  10251  1.0008
+0016   10300    0  10300   10298    0  10298  1.0002
+0011   10330    0  10330   10329    0  10329  1.0001
+0199   10340    0  10340   10340    0  10340  1.0000
+0198   10332    0  10332   10332    0  10332  1.0000
+0197   10368    0  10368   10368    0  10368  1.0000
+0196   10478    0  10478   10478    0  10478  1.0000
+0195   10347    0  10347   10347    0  10347  1.0000
+0194   10281    0  10281   10281    0  10281  1.0000
+0193   10217    0  10217   10217    0  10217  1.0000
+0192   10383    0  10383   10383    0  10383  1.0000
+0191   10380    0  10380   10380    0  10380  1.0000
+0190   10404    0  10404   10404    0  10404  1.0000
+0189   10350    0  10350   10350    0  10350  1.0000
+
+A is better than B (smallest A/B):
+seed       A  E_A    T_A       B  E_B    T_B     A/B
+0115   10195    0  10195   10208    0  10208  0.9987
+0072   10253    0  10253   10260    0  10260  0.9993
+0000   10379    0  10379   10379    0  10379  1.0000
+0001   10322    0  10322   10322    0  10322  1.0000
+0002   10363    0  10363   10363    0  10363  1.0000
+0003   10423    0  10423   10423    0  10423  1.0000
+0004   10291    0  10291   10291    0  10291  1.0000
+0005   10212    0  10212   10212    0  10212  1.0000
+0006   10608    0  10608   10608    0  10608  1.0000
+0007   10336    0  10336   10336    0  10336  1.0000
+0008   10304    0  10304   10304    0  10304  1.0000
+0009   10457    0  10457   10457    0  10457  1.0000
+0010   10383    0  10383   10383    0  10383  1.0000
+0012   10374    0  10374   10374    0  10374  1.0000
+0013   10372    0  10372   10372    0  10372  1.0000
+
+COMMAND: scripts/observe.py queries 20261105-225223_esw-slim 40 --from 850 --to 855 --attr role,col
+[20261105-225223_esw-slim] seed 0040
+score=10251 (= 2K*E + T = 384*0 + 10251); E=0 T=10251 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 850 a=178 m=  7 ok=Y mis= 0  182(pair,24)@126>181:fret 180(pair,24)@180>168:repair 126(pair,19)@126>130:dig 129(pair,19)@126>130:dig 128(pair,19)@126>130:dig 127(pair,19)@126>130:dig 134(single,19)@126>0:lift
+r= 851 a=197 m= 11 ok=Y mis= 0  134(single,19)@0>130:ret 74(single,12)@1>73:fret 180(pair,24)@168>136:relevel 54(pair,10)@54>59:dig 55(pair,10)@54>59:dig 56(pair,10)@54>59:dig 58(single,10)@54>59:dig 57(single,10)@54>59:dig 59(single,10)@54>0:lift 118(pair,18)@116>117:fix 157(pair,22)@158>159:fix
+r= 852 a=148 m= 13 ok=Y mis= 0  180(pair,24)@136>181:fret 146(pair,21)@146>156:dig 148(pair,21)@146>156:dig 147(pair,21)@146>156:dig 152(single,21)@146>156:dig 153(single,21)@146>156:dig 154(single,21)@146>156:dig 150(single,21)@146>156:dig 151(single,21)@146>156:dig 156(single,21)@146>156:dig 149(single,21)@146>156:dig 155(single,21)@146>0:lift 158(pair,22)@157>158:fix
+r= 853 a= 82 m=  8 ok=Y mis= 0  157(pair,22)@157>137:repair 155(single,21)@0>147:reuse 59(single,10)@0>59:fret 2(generic,-)@4>7:gen 90(pair,15)@90>75:fill 49(pair,9)@48>49:fix 98(pair,16)@98>99:fix 182(pair,24)@180>181:fix
+r= 854 a= 80 m=  8 ok=Y mis= 0  177(pair,23)@168>175:dig 169(pair,23)@168>175:dig 179(pair,23)@168>175:dig 168(pair,23)@168>175:dig 172(single,23)@168>175:dig 170(single,23)@168>175:dig 174(single,23)@168>175:dig 173(single,23)@168>0:lift
+
+COMMAND: scripts/observe.py queries 20261105-225223_esw-slim 48 --from 175 --to 180 --attr role,col
+[20261105-225223_esw-slim] seed 0048
+score=10396 (= 2K*E + T = 384*0 + 10396); E=0 T=10396 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 175 a=208 m= 14 ok=Y mis= 0  61(pair,11)@0>60:ret 54(pair,10)@25>53:fret 3(generic,-)@1>6:gen 1(generic,-)@3>1:gen 126(pair,19)@126>107:fill 37(pair,7)@35>37:dig 35(pair,7)@35>36:dig 36(pair,7)@35>0:lift 22(pair,4)@22>23:fix 68(pair,12)@66>67:fix 91(pair,15)@89>90:fix 102(single,16)@98>104:fix 180(pair,24)@180>181:fix 182(pair,24)@180>168:repair
+r= 176 a=226 m= 11 ok=Y mis= 0  126(pair,19)@107>126:fret 36(pair,7)@0>37:ret 1(generic,-)@1>2:gen 6(generic,-)@3>6:gen 4(generic,-)@4>1:gen 3(generic,-)@5>2:gen 147(pair,21)@146>149:dig 146(pair,21)@146>148:dig 149(pair,21)@146>149:dig 107(pair,17)@107>6:repair 148(pair,21)@146>0:repair
+r= 177 a= 68 m= 12 ok=Y mis= 0  148(pair,21)@0>149:ret 107(pair,17)@6>107:fret 182(pair,24)@168>181:fret 4(generic,-)@1>6:gen 13(pair,2)@13>7:fill 180(pair,24)@180>136:fill 54(pair,10)@53>55:dig 53(pair,10)@53>54:dig 73(pair,13)@73>74:fix 136(pair,20)@137>138:fix 137(pair,20)@137>107:repair 55(pair,10)@53>0:repair
+r= 178 a=201 m=  8 ok=Y mis= 0  55(pair,10)@0>55:ret 137(pair,20)@107>138:fret 126(pair,19)@126>128:dig 127(pair,19)@126>128:dig 25(pair,5)@25>26:fix 146(pair,21)@147>148:fix 13(pair,2)@7>8:repair 128(pair,19)@126>1:repair
+r= 179 a=127 m= 11 ok=Y mis= 0  180(pair,24)@136>190:fret 182(pair,24)@180>190:dig 183(pair,24)@180>190:dig 181(pair,24)@180>190:dig 191(single,24)@180>190:dig 189(single,24)@180>190:dig 190(single,24)@180>190:dig 186(single,24)@180>190:dig 185(single,24)@180>190:dig 188(single,24)@180>190:dig 184(single,24)@180>0:lift
+
+COMMAND: scripts/observe.py queries 20261105-225236_argon-des-genopt 40 --from 850 --to 855 --attr role,col
+[20261105-225236_argon-des-genopt] seed 0040
+score=10259 (= 2K*E + T = 384*0 + 10259); E=0 T=10259 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 850 a=178 m=  7 ok=Y mis= 0  182(pair,24)@126>181:fret 180(pair,24)@180>168:repair 126(pair,19)@126>130:dig 129(pair,19)@126>130:dig 128(pair,19)@126>130:dig 127(pair,19)@126>130:dig 134(single,19)@126>0:lift
+r= 851 a=197 m= 11 ok=Y mis= 0  134(single,19)@0>130:ret 74(single,12)@1>73:fret 180(pair,24)@168>136:relevel 54(pair,10)@54>59:dig 55(pair,10)@54>59:dig 56(pair,10)@54>59:dig 58(single,10)@54>59:dig 57(single,10)@54>59:dig 59(single,10)@54>0:lift 118(pair,18)@116>117:fix 157(pair,22)@158>159:fix
+r= 852 a=148 m= 13 ok=Y mis= 0  180(pair,24)@136>181:fret 146(pair,21)@146>156:dig 148(pair,21)@146>156:dig 147(pair,21)@146>156:dig 152(single,21)@146>156:dig 153(single,21)@146>156:dig 154(single,21)@146>156:dig 150(single,21)@146>156:dig 151(single,21)@146>156:dig 156(single,21)@146>156:dig 149(single,21)@146>156:dig 155(single,21)@146>0:lift 158(pair,22)@157>158:fix
+r= 853 a= 82 m= 12 ok=Y mis= 0  157(pair,22)@157>137:repair 155(single,21)@0>147:ret 59(single,10)@0>59:fret 4(generic,-)@1>2:gen 1(generic,-)@3>6:gen 2(generic,-)@4>6:gen 90(pair,15)@90>75:fill 22(pair,4)@22>23:dig 23(pair,4)@22>1:lift 49(pair,9)@48>49:fix 98(pair,16)@98>99:fix 182(pair,24)@180>181:fix
+r= 854 a= 80 m=  8 ok=Y mis= 0  177(pair,23)@168>175:dig 169(pair,23)@168>175:dig 179(pair,23)@168>175:dig 168(pair,23)@168>175:dig 172(single,23)@168>175:dig 170(single,23)@168>175:dig 174(single,23)@168>175:dig 173(single,23)@168>0:lift
+
+COMMAND: scripts/observe.py queries 20261105-225236_argon-des-genopt 48 --from 175 --to 180 --attr role,col
+[20261105-225236_argon-des-genopt] seed 0048
+score=10405 (= 2K*E + T = 384*0 + 10405); E=0 T=10405 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 175 a=208 m= 14 ok=Y mis= 0  61(pair,11)@0>60:ret 54(pair,10)@25>53:fret 3(generic,-)@1>6:gen 1(generic,-)@3>1:gen 126(pair,19)@126>107:fill 37(pair,7)@35>37:dig 35(pair,7)@35>36:dig 36(pair,7)@35>0:lift 22(pair,4)@22>23:fix 68(pair,12)@66>67:fix 91(pair,15)@89>90:fix 102(single,16)@98>104:fix 180(pair,24)@180>181:fix 182(pair,24)@180>168:repair
+r= 176 a=226 m= 11 ok=Y mis= 0  126(pair,19)@107>126:fret 36(pair,7)@0>37:ret 1(generic,-)@1>2:gen 6(generic,-)@3>6:gen 4(generic,-)@4>1:gen 3(generic,-)@5>2:gen 147(pair,21)@146>149:dig 146(pair,21)@146>148:dig 149(pair,21)@146>149:dig 107(pair,17)@107>6:repair 148(pair,21)@146>0:repair
+r= 177 a= 68 m= 12 ok=Y mis= 0  148(pair,21)@0>149:ret 107(pair,17)@6>107:fret 182(pair,24)@168>181:fret 5(generic,-)@3>1:gen 13(pair,2)@13>7:fill 180(pair,24)@180>136:fill 54(pair,10)@53>55:dig 53(pair,10)@53>54:dig 73(pair,13)@73>74:fix 136(pair,20)@137>138:fix 137(pair,20)@137>107:repair 55(pair,10)@53>0:repair
+r= 178 a=201 m= 10 ok=Y mis= 0  55(pair,10)@0>55:ret 137(pair,20)@107>138:fret 5(generic,-)@1>3:gen 4(generic,-)@1>6:gen 126(pair,19)@126>128:dig 127(pair,19)@126>128:dig 25(pair,5)@25>26:fix 146(pair,21)@147>148:fix 13(pair,2)@7>8:repair 128(pair,19)@126>1:repair
+r= 179 a=127 m= 11 ok=Y mis= 0  180(pair,24)@136>190:fret 182(pair,24)@180>190:dig 183(pair,24)@180>190:dig 181(pair,24)@180>190:dig 191(single,24)@180>190:dig 189(single,24)@180>190:dig 190(single,24)@180>190:dig 186(single,24)@180>190:dig 185(single,24)@180>190:dig 188(single,24)@180>190:dig 184(single,24)@180>0:lift
+
