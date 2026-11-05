@@ -1,0 +1,63 @@
+[pahcer_run] run-id: 20261105-143010_time-alloc
+[pahcer_run] run-id: 20261105-143010_clean-req-refactor
+[pahcer_run] run-id: 20261105-143010_clean-req-canon
+[pahcer_run] run-id: 20261105-143010_clean-req-shared-vis
+[pahcer_run] run-id: 20261105-143010_clean-req-cross-memo
+[pahcer_run] run-id: 20261105-143010_clean-req-replay
+[pahcer_run] 実行中の評価の終了を待っています: 20261105-142520_time-alloc ほか 2 個の比較 (pid 2, 2026-11-05T14:30:44+09:00 から) (scripts/pahcer_run.py --status で状況を見られる)
+[pahcer_run] 6 個の解法を比べます (seed 0〜199、24 並列、seed ごとに続けて実行、20261105-141234_time-alloc の設計を読み込む、注文の列 2 本)
+[pahcer_run] 20/200 seed 完了 (経過 0.1 分、残り約 0.9 分)
+[pahcer_run] 40/200 seed 完了 (経過 0.2 分、残り約 0.8 分)
+[pahcer_run] 60/200 seed 完了 (経過 0.3 分、残り約 0.7 分)
+[pahcer_run] 80/200 seed 完了 (経過 0.4 分、残り約 0.6 分)
+[pahcer_run] 100/200 seed 完了 (経過 0.5 分、残り約 0.5 分)
+[pahcer_run] 120/200 seed 完了 (経過 0.5 分、残り約 0.3 分)
+[pahcer_run] 140/200 seed 完了 (経過 0.6 分、残り約 0.3 分)
+[pahcer_run] 160/200 seed 完了 (経過 0.7 分、残り約 0.2 分)
+[pahcer_run] 180/200 seed 完了 (経過 0.8 分、残り約 0.1 分)
+[pahcer_run] 200/200 seed 完了 (経過 0.9 分、残り約 0.0 分)
+Process ForkPoolWorker-32:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 337, in _exit_function
+    _run_finalizers(0)
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 271, in _run_finalizers
+    def _run_finalizers(minpriority=None):
+    
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261105-143010_time-alloc                      200   0     10335.76    0.000   10335.8   +0.000%  0.000%     0/200/   0    0.488s
+    実行時間: 99% 点 0.567 s、99.9% 点 0.569 s、最大 0.569 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.637 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261105-143010_clean-req-refactor              200   0     10335.76    0.000   10335.8   +0.000%  0.000%     0/200/   0    0.487s
+    実行時間: 99% 点 0.569 s、99.9% 点 0.615 s、最大 0.615 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.634 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261105-143010_clean-req-canon                 200   0     10335.76    0.000   10335.8   +0.000%  0.000%     0/200/   0    0.491s
+    実行時間: 99% 点 0.568 s、99.9% 点 0.572 s、最大 0.572 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.638 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261105-143010_clean-req-shared-vis            200   0     10335.76    0.000   10335.8   +0.000%  0.000%     0/200/   0    0.498s
+    実行時間: 99% 点 0.569 s、99.9% 点 0.570 s、最大 0.570 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.625 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261105-143010_clean-req-cross-memo            200   0     10335.76    0.000   10335.8   +0.000%  0.000%     0/200/   0    0.488s
+    実行時間: 99% 点 0.568 s、99.9% 点 0.570 s、最大 0.570 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.606 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  20261105-143010_clean-req-replay                200   0     10335.65    0.000   10335.6   +0.002%  0.002%    91/  1/ 108    0.490s
+    実行時間: 99% 点 0.566 s、99.9% 点 0.568 s、最大 0.568 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.627 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (200 ケース中)
+  設計             : 20261105-141234_time-alloc が保存した設計を全部の解法が読み込んだ（注文処理だけの比較。本当のスコアではない）
+  注文の列         : seed ごとに 2 本（1 本目は tools/in、2 本目からは runs/.orders/ に生成）。差は seed ごとに 2 本の log スコア比を平均してから seed の間で取った。上の平均スコアは 1 本目
+    20261105-143010_time-alloc                   全部の注文の列の平均スコア 10335.35
+    20261105-143010_clean-req-refactor           全部の注文の列の平均スコア 10335.35
+    20261105-143010_clean-req-canon              全部の注文の列の平均スコア 10335.35
+    20261105-143010_clean-req-shared-vis         全部の注文の列の平均スコア 10335.35
+    20261105-143010_clean-req-cross-memo         全部の注文の列の平均スコア 10335.35
+    20261105-143010_clean-req-replay             全部の注文の列の平均スコア 10335.53
+  pahcer/ への記録 : しない (--design-from)
+  所要時間         : 0.9 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.18 コア、最大 0.37 コア (2 秒ごとに 52.7 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html
