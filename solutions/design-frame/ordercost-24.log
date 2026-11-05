@@ -1,0 +1,42 @@
+[pahcer_run] run-id: 20261105-120859_esw-clean
+[pahcer_run] run-id: 20261105-120859_design-frame-ordercost
+[pahcer_run] 2 個の解法を比べます (seed 0〜23、24 並列、seed ごとに続けて実行)
+[pahcer_run] 2/24 seed 完了 (経過 0.0 分、残り約 0.5 分)
+[pahcer_run] 4/24 seed 完了 (経過 0.0 分、残り約 0.2 分)
+[pahcer_run] 6/24 seed 完了 (経過 0.0 分、残り約 0.1 分)
+[pahcer_run] 8/24 seed 完了 (経過 0.0 分、残り約 0.1 分)
+[pahcer_run] 10/24 seed 完了 (経過 0.0 分、残り約 0.1 分)
+[pahcer_run] 12/24 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 14/24 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 16/24 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 18/24 seed 完了 (経過 0.0 分、残り約 0.0 分)
+[pahcer_run] 20/24 seed 完了 (経過 0.1 分、残り約 0.0 分)
+[pahcer_run] 22/24 seed 完了 (経過 0.1 分、残り約 0.0 分)
+[pahcer_run] 24/24 seed 完了 (経過 0.1 分、残り約 0.0 分)
+Process ForkPoolWorker-10:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 339, in _exit_function
+    if current_process() is not None:
+       ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 37, in current_process
+    def current_process():
+    
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261105-120859_esw-clean                        24   0     10365.04    0.000   10365.0   +0.000%  0.000%     0/ 24/   0    1.375s
+    実行時間: 99% 点 1.474 s、99.9% 点 1.474 s、最大 1.474 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.561 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (24 ケース中)
+  20261105-120859_design-frame-ordercost           24   0     10346.54    0.000   10346.5   -0.183%  0.248%    13/  0/  11    1.522s
+    実行時間: 99% 点 2.129 s、99.9% 点 2.129 s、最大 2.129 s (2 s 超え 2 ケース)
+    2 s 超えの seed (遅い順): 17 (2.129 s), 7 (2.079 s)
+    end_sec (ジャッジでの時間の見積り): 最大 2.268 s、1.8 s 超え 2・1.9 s 超え 2・2.0 s 超え 2 ケース (24 ケース中)
+  pahcer/ への記録 : した
+  所要時間         : 0.1 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.48 コア、最大 0.80 コア (2 秒ごとに 3.4 秒間測定。短いので目安とは比べない)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html

@@ -1,0 +1,4 @@
+#!/bin/sh
+# pahcer_run compiles before taking its evaluation lock. Serialize compilation
+# against evaluations too, without changing the shared runner.
+exec /usr/bin/flock -s /home/sato/ahc074/runs/.lock /usr/bin/g++ "$@"
