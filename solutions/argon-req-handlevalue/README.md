@@ -1,0 +1,7 @@
+改良元: solutions/argon-req-filldp-positive
+
+R2の継続検証。ヘルパー配置後のハンドル修正DPにも、新規フィラー抽出後の状態価値を使う計画を追加する。元のヘルパー計画を保ち、その各配置について重み付きDPでも完成まで実行する。即時利得1以上の閾値、設計、目的関数、後処理の予算は変えない。
+
+既存スイッチ・ログ・プロファイラを維持し、常に0のvalue_filler_zero/value_filler_zero_usefulは指示に従って削除する。新規環境変数はない。
+
+value_handle_intervalsは状態価値を評価したフィラー区間数、value_handle_plansは有効な追加ヘルパー計画数。両方とも後処理前の数。
