@@ -1,0 +1,61 @@
+A = 20261106-073713_argon-des-rollout-s16
+B = 20261106-073713_argon-des-perf-latew105
+100 seeds (lower is better; WA excluded: none)
+mean score: A 10320.1, B 10315.0; mean log(A/B) +0.050% ± 0.017%; A better on 37, equal on 4, worse on 59
+
+A is worse than B (largest A/B):
+seed       A  E_A    T_A       B  E_B    T_B     A/B
+0080   10290    0  10290   10227    0  10227  1.0062
+0049   10185    0  10185   10135    0  10135  1.0049
+0070   10280    0  10280   10237    0  10237  1.0042
+
+A is better than B (smallest A/B):
+seed       A  E_A    T_A       B  E_B    T_B     A/B
+0013   10313    0  10313   10352    0  10352  0.9962
+0081   10177    0  10177   10213    0  10213  0.9965
+0027   10395    0  10395   10424    0  10424  0.9972
+
+CASE 80 REQUEST 47 BASE {'ret': 1, 'fret': 1, 'gen': 1, 'lift': 1, 'fix': 6, 'repair': 1} S16 {'ret': 1, 'fret': 1, 'gen': 1, 'lift': 1, 'fix': 9, 'repair': 1}
+[20261106-073713_argon-des-perf-latew105] seed 0080
+score=10227 (= 2K*E + T = 384*0 + 10227); E=0 T=10227 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r=  47 a=197 m= 11 ok=Y mis= 0  113(single,17)@0>113:ret 48(single,8)@0>48:fret 3(generic,-)@5>2:gen 28(pair,5)@27>0:lift 32(pair,6)@32>33:fix 83(pair,14)@83>84:fix 91(pair,15)@91>92:fix 126(pair,19)@126>127:fix 128(pair,19)@126>117:repair 170(pair,23)@168>169:fix 180(pair,24)@180>181:fix
+[20261106-073713_argon-des-rollout-s16] seed 0080
+score=10290 (= 2K*E + T = 384*0 + 10290); E=0 T=10290 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r=  47 a=197 m= 14 ok=Y mis= 0  113(single,17)@0>113:ret 48(single,8)@0>48:fret 3(generic,-)@5>2:gen 28(pair,5)@27>0:lift 15(pair,2)@15>16:fix 32(pair,6)@32>33:fix 63(pair,11)@61>62:fix 70(pair,12)@68>69:fix 83(pair,14)@83>84:fix 91(pair,15)@91>92:fix 126(pair,19)@126>127:fix 128(pair,19)@126>117:repair 170(pair,23)@168>169:fix 180(pair,24)@180>181:fix
+
+CASE 80 REQUEST 205 BASE {'ret': 1, 'fret': 1, 'gen': 3, 'dig': 1, 'lift': 1, 'fix': 2} S16 {'ret': 1, 'fret': 2, 'gen': 3, 'dig': 1, 'lift': 1, 'fix': 4}
+[20261106-073713_argon-des-perf-latew105] seed 0080
+score=10227 (= 2K*E + T = 384*0 + 10227); E=0 T=10227 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 205 a= 73 m=  9 ok=Y mis= 0  172(single,23)@0>168:ret 55(pair,10)@0>55:fret 1(generic,-)@1>5:gen 6(generic,-)@1>6:gen 3(generic,-)@2>5:gen 91(pair,15)@91>92:dig 92(pair,15)@91>0:lift 125(single,18)@117>125:fix 148(pair,21)@146>147:fix
+[20261106-073713_argon-des-rollout-s16] seed 0080
+score=10290 (= 2K*E + T = 384*0 + 10290); E=0 T=10290 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 205 a= 73 m= 12 ok=Y mis= 0  172(single,23)@0>168:ret 55(pair,10)@0>55:fret 152(single,21)@99>149:fret 1(generic,-)@1>5:gen 6(generic,-)@1>6:gen 3(generic,-)@2>5:gen 91(pair,15)@91>92:dig 92(pair,15)@91>0:lift 8(pair,0)@8>9:fix 100(pair,16)@99>100:fix 109(pair,17)@108>109:fix 126(pair,19)@126>127:fix
+
+CASE 49 REQUEST 713 BASE {'ret': 1, 'fret': 1, 'gen': 3, 'fill': 1, 'repair': 2} S16 {'ret': 1, 'fret': 2, 'gen': 3, 'help': 1, 'dig': 2, 'repair': 3}
+[20261106-073713_argon-des-perf-latew105] seed 0049
+score=10135 (= 2K*E + T = 384*0 + 10135); E=0 T=10135 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 713 a=129 m=  8 ok=Y mis= 0  25(pair,5)@1>25:ret 179(pair,23)@107>168:fret 5(generic,-)@1>6:gen 2(generic,-)@1>3:gen 4(generic,-)@5>1:gen 59(pair,11)@59>13:fill 187(single,24)@180>157:repair 147(pair,21)@116>0:repair
+[20261106-073713_argon-des-rollout-s16] seed 0049
+score=10185 (= 2K*E + T = 384*0 + 10185); E=0 T=10185 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 713 a=129 m= 12 ok=Y mis= 0  25(pair,5)@1>25:ret 148(pair,21)@108>150:fret 179(pair,23)@107>168:fret 5(generic,-)@1>6:gen 6(generic,-)@3>1:gen 4(generic,-)@5>1:gen 99(pair,16)@98>3:help 156(pair,21)@146>148:dig 146(pair,21)@146>149:dig 147(pair,21)@146>0:repair 90(pair,15)@76>16:repair 187(single,24)@180>17:repair
+
+CASE 49 REQUEST 119 BASE {'ret': 1, 'fret': 3, 'repair': 1, 'gen': 2, 'dig': 2, 'lift': 1} S16 {'ret': 1, 'fret': 3, 'repair': 1, 'gen': 2, 'dig': 2, 'lift': 1, 'fix': 3}
+[20261106-073713_argon-des-perf-latew105] seed 0049
+score=10135 (= 2K*E + T = 384*0 + 10135); E=0 T=10135 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 119 a=235 m= 10 ok=Y mis= 0  47(pair,9)@1>48:ret 181(pair,24)@107>181:fret 169(pair,23)@168>157:repair 156(pair,21)@107>147:fret 75(pair,13)@52>75:fret 4(generic,-)@4>2:gen 3(generic,-)@5>2:gen 83(pair,14)@82>84:dig 82(pair,14)@82>83:dig 84(pair,14)@82>1:lift
+[20261106-073713_argon-des-rollout-s16] seed 0049
+score=10185 (= 2K*E + T = 384*0 + 10185); E=0 T=10185 processed=1024/1024
+r: request index, a: requested barcode, m: moves, ok: display matches, mis: mismatched windows. A move is k@pos>d: paper k, at position pos before the move (0 = top), inserted at depth d, :label = its @ops label, k(role,col) = the @paper values of paper k.
+r= 119 a=235 m= 13 ok=Y mis= 0  47(pair,9)@1>48:ret 181(pair,24)@107>181:fret 169(pair,23)@168>157:repair 156(pair,21)@107>147:fret 75(pair,13)@52>75:fret 4(generic,-)@4>2:gen 3(generic,-)@5>2:gen 83(pair,14)@82>84:dig 82(pair,14)@82>83:dig 84(pair,14)@82>1:lift 26(pair,5)@26>27:fix 30(pair,6)@31>32:fix 41(pair,8)@41>42:fix
+
+Operation labels across the first order sequence:
+20261106-073713_argon-des-perf-latew105 {'dig': 2.841787109375, 'fdig': 0.16765625, 'fill': 0.39923828125, 'fix': 1.681640625, 'fret': 1.1640625, 'gen': 1.23986328125, 'hdig': 0.025712890625, 'help': 0.0784765625, 'lift': 0.8851953125, 'relevel': 0.2040625, 'repair': 0.629130859375, 'ret': 0.661083984375, 'reuse': 0.09529296875}
+20261106-073713_argon-des-rollout-s16 {'dig': 2.849404296875, 'fdig': 0.174931640625, 'fill': 0.42892578125, 'fix': 1.80126953125, 'fret': 1.102900390625, 'gen': 1.193662109375, 'hdig': 0.024580078125, 'help': 0.07515625, 'lift': 0.8881640625, 'relevel': 0.196259765625, 'repair': 0.579892578125, 'ret': 0.664404296875, 'reuse': 0.098671875}
+delta {'dig': 0.0076171875, 'fdig': 0.007275390625, 'fill': 0.0296875, 'fix': 0.11962890625, 'fret': -0.061162109375, 'gen': -0.046201171875, 'hdig': -0.0011328125, 'help': -0.0033203125, 'lift': 0.00296875, 'relevel': -0.007802734375, 'repair': -0.04923828125, 'ret': 0.0033203125, 'reuse': 0.00337890625}

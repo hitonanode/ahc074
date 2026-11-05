@@ -1,0 +1,16 @@
+stderr difference 0 [('cf_value_hits = 32399', 'cf_value_hits = 34864')]
+stderr difference 1 [('cf_value_hits = 34320', 'cf_value_hits = 36840')]
+stderr difference 2 [('cf_value_hits = 33216', 'cf_value_hits = 35752')]
+stderr difference 3 [('cf_value_hits = 33732', 'cf_value_hits = 36211')]
+stderr difference 4 [('cf_value_hits = 33161', 'cf_value_hits = 35652')]
+stderr difference 5 [('cf_value_hits = 32423', 'cf_value_hits = 34868')]
+stderr difference 6 [('cf_value_hits = 35338', 'cf_value_hits = 37831')]
+stderr difference 7 [('cf_value_hits = 34021', 'cf_value_hits = 36541')]
+stderr difference 8 [('cf_value_hits = 33540', 'cf_value_hits = 36026')]
+stderr difference 9 [('cf_value_hits = 31752', 'cf_value_hits = 34197')]
+{'base': '20261106-073224_argon-des-perf-latew105', 'candidate': '20261106-073224_argon-des-rollout', 'n': 10, 'stdout_identical': 10, 'stderr_identical': 0}
+Traceback (most recent call last):
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/argon-des-perf-coupling/identity.py", line 23, in <module>
+    assert all(r['stdout']and r['stderr']for r in rows)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

@@ -1,0 +1,10 @@
+改良元: solutions/argon-des-perf-latew105
+
+D4の改訂。元の費用関数と候補生成は維持し、polish_ejectsで元の評価値が
+doubleの完全一致となる場合だけ、汎用紙のfutureが小さい候補を受理する。
+通常の改善受理はそのまま。元の費用が少しでも異なる場合にfutureで覆さない。
+d4_tiesは費用の完全同点回数、tie_differentはfutureが異なる回数、tie_acceptsはtie受理数。
+同じ探索の途中・別候補も含めたfuture差の和を注文数で割った値がd4_tie_gain。
+これは最終採用された状態の実現利益ではなく、発火余地を測る診断値。
+d4_final_futureとvalue_calls、既存generic_moves/total_movesも確認する。
+既存ログ・スイッチ・プロファイラ・DesignStore・段と目次を保持。新しい予算スイッチはない。
