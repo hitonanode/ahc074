@@ -1056,3 +1056,11 @@
     - 紙の位置の検索に SSE2 を使う（findhead）: req +0.1%。
   - 表示フィルタだけの版（filterbits）は、req −1.8% でも、変えていない map の段が +15 ms 遅くなって全体で相殺された（通常 200 件）。時間は全体の同時比較で判断した。
   - **以後のベースは solutions/argon-req-filterblocks-v2**（設計は `--design-from 20261106-045419_argon-req-filterblocks-v2`。中身は design-packed の設計と同じ）。2 つの高速化で空いた約 33 ms を、時間の予算にする。
+- **R2 の続き 2 の採用（solutions/argon-req-ejectstats-v2）**
+  - 上の追加 eject（argon-req-ejectstats）を、2 つの高速化の後のベース（argon-req-filterblocks-v2）に移した。変更は ejectstats と同じ 54 行。
+  - **結果（argon-req-filterblocks-v2 比）:**
+    - 設計固定 2000 × 2: −0.0075 ± 0.0005%（20261106-051346）。
+    - 通常 2000 件: −0.0078 ± 0.0007%（20261106-051524、924/583/493）。
+    - ジャッジの模型の平均 +8.3 ± 1.6 ms（1 秒あたり 0.9%）。99% 点 1.714 → 1.730 秒。
+  - 空いた時間の予算 33 ms から 8 ms を使った。
+  - **以後のベースは solutions/argon-req-ejectstats-v2**（設計は `--design-from 20261106-051524_argon-req-ejectstats-v2`。中身は filterblocks-v2 の設計と同じ）。

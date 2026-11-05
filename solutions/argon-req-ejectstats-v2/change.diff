@@ -1,0 +1,91 @@
+--- argon-req-filterblocks-v2/main.cpp
++++ argon-req-ejectstats-v2/main.cpp
+@@ -7499,6 +7499,36 @@
+     long long unsafe_plans = 0;
+     static constexpr int kPostCandidates = 3;
+     long long post_alternate = 0, post_candidate_calls = 0, post_secondary_saved = 0;
++    // Process-wide diagnostics keep Solver's hot-state layout unchanged.
++    inline static long long value_seed_trials = 0, value_seed_valid = 0, value_seed_accepts = 0, value_seed_saved = 0;
++    inline static double value_seed_gain = 0;
++    // Keep the uncommon extra plan's snapshots and editing work out of process's
++    // main frame; its eligibility was checked using the existing edited cache.
++    template<class Candidate>
++    [[gnu::noinline]] bool finish_weighted_plan(const State& initial, const Candidate& c,
++                                               int u, double value, Moves& chosen
++                                               OP_TAG(, std::vector<uint8_t>& chosen_tags)) {
++        const auto incumbent = save();
++        restore(c.state);
++        canonicalize();
++        OP_TAG(auto tags = c.tags;)
++        F3_DIAG(f3_stage = 3; f3_round = 0;)
++        ++value_seed_trials;
++        auto path = polish_ejects(initial, c.path, u OP_TAG(, tags), 4, true);
++        const double next = plan_cost(path.size());
++        const bool valid = display() == A[u] && fillers_reachable();
++        value_seed_valid += valid;
++        if (valid && next < value - 1e-9) {
++            ++value_seed_accepts;
++            value_seed_gain += value - next;
++            value_seed_saved += int(chosen.size()) - int(path.size());
++            chosen = std::move(path);
++            OP_TAG(chosen_tags = std::move(tags);)
++            return true;
++        }
++        restore(incumbent);
++        return false;
++    }
+     Moves process(int u) {
+         CF_SCOPE(process);
+         post_context.ready = false;  // all post-processing in this call replays the same st0
+@@ -7536,6 +7566,8 @@
+             Moves path;
+             OP_TAG(std::vector<uint8_t> tags;)  // the labels of path
+         };
++        FutureCandidate weighted_raw{};
++        bool weighted_ready = false;
+         std::vector<FutureCandidate> future_candidates, expanded_candidates, edited_candidates;
+         struct CachedPlan { FutureCandidate raw, edited; bool complete = false; };
+         std::vector<CachedPlan> plan_cache;
+@@ -7613,6 +7645,10 @@
+             if (invalid || ops.size() > 2 * K || display() != A[u] || !fillers_reachable()) continue;
+             double cost = plan_cost(ops.size());
+             if (o.value_fillers) {
++                if (cache_plans && !o.complete_value) {
++                    weighted_raw = {cost, save(), ops OP_TAG(, op_tags)};
++                    weighted_ready = true;
++                }
+                 ++value_filler_plans;
+                 if (cost < best) ++value_filler_better, value_filler_gain += best - cost;
+             }
+@@ -7970,6 +8006,19 @@
+                 }
+                 if (incumbent_value >= parent_value - 1e-9 || parent_value - incumbent_value < cfg.repeat_min) break;
+             }
++            // The value-weighted joint plan can lose before ejection. Reuse its paid
++            // edit pass, but do not repeat a plan already ejected as the main winner.
++            // A whole neutral search here costs more than the extra improvements buy.
++            if (weighted_ready) if (const auto* cached = find_cached_plan(weighted_raw);
++                cached && !cached->complete && cached->edited.state.order != order) {
++                const auto& c = cached->edited;
++                const double value = plan_cost(chosen_path.size());
++                if (c.cost <= value + .5) {
++                    if (finish_weighted_plan(st0, c, u, value, chosen_path OP_TAG(, best_tags))) {
++                        winning_operator = 4; winning_round = 0; winning_escape = false;
++                    }
++                }
++            }
+             if (chosen_path != baseline_path) {
+                 ns_changed++;
+                 ns_saved += int(baseline_path.size()) - int(chosen_path.size());
+@@ -9095,6 +9144,11 @@
+     }
+ 
+     // ==== main: statistics ====
++    std::cerr << "value_seed_trials = " << solver.value_seed_trials
++              << "\nvalue_seed_valid = " << solver.value_seed_valid
++              << "\nvalue_seed_accepts = " << solver.value_seed_accepts
++              << "\nvalue_seed_gain = " << solver.value_seed_gain
++              << "\nvalue_seed_saved = " << solver.value_seed_saved << '\n';
+     std::cerr << "complete_value_duplicates = " << solver.complete_value_duplicates << '\n';
+     std::cerr << "complete_value_calls = " << solver.complete_value_calls
+               << "\ncomplete_value_invalid = " << solver.complete_value_invalid

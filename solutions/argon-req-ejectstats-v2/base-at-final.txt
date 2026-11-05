@@ -1,0 +1,73 @@
+# Current base of the argon-advice work (maintained by Claude; Astras read it, never edit it)
+
+Re-read this file before you start each item and again before each final (adoption) compare.
+
+- **Current base (SOTA): `solutions/argon-req-filterblocks-v2`** (merged as PR #143 on 2026-11-06
+  05:25). It is argon-des-design-packed (PR #142) + an output-identical speedup of the post-processing
+  display filter (request side, +3 lines). Its outputs equal packed's and stratacut's on all 2000
+  seeds; its design code equals packed's.
+- **Saved designs of the base:** `--design-from 20261106-045419_argon-req-filterblocks-v2` (all 2000
+  seeds; identical to the designs of `20261106-043249_argon-des-design-packed` and
+  `20261106-032942_argon-des-perf-stratacut`).
+- **Judge-time model of the base**, run 20261106-045419_argon-req-filterblocks-v2: mean 1.555 s,
+  p99 1.715 s (argon-des-design-packed in the same compare: 1.571 s / 1.744 s; −15.7 ± 1.6 ms of mean).
+- **Time envelope for the whole argon work:** the judge-model mean ≤ 1.600 s and p99 ≤ 1.770 s.
+  The same binary measures about ±0.01 s apart between compares (completefast-v3: 1.571, 1.579,
+  1.583 and 1.581 s in four compares), so time is always judged **by the difference to the base in
+  the same compare**; never compare absolute times from different compares.
+  - **Free budget now: +0.033 s of judge-model mean** over argon-req-filterblocks-v2 (freed by the two
+    output-identical speedups: −16.9 ms design side, PR #142; −15.7 ms request side, PR #143), shared
+    by both Astras. A version may spend from it when its gain is at least about 0.6 % per
+    judge-second; Claude deducts what a merged version spends and updates this line. p99 may grow by
+    at most what the mean grows plus 0.010 s.
+  - **When the free budget is gone, a version must be time-neutral** (mean difference ≤ +0.002 s, p99
+    difference ≤ +0.010 s) **or pay for its time inside the same version** (an output-identical speedup
+    elsewhere, or a cut of another budget such as the design anneal iterations; time-alloc measured a
+    loss of about 0.45–0.49 % per judge-second for anneal cuts).
+  - **Output-identical speedups are welcome on their own.** One that saves ≥ 0.005 s of judge-model
+    mean (identical stdout and non-time stderr on all 2000 seeds, and a 2000-seed time compare against
+    the base) is a reason to stop for a merge; its saving is added to the free budget.
+- Adopted items so far:
+  - R2 → argon-req-filldp-positive (−0.0289 ± 0.0019% vs esw-slim, normal 2000; PR #137);
+  - D2 → argon-des-perf-condbound (−0.0083 ± 0.0024% vs argon-req-filldp-positive, normal 2000; PR #138);
+  - D2 continued → argon-des-perf-gaincache (−0.0223 ± 0.0046% vs argon-des-perf-condbound, normal 2000; PR #139);
+  - R2 continued → argon-req-completefast-v3 (−0.0130 ± 0.0013% vs argon-des-perf-gaincache, normal 2000; PR #140);
+  - D2 continued 2 → argon-des-perf-stratacut (−0.0233 ± 0.0048% vs argon-req-completefast-v3, normal 2000; PR #141);
+  - design-stage speedup → argon-des-design-packed (identical outputs, −16.9 ± 1.7 ms judge mean; PR #142);
+  - request-stage speedup → argon-req-filterblocks-v2 (identical outputs, −15.7 ± 1.6 ms judge mean; PR #143).
+- Recorded, not merged: argon-req-ejectstats (R2; −0.0070 ± 0.0007% vs completefast-v3, +9.5 ms judge
+  mean); waits for budget on the new base.
+- Closed items: R1 (Astra 1; the color-aware keep of the previous product). The claim is valid, but
+  the oracle ceiling is about 0.002%; argon-req-ret4-late (−0.00036%) was not merged.
+  D1 (Astra 2; re-optimizing the generic layer for the final pairs): no usable potential.
+
+## No deadline (the user, 2026-11-05 23:50)
+
+The user withdrew the deadline ("tomorrow evening"): there is no time limit. Verify everything that
+should be verified, as the addendum says; do not cut an item short for time. The rest of the
+addendum's time section (start the last compare by 16:00, prefer items by expected value when time
+runs short) no longer applies.
+
+How to compute the judge-time model of a run:
+
+    /home/sato/ahc074/.venv/bin/python /tmp/claude-1000/-home-sato-ahc074--claude-worktrees-esw-fixiter-improvement-55c629/4b08d16a-e458-4ef7-a878-a32403e05bc1/scratchpad/argon/judge_model.py <run-id> [<run-id> ...]
+
+(judge ≈ 1.04 × helper_end_sec + 1.35 × req_sec + (end_sec − helper_end_sec − req_sec), fitted to
+the user's esw-climb4 submission; the local stderr times are already scaled by CLOCK_SCALE 1.1.)
+
+## Practical significance for merging (added by Claude)
+
+A statistically significant gain is not enough to merge. A version is merged into the SOTA only when
+the decisive compare shows **a gain of at least 0.005%**. A change of 20 changed lines or fewer may be
+merged from **0.002%**.
+
+Reasons:
+- Smaller gains do not move the per-case rank scores.
+- Every added mechanism makes the code harder for later agents. The user just had the code cleaned
+  up, and that cleanup removed query-memo, whose gain was 0.0012%.
+
+When a version is significant but below this threshold:
+- record it in REPORT.md;
+- do not stop for a merge;
+- either develop the idea further, so that the gain reaches the threshold, or close the item, if an
+  oracle or upper bound puts the attainable gain below about 0.01%.
