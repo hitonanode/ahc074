@@ -1,0 +1,168 @@
+--- esw-clean.cpp
++++ staircase_beam_v2.cpp
+@@ -1,3 +1,10 @@
++// AHC074 staircase-beam v2.
++// Reuses esw-clean's six-sheet shared layer and legal online request engine.
++// New construction: DP staircase profile -> top-down connected-pool paper beam
++// -> optional short column refinement. No future request is read in construction.
++// Environment: CB_G (37), CB_PRE (400), CB_POST (0), CB_WIDTH (64), CB_POOL (12),
++// CB_REFINE (2000000; 0 disables), CB_CLIMB (50000; 0 disables), CB_PROFILE (1).
++// This is a restricted/hybrid paper constructor, NOT an all-192-sheet-free beam.
+ // AHC074: six-sheet comparator, paired product papers, and visible access columns.
+ // The 63 active windows initially comprise 38 comparisons and 25 column handles;
+ // window 63 belongs to a fixed black cap. A partial target is feasible iff its comparisons form a DAG.
+@@ -3646,6 +3653,117 @@
+     stats.decrease = (merit - initial) / P;
+     stats.seconds = scaled_since(start);
+     return stats;
++}
++
++struct PaperBeamStats { int accepted=0, trials=0, dead=0; double sec=0,before=0,after=0; };
++// DP for staircase capacities: weighted retrieval ranks plus forced handle holes.
++void profile_initialize(Design& d,double hole_weight) {
++    const int U=d.U,NP=d.need,H=d.H,S=(U+1)*(NP+1);
++    std::vector<double> dp(S,1e20),ndp(S);
++    std::vector<uint16_t> take((H+1)*S,65535);
++    auto idx=[&](int n,int p){return n*(NP+1)+p;};dp[0]=0;
++    for(int c=0;c<H;c++) {
++        std::fill(ndp.begin(),ndp.end(),1e20);
++        for(int n=2*c;n<=U-2*(H-c);n++)for(int pa=0;pa<=std::min(n,NP);pa++)if(dp[idx(n,pa)]<1e19)
++            for(int nn=2;nn<=std::min(17,U-n-2*(H-c-1));nn++)for(int pp=0;pp<=std::min(nn,NP-pa);pp++) {
++                double cost=.5*(nn*(nn-1)+pp*(pp-1))+hole_weight*(nn+pp)*(H-1-c);
++                int j=idx(n+nn,pa+pp);
++                if(dp[idx(n,pa)]+cost<ndp[j]){ndp[j]=dp[idx(n,pa)]+cost;take[(c+1)*S+j]=(nn<<8)|pp;}
++            }
++        dp.swap(ndp);
++    }
++    std::vector<int> capacity(H),pairs(H);int n=U,pa=NP;
++    for(int c=H;c>0;c--){int t=take[c*S+idx(n,pa)];assert(t!=65535);capacity[c-1]=t>>8;pairs[c-1]=t&255;n-=t>>8;pa-=t&255;}
++    struct Slot{int c,rank,color;};std::vector<Slot> slots;
++    for(int c=0;c<H;c++)for(int rank=0;rank<capacity[c];rank++)slots.push_back({c,rank,rank<2?rank:-1});
++    std::vector<std::vector<double>> cost(U,std::vector<double>(U,1e9));
++    for(int x=0;x<U;x++)for(int j=0;j<U;j++) {
++        auto u=d.unit[x];auto s=slots[j];
++        if(!d.valid(u,s.c)||(s.color>=0&&d.color(u,s.c)!=s.color))continue;
++        u64 dif=u.b<0?0:d.hb[u.a]^d.hb[u.b];
++        cost[x][j]=d.weight(u)*(s.rank+hole_weight*(H-1-s.c))+2*hole_weight*Design::pc(dif&low_bits(s.c+1));
++    }
++    auto ass=hungarian(cost);
++    for(int x=0;x<U;x++)if(cost[x][ass[x]]>=1e8)return; // keep feasible initializer if the slot assignment fails
++    for(int x=0;x<U;x++)d.unit[x].c=slots[ass[x]].c;
++    d.rebuild();
++}
++// Reconstruct a connected neighborhood of papers, top to bottom. Both target
++// membership and one-/two-target multiplicity are free. Beam state remembers
++// the already completed targets and the current column's counts; at each column
++// boundary its exact weighted retrieval price replaces the partial estimate.
++PaperBeamStats flexible_paper_beam(Design& d,int rounds,int width,int pool_size,double hw) {
++    auto start=Clock::now();PaperBeamStats st;d.refresh_reset();
++    ProbabilityHead head(d,2.0);double value=d.cur-hw*head.rebuild();st.before=value/P;
++    XorShift rng{0x963456baed87ULL};
++    int maxpool=std::clamp(pool_size,4,18);
++    struct Cand{uint32_t mask;uint16_t a,b;float cost;uint8_t color,pair;};
++    struct Node{uint32_t mask=0;float cost=0;uint8_t n1=0,np=0,p1=0;std::array<uint16_t,18>path{};};
++    for(int it=0;it<rounds;it++) {
++        std::vector<int> ids;std::array<bool,256> chosen{};int nt=0;
++        auto add=[&](int x){if(chosen[x]||nt+d.weight(d.unit[x])>30)return false;chosen[x]=true;nt+=d.weight(d.unit[x]);ids.push_back(x);return true;};
++        int seed=rng.below(d.U);add(seed);
++        for(int k=0;int(ids.size())<maxpool && k<1000;k++) {
++            int x=-1;
++            if(it%5<4 && rng.below(10)<9) {
++                int y=ids[rng.below(ids.size())], t=d.unit[y].a;
++                if(d.unit[y].b>=0 && rng.below(2))t=d.unit[y].b;
++                const auto &ps=d.partners[t];
++                if(!ps.empty())x=d.owner[ps[rng.below(ps.size())]];
++            } else x=rng.below(d.U);
++            if(x>=0)add(x);
++        }
++        std::sort(ids.begin(),ids.end(),[&](int a,int b){return d.unit[a].c!=d.unit[b].c?d.unit[a].c<d.unit[b].c:a<b;});
++        const int L=ids.size();std::vector<int> tg;
++        std::array<int,64> out1{},outp{},outp1{},numslots{};
++        for(int c=0;c<d.H;c++){out1[c]=d.n1[c];outp[c]=d.nt[c]-d.nc[c];outp1[c]=d.pairOne[c];}
++        for(int x:ids){auto u=d.unit[x];tg.push_back(u.a);if(u.b>=0)tg.push_back(u.b);int b=d.color(u,u.c);out1[u.c]-=b;outp[u.c]-=u.b>=0;outp1[u.c]-=(u.b>=0)*b;numslots[u.c]++;}
++        std::array<std::array<double,2>,64>grad;
++        for(int j=0;j<d.H;j++){double x=d.hn[j][0],y=d.hn[j][1],t=d.reset_targets[j],den=std::max(1.,x+y+t),num=x*y+.5*t*std::min(x,y);grad[j]={4*Design::kHoleWeight*((y+.5*t*(x<=y))*den-num)/(den*den),4*Design::kHoleWeight*((x+.5*t*(y<x))*den-num)/(den*den)};}
++        std::vector<std::vector<Cand>>cands(L);std::vector<int>incumbent(L);
++        for(int l=0;l<L;l++){
++            int slot=ids[l],c=d.unit[slot].c;
++            auto addcand=[&](int ai,int bi){
++                int a=tg[ai],b=bi<0?-1:tg[bi];if(b>=0&&(!d.ok[a][b]||((d.hb[a]^d.hb[b])>>c&1)))return;
++                Design::Unit u{a,b,c};double v=d.gc(u);u64 holes=d.holes(u);
++                for(int t:{a,b})if(t>=0)for(u64 z=holes;z;z&=z-1){int j=__builtin_ctzll(z);v+=grad[j][d.hb[t]>>j&1];}
++                if(hw){v-=hw*head.target(a,u);if(b>=0)v-=hw*head.target(b,u);
++                    if(head.beta[slot]&&d.weight(u)==d.weight(d.unit[slot])&&d.color(u,c)==d.color(d.unit[slot],c))v-=hw*head.beta[slot]*head.donor(u);}
++                if((a==d.unit[slot].a&&b==d.unit[slot].b)||(b==d.unit[slot].a&&a==d.unit[slot].b))incumbent[l]=cands[l].size();
++                cands[l].push_back({(1U<<ai)|(bi<0?0:1U<<bi),(uint16_t)ai,(uint16_t)(bi<0?65535:bi),(float)v,(uint8_t)(d.hb[a]>>c&1),(uint8_t)(b>=0)});
++            };
++            for(int a=0;a<nt;a++){addcand(a,-1);for(int b=a+1;b<nt;b++)addcand(a,b);}
++        }
++        std::vector<Node>beam(1),next;Node inc;
++        auto key=[](const Node&b){return (u64(b.mask)<<15)|(int(b.n1)<<10)|(int(b.np)<<5)|b.p1;};
++        for(int l=0;l<L;l++){
++            int c=d.unit[ids[l]].c;bool first=l==0||d.unit[ids[l-1]].c!=c,last=l+1==L||d.unit[ids[l+1]].c!=c;
++            auto extend=[&](const Node&a,int j,Node&b){
++                auto &ca=cands[l][j];if(a.mask&ca.mask)return false;
++                b=a;b.mask|=ca.mask;int rem=nt-__builtin_popcount(b.mask),slots=L-l-1;if(rem<slots||rem>2*slots)return false;
++                if(first)b.n1=b.np=b.p1=0;
++                b.n1+=ca.color;b.np+=ca.pair;b.p1+=ca.color*ca.pair;b.cost+=ca.cost;b.path[l]=j;
++                if(last){int n1=out1[c]+b.n1,np=outp[c]+b.np,p1=outp1[c]+b.p1;
++                    if(n1==0||n1==d.nc[c])return false;
++                    b.cost+=Design::colcost_of(d.nc[c],d.nc[c]+np,n1,p1)-d.cval[c];
++                    b.n1=b.np=b.p1=0;
++                }
++                return true;
++            };
++            next.clear();next.reserve(beam.size()*cands[l].size()+1);
++            for(const auto &a:beam)for(int j=0;j<int(cands[l].size());j++){Node b;if(extend(a,j,b))next.push_back(b);}
++            Node inext;bool ok=extend(inc,incumbent[l],inext);assert(ok);inc=inext;next.push_back(inc);
++            std::sort(next.begin(),next.end(),[&](auto&a,auto&b){u64 ka=key(a),kb=key(b);return ka!=kb?ka<kb:a.cost<b.cost;});
++            next.erase(std::unique(next.begin(),next.end(),[&](auto&a,auto&b){return key(a)==key(b);}),next.end());
++            int keep=std::min<int>(width,next.size());if(keep<int(next.size()))std::nth_element(next.begin(),next.begin()+keep,next.end(),[](auto&a,auto&b){return a.cost<b.cost;});next.resize(keep);beam.swap(next);
++            bool got=false;for(auto&b:beam)got|=key(b)==key(inc);if(!got)beam.push_back(inc);
++        }
++        auto best=std::min_element(beam.begin(),beam.end(),[](auto&a,auto&b){return a.cost<b.cost;});
++        std::vector<Design::Unit>old;for(int l=0;l<L;l++){int x=ids[l];auto ca=cands[l][best->path[l]];old.push_back(d.unit[x]);d.unit[x]={tg[ca.a],ca.b==65535?-1:tg[ca.b],d.unit[x].c};}
++        d.rebuild();double nv=d.cur-hw*head.rebuild();st.trials++;
++        if(nv<value-1e-7){value=nv;st.accepted++;}else{for(int l=0;l<L;l++)d.unit[ids[l]]=old[l];d.rebuild();head.rebuild();}
++    }
++    st.after=value/P;st.sec=scaled_since(start);return st;
+ }
+ 
+ // ==== Helper tables: dedicated papers inside the generic layer (Interleave) ====
+@@ -8428,10 +8546,10 @@
+     std::vector<u64> A;
+     const int map_env = env_int("MAP_ITERS"), anneal_env = env_int("ANNEAL_ITERS");
+     const int climb_env = env_int("CLIMB_ITERS"), gopt_env = env_int("GOPT_STEPS");
+-    const int anneal_iters = anneal_env ? anneal_env : kAnnealIters;
+-    const int climb_iters = climb_env ? climb_env : kClimbIters;
++    const int anneal_iters = anneal_env ? anneal_env : int(env_real("CB_REFINE",2000000));
++    const int climb_iters = climb_env ? climb_env : int(env_real("CB_CLIMB",50000));
+     std::vector<int> permutation(64);  // original window of each internal window
+-    int M = 6, G = 38;
++    int M = 6, G = int(env_real("CB_G",37));
+     Comparator comp;
+     std::mt19937_64 rng(779879);
+     std::unique_ptr<Design> des;
+@@ -8477,7 +8595,10 @@
+ 
+     // ==== design_papers: design annealing, filler climb and reassignment ====
+ 
+-    des->anneal(1e300, anneal_iters);
++    if(env_real("CB_PROFILE",1)!=0)profile_initialize(*des,env_real("CB_PROFILE_WEIGHT",0.38));
++    const auto bpre=flexible_paper_beam(*des,int(env_real("CB_PRE",400)),int(env_real("CB_WIDTH",64)),int(env_real("CB_POOL",12)),env_real("CB_WEIGHT",1.0));
++    std::cerr << "beam_before = " << bpre.before << "\nbeam_after = " << bpre.after << "\nbeam_accepts = " << bpre.accepted << "\nbeam_sec = " << bpre.sec << '\n';
++    if(anneal_iters>0)des->anneal(1e300,std::max(4,anneal_iters));
+     std::cerr << "anneal_iters = " << des->anneal_iters << "\nanneal_end_sec = " << elapsed_sec() << '\n';
+     std::cerr << "colswap_tried = " << des->colswap_tried << "\ncolswap_accepted = " << des->colswap_accepted
+               << "\nreplace_tried = " << des->replace_tried << "\nreplace_accepted = " << des->replace_accepted << '\n';
+@@ -8490,6 +8611,10 @@
+     std::cerr << "match_iterations = " << match.iterations << "\nmatch_cycles = " << match.accepted_cycles
+               << "\nmatch_changed = " << match.changed << "\nmatch_decrease = " << match.decrease
+               << "\nmatch_sec = " << match.seconds << "\nmatch_end_sec = " << elapsed_sec() << '\n';
++    if(env_real("CB_POST",0)>0){
++        const auto bp=flexible_paper_beam(*des,int(env_real("CB_POST",0)),int(env_real("CB_WIDTH",64)),int(env_real("CB_POOL",12)),env_real("CB_WEIGHT",1.0));
++        std::cerr<<"post_beam_sec = "<<bp.sec<<"\npost_beam_accepts = "<<bp.accepted<<'\n';
++    }
+     // Restore the cap bit only for the physical papers and online targets.
+     // Assignment never moves index 63, and all design calculations used 63 bits.
+     for (int u = 0; u < P; ++u) A[u] |= originalA[u] & kCapBit;
