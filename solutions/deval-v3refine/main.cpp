@@ -9302,6 +9302,8 @@ int deval_refine(DesignState& state, const Objective& objective, double& best, i
         }
     XorShift rng{0x1fa734c53a2921ULL};
     const double limit = env_real("DEVAL_REFINE_LIMIT", 1e9);
+    // Control: DEVAL_REFINE_RANDOM=k accepts the first k valid swaps without evaluating them.
+    const int random_accepts = env_int("DEVAL_REFINE_RANDOM");
     int accepted = 0;
     for (int it = 0; it < trials; ++it) {
         if (elapsed_sec() > limit) break;
@@ -9338,9 +9340,9 @@ int deval_refine(DesignState& state, const Objective& objective, double& best, i
         };
         install(a, owners[b]);
         install(b, owners[a]);
-        const double v = objective(candidate);
+        const double v = random_accepts > 0 ? (accepted < random_accepts ? -1e100 : 1e100) : objective(candidate);
         if (v < best) {
-            best = v;
+            best = random_accepts > 0 ? best : v;
             state = std::move(candidate);
             ++accepted;
             --counts[ca][aa]; ++counts[ca][ba]; --counts[cb][bb]; ++counts[cb][ab];
@@ -9630,7 +9632,45 @@ DesignState design_papers(const std::vector<u64>& originalA) {
             const double before = cur;
             XorShift prng{0x51ab0c3e7d2f4a91ULL ^ (u64(i) << 32)};
             int acc = 0, tried = 0;
+            const bool handles_only = env_int("DEVAL_PRECLIMB_HANDLES") != 0;
+            // Control: DEVAL_PRECLIMB_RANDOM=k accepts the first k valid moves without evaluating them.
+            const int random_accepts = env_int("DEVAL_PRECLIMB_RANDOM");
+            auto better = [&](double& now) {
+                if (random_accepts > 0) return acc < random_accepts;
+                const double v = eval();
+                if (v < now) { now = v; return true; }
+                return false;
+            };
+            // Exchange the handle windows of depths a and b in the design (as the anneal's
+            // swap_handle_windows): every target's bits a and b swap.
+            auto swap_handles = [&](int a, int b) {
+                std::swap(D.handle[a], D.handle[b]);
+                for (auto& h : D.hb) {
+                    const u64 t = ((h >> a) ^ (h >> b)) & 1;
+                    h ^= (t << a) | (t << b);
+                }
+            };
+            auto handles_valid = [&]() {
+                std::vector<std::array<int, 2>> both(D.H, {0, 0});
+                for (const auto& u : D.unit) {
+                    if (!D.valid(u, u.c)) return false;
+                    ++both[u.c][D.color(u, u.c)];
+                }
+                for (const auto& b : both)
+                    if (!b[0] || !b[1]) return false;
+                return true;
+            };
             for (int it = 0; it < pre; ++it) {
+                if (handles_only) {  // exchange two handle depths
+                    const int a = prng.below(D.H), b = prng.below(D.H);
+                    if (a == b) continue;
+                    swap_handles(a, b);
+                    if (!handles_valid()) { swap_handles(a, b); continue; }
+                    ++tried;
+                    if (better(cur)) ++acc;
+                    else swap_handles(a, b);
+                    continue;
+                }
                 const int x = prng.below(D.U);
                 auto& ux = D.unit[x];
                 const int a = ux.c;
@@ -9639,8 +9679,7 @@ DesignState design_papers(const std::vector<u64>& originalA) {
                     if (b == a || !D.valid(ux, b) || cnt[a][D.color(ux, a)] <= 1) continue;
                     ++tried;
                     --cnt[a][D.color(ux, a)]; ux.c = b; ++cnt[b][D.color(ux, b)];
-                    const double v = eval();
-                    if (v < cur) { cur = v; ++acc; }
+                    if (better(cur)) ++acc;
                     else { --cnt[b][D.color(ux, b)]; ux.c = a; ++cnt[a][D.color(ux, a)]; }
                 } else {  // swap the columns of x and y
                     const int y = prng.below(D.U);
@@ -9656,8 +9695,7 @@ DesignState design_papers(const std::vector<u64>& originalA) {
                     }
                     ++tried;
                     ux.c = b; uy.c = a;
-                    const double v = eval();
-                    if (v < cur) { cur = v; ++acc; }
+                    if (better(cur)) ++acc;
                     else {
                         ux.c = a; uy.c = b;
                         --cnt[b][D.color(ux, b)]; --cnt[a][D.color(uy, a)];
@@ -9665,6 +9703,9 @@ DesignState design_papers(const std::vector<u64>& originalA) {
                     }
                 }
             }
+            for (auto& c : cnt) c = {0, 0};
+            for (const auto& u : D.unit) ++cnt[u.c][D.color(u, u.c)];
+            if (random_accepts > 0) cur = eval();
             D.rebuild();
             std::cerr.rdbuf(real);
             std::cerr << "dv_preclimb_tried = " << tried << "\ndv_preclimb_accepted = " << acc
