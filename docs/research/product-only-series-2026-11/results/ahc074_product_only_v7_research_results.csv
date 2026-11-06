@@ -1,0 +1,9 @@
+method,name,source,cases,orders,moves,mean_moves,difference_from_v6,wins,ties,losses,display_errors,invalid_cases,construction_fallbacks,proposed_design_cases,qualification
+base_v6_8,v6 基準,src/ng_product_v6.cpp,8,8192,83319,10.1707763671875,0.0,0,8,0,0,0,0,8,
+overlap8,補完区間の重なりを許す,src/overlap_intervals.cpp,8,8192,83316,10.17041015625,-0.0003662109375,2,4,2,0,0,0,8,
+sampled8,模擬スタック費用による担当再割当,src/sampled_rematch.cpp,8,8192,83276,10.16552734375,-0.0052490234375,5,0,3,0,0,0,8,
+matching8,背景設計内の増加路ペア交換,src/augmenting_matching.cpp,8,8192,83317,10.1705322265625,-0.000244140625,4,0,4,0,0,0,8,
+bgvalue8,背景終状態の価値を手順全体へ反映,src/background_value.cpp,8,8192,83403,10.1810302734375,0.01025390625,4,0,4,0,0,0,8,
+coop_fixed8,別の商品紙との協力を許す共有ペア,src/cooperative_pairs.cpp,8,8192,85443,10.4300537109375,0.25927734375,0,0,8,0,0,0,8,The final designs contain zero pairs that require a donor for comparator feasibility; this does not validate the intended new class.
+seven_exact8,7枚背景・正確な移動費用表,src/seven_exact.cpp,8,8192,85161,10.3956298828125,0.224853515625,0,0,8,0,0,0,8,
+duplicate_fixed8,12枚の主紙複製を試みる,src/duplicate_primaries.cpp,8,8192,92987,11.3509521484375,1.18017578125,0,0,8,0,0,7,1,7/8 cases use a fallback design. The mixed mean is NOT the performance of twelve-copy designs.
