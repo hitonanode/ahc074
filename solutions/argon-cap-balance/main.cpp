@@ -9143,7 +9143,9 @@ int main() {
     // ==== main: the design (designed, or loaded under LOCAL_BENCH) ====
 
 #ifdef LOCAL_BENCH
-    DesignStore store(originalA);  // DESIGN_SAVE_DIR / DESIGN_LOAD_DIR
+    // The file name is the hash of the barcodes as read (as scripts/pahcer_run.py expects); the
+    // saved state itself is in the swapped windows, and load() rebuilds it from originalA.
+    DesignStore store(physicalA);  // DESIGN_SAVE_DIR / DESIGN_LOAD_DIR
     DesignState state;
     if (store.loading())
         state = store.load(originalA);
