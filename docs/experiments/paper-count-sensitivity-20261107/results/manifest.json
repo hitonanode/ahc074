@@ -1,0 +1,61 @@
+{
+  "study": "AHC074 total-paper-count counterfactual sensitivity",
+  "date": "2026-11-06",
+  "K_values": [
+    182,
+    184,
+    186,
+    188,
+    190,
+    191,
+    192,
+    193,
+    194,
+    196,
+    198,
+    200,
+    202
+  ],
+  "seeds": "0..99",
+  "requests_per_case": 1024,
+  "runs": 1300,
+  "input_basis": "Original official tools/in; alter only header K",
+  "original_input_verified_against_repo_seeds": [
+    0,
+    1,
+    9,
+    99
+  ],
+  "solver_flags": "g++ -std=c++20 -O2 -march=native -DLOCAL_BENCH -DPAPER_COUNT=K",
+  "gcc": "14.2.0",
+  "cpu": "AMD EPYC 9V74",
+  "parallel_workers": 4,
+  "parameters": {
+    "generic_papers": 6,
+    "cap_papers": 1,
+    "initial_generic_windows": 38,
+    "columns": 25,
+    "window_map_iterations": 450000,
+    "window_climb_steps": 133000,
+    "paper_annealing_budget": 14900000,
+    "paper_annealing_actual": 14900224,
+    "filler_climb": 154000,
+    "rematching_iterations": 4
+  },
+  "time_note": "full search iterations, no 2 sec termination; CPU time is user+system",
+  "validation": {
+    "checker": "independent C++ replay of official rules",
+    "requests": 1331200,
+    "moves": 13491597,
+    "wrong_displays": 0,
+    "illegal_moves": 0,
+    "limit_violations": 0,
+    "max_request_moves": 23,
+    "k192_original_byte_equivalence_cases": 10,
+    "reactive_equivalence_k_values": 13
+  },
+  "original_source_sha256": "e22b0f8f46dc97abdf1ee725900bfbfa4e9bc1c060d9388c8271ddcf275e07c1",
+  "altered_source_sha256": "aed8e2eafb7180edbd6ab22007af4cbdb471b6e7daca8b820df72d4932a16e7e",
+  "checker_sha256": "5dbabf52357d0c2547faa6d5af8a850c1c87190fe67eba5a3666ece5bae1e3a7",
+  "note": "The original ~45 MiB full stdout/stderr/test ZIP is attached to the ChatGPT conversation, not versioned in Git."
+}
