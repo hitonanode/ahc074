@@ -9352,6 +9352,74 @@ int deval_refine(DesignState& state, const Objective& objective, double& best, i
     return accepted;
 }
 
+// Research: exchange one target between two papers (re-pairing). x' = x with x[i] replaced by
+// y[j], y' = y with y[j] replaced by x[i]; at least one of them is a pair. Each new pair must be
+// compatible in the generic layer (ok) and agree at its slot's column handle; both colors stay in
+// every column; each slot keeps its perforations. DEVAL_REFINE_RANDOM=k accepts k valid moves.
+template <class Objective>
+int deval_pair_refine(DesignState& state, const std::array<std::array<uint8_t, 256>, 256>& ok,
+                      const Objective& objective, double& best, int trials) {
+    std::array<std::vector<int>, K> owners;
+    std::array<u64, K> extra{};
+    std::array<std::array<int, 2>, 64> counts{};
+    std::vector<int> slots;
+    auto natural_mask = [&](const std::vector<int>& targets, int c) {
+        u64 mask = low_bits(state.G) | kCapBit;
+        for (int j = 0; j <= c; ++j) mask |= u64(1) << state.handle[j];
+        if (targets.size() == 2) mask &= ~(state.A[targets[0]] ^ state.A[targets[1]]);
+        return mask | kCapBit;
+    };
+    for (int t = 0; t < P; ++t) owners[state.ded[t]].push_back(t);
+    for (int k = 0; k < K; ++k)
+        if (state.columns[k] >= 0) {
+            const int c = state.columns[k];
+            slots.push_back(k);
+            extra[k] = natural_mask(owners[k], c) & ~state.papers[k].opaque;
+            ++counts[c][state.A[owners[k][0]] >> state.handle[c] & 1];
+        }
+    XorShift rng{0x7e3a91c5d24b6f13ULL};
+    const int random_accepts = env_int("DEVAL_REFINE_RANDOM");
+    int accepted = 0;
+    auto unit_ok = [&](const std::vector<int>& u, int c) {
+        return u.size() == 1 || (ok[u[0]][u[1]] && !(((state.A[u[0]] ^ state.A[u[1]]) >> state.handle[c]) & 1));
+    };
+    for (int it = 0; it < trials; ++it) {
+        const int a = slots[rng.below(slots.size())], b = slots[rng.below(slots.size())];
+        if (a == b) continue;
+        auto x = owners[a], y = owners[b];
+        if (x.size() + y.size() < 3) continue;  // at least one pair
+        const int i = rng.below(x.size()), j = rng.below(y.size());
+        std::swap(x[i], y[j]);
+        const int ca = state.columns[a], cb = state.columns[b];
+        if (!unit_ok(x, ca) || !unit_ok(y, cb)) continue;
+        const int oa = state.A[owners[a][0]] >> state.handle[ca] & 1, ob = state.A[owners[b][0]] >> state.handle[cb] & 1;
+        const int na = state.A[x[0]] >> state.handle[ca] & 1, nb = state.A[y[0]] >> state.handle[cb] & 1;
+        auto cnt = counts;
+        --cnt[ca][oa]; ++cnt[ca][na]; --cnt[cb][ob]; ++cnt[cb][nb];
+        if (!cnt[ca][0] || !cnt[ca][1] || !cnt[cb][0] || !cnt[cb][1]) continue;
+        auto candidate = state;
+        auto install = [&](int slot, const std::vector<int>& targets) {
+            const u64 mask = natural_mask(targets, state.columns[slot]) & ~extra[slot];
+            u64 black = state.A[targets[0]] & mask;
+            if (targets.size() == 2 && ((state.A[targets[0]] ^ state.A[targets[1]]) & kCapBit)) black &= ~kCapBit;
+            candidate.papers[slot] = {mask, black};
+            for (int t : targets) candidate.ded[t] = slot;
+        };
+        install(a, x);
+        install(b, y);
+        const double v = random_accepts > 0 ? (accepted < random_accepts ? -1e100 : 1e100) : objective(candidate);
+        if (v < best) {
+            if (random_accepts == 0) best = v;
+            state = std::move(candidate);
+            ++accepted;
+            counts = cnt;
+            owners[a] = x;
+            owners[b] = y;
+        }
+    }
+    return accepted;
+}
+
 // ==== Design iteration counts ====
 
 // Design budgets: window annealing, its matching climb, product/column annealing, filler climb,
@@ -9740,7 +9808,9 @@ DesignState design_papers(const std::vector<u64>& originalA) {
         const double t0 = elapsed_sec();
         const double v16_before = value.from_design(state), v3_before = refine_objective(value, state, 3);
         double cur = objective(state);
-        const int acc = deval_refine(state, objective, cur, env_int("DEVAL_REFINE"));
+        const int acc = env_int("DEVAL_REFINE_MOVE") == 1
+                            ? deval_pair_refine(state, des->ok, objective, cur, env_int("DEVAL_REFINE"))
+                            : deval_refine(state, objective, cur, env_int("DEVAL_REFINE"));
         std::cerr << "dv_refine_model = " << model << "\ndv_refine_accepted = " << acc
                   << "\ndv_refine_v16_before = " << v16_before << "\ndv_refine_v16_after = " << value.from_design(state)
                   << "\ndv_refine_v3_before = " << v3_before << "\ndv_refine_v3_after = " << refine_objective(value, state, 3)
