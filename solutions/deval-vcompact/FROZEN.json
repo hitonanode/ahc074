@@ -1,0 +1,21 @@
+{
+  "parent": "solutions/deval-vreheat",
+  "settings": {
+    "DEVAL_REHEAT": 2,
+    "DEVAL_CANDIDATES": 4,
+    "DEVAL_SHARED": 2,
+    "DEVAL_BRANCH_SCALE": 0.25,
+    "CLIMB_ITERS": 50000,
+    "DEVAL_MATCH_ITERS": 2
+  },
+  "share_table": true,
+  "prune_branch": true,
+  "parent_sha256": "4d61c79efd20fbdbe1b5f20803f83d35edfabee6e310eb43c2b912921db705e3",
+  "source_sha256": "31ad9d24a57d1bfaa7d275a49fff108334cb3fc17b8a02330acc3f65db61331f",
+  "source_bytes": 505737,
+  "training_seeds": "0-499",
+  "final_test_seeds": "500-999",
+  "value_model": "solutions/deval-vtarget/V.json",
+  "request_guard": "reserve_v1",
+  "design_guard": "submission_absolute_caps_v1"
+}
