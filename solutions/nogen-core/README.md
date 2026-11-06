@@ -1,0 +1,5 @@
+改良元: solutions/nogen-slim
+
+既定のmainから到達しないforcedG版設計、そこだけが呼ぶEconomicDesignとanchor_rebuild、呼出しのない緊急設計を削除した。実際の設計は従来どおりdesign_controlsのG36のみ。段の目印・目次・生きている全ログとプロファイラ・監査・@paper/@ops・DesignStore v2を保持する。
+
+所有者距離のAVX2集合計算も取り込む。削除の効果をその版との出力一致で検証する。変更後も2スペースの通常の書式を保ち、コメント一括削除や行結合は行わない。
