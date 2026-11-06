@@ -1,0 +1,186 @@
+{
+  "official100": {
+    "cases": 100,
+    "requests": 102400,
+    "moves": 1031897,
+    "average_moves": 10.077119140625,
+    "errors": 0,
+    "illegal_moves": 0,
+    "max_request_moves": 22
+  },
+  "official100_vs_v2": {
+    "saving_per_request": 0.019736328125,
+    "wins": 77,
+    "ties": 2,
+    "losses": 21,
+    "paired_normal_95ci": [
+      0.015261217980819806,
+      0.024211438269180194
+    ]
+  },
+  "official100_vs_original": {
+    "saving_per_request": 0.016103515625,
+    "wins": 54,
+    "ties": 0,
+    "losses": 46,
+    "paired_normal_95ci": [
+      -0.010874781350554606,
+      0.0430818126005546
+    ]
+  },
+  "holdout30": {
+    "cases": 30,
+    "requests": 30720,
+    "moves": 309495,
+    "average_moves": 10.07470703125,
+    "errors": 0,
+    "illegal_moves": 0,
+    "max_request_moves": 20
+  },
+  "holdout30_v2": {
+    "cases": 30,
+    "requests": 30720,
+    "moves": 309971,
+    "average_moves": 10.090201822916667,
+    "errors": 0,
+    "illegal_moves": 0,
+    "max_request_moves": 20
+  },
+  "holdout30_original": {
+    "cases": 30,
+    "requests": 30720,
+    "moves": 310209,
+    "average_moves": 10.09794921875,
+    "errors": 0,
+    "illegal_moves": 0,
+    "max_request_moves": 21
+  },
+  "holdout30_vs_v2": {
+    "saving_per_request": 0.015494791666666667,
+    "wins": 22,
+    "ties": 0,
+    "losses": 8,
+    "paired_normal_95ci": [
+      0.00560859902503043,
+      0.025380984308302906
+    ]
+  },
+  "holdout30_vs_original": {
+    "saving_per_request": 0.0232421875,
+    "wins": 17,
+    "ties": 0,
+    "losses": 13,
+    "paired_normal_95ci": [
+      -0.01685194101121713,
+      0.06333631601121713
+    ]
+  },
+  "interactive_output_matches_offline": true,
+  "perforation": {
+    "mean_new_holes": 4.95,
+    "min_new_holes": 1,
+    "max_new_holes": 11,
+    "mean_changed_papers": 4.54
+  },
+  "auxiliary_seed0": {
+    "paper_ids": [
+      64,
+      87,
+      113,
+      133,
+      144,
+      155,
+      167,
+      179
+    ],
+    "operation_labels": {
+      "fix": 4,
+      "repair": 2,
+      "fret": 3,
+      "dig": 186,
+      "fill": 1
+    },
+    "note": "Exploratory AUX=8,G=35,AUX_WEIGHT=1.5 run, not final design. Labels describe move generation, not a causal decomposition."
+  },
+  "single_process_timing": {
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      99
+    ],
+    "mean_wall_sec": 3.657039144999999,
+    "max_wall_sec": 3.8448052929998084,
+    "details": [
+      {
+        "seed": 0,
+        "wall_sec": 3.5770021160005854,
+        "result": {
+          "moves": 10273,
+          "avg": 10.0322,
+          "errors": 0,
+          "max": 19,
+          "sec": 3.57411
+        }
+      },
+      {
+        "seed": 1,
+        "wall_sec": 3.8073161170004823,
+        "result": {
+          "moves": 10178,
+          "avg": 9.93945,
+          "errors": 0,
+          "max": 17,
+          "sec": 3.80431
+        }
+      },
+      {
+        "seed": 2,
+        "wall_sec": 3.8448052929998084,
+        "result": {
+          "moves": 10344,
+          "avg": 10.1016,
+          "errors": 0,
+          "max": 17,
+          "sec": 3.842
+        }
+      },
+      {
+        "seed": 3,
+        "wall_sec": 3.4385535499995967,
+        "result": {
+          "moves": 10309,
+          "avg": 10.0674,
+          "errors": 0,
+          "max": 20,
+          "sec": 3.43565
+        }
+      },
+      {
+        "seed": 4,
+        "wall_sec": 3.6362833659995886,
+        "result": {
+          "moves": 10265,
+          "avg": 10.0244,
+          "errors": 0,
+          "max": 18,
+          "sec": 3.63343
+        }
+      },
+      {
+        "seed": 99,
+        "wall_sec": 3.6382744279999315,
+        "result": {
+          "moves": 10185,
+          "avg": 9.94629,
+          "errors": 0,
+          "max": 19,
+          "sec": 3.63515
+        }
+      }
+    ]
+  },
+  "source_sha256": "be4b91f1818f515b733790622b8d0b435a5b50d1b828cb551640b6c4fc8a02f3"
+}

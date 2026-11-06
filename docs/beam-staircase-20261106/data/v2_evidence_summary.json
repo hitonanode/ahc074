@@ -1,0 +1,291 @@
+{
+  "official100": {
+    "mean_moves": {
+      "previous": 10.263828125,
+      "original": 10.09322265625,
+      "quality": 10.09685546875,
+      "fast": 10.1197265625,
+      "joint4": 10.13130859375
+    },
+    "total_moves": {
+      "previous": 1051016,
+      "original": 1033546,
+      "quality": 1033918,
+      "fast": 1036260,
+      "joint4": 1037446
+    },
+    "quality_vs_previous": {
+      "mean_saving": 0.16697265625,
+      "sample_stdev": 0.11907567939499358,
+      "normal_approx_ci95": [
+        0.14363382308858125,
+        0.19031148941141873
+      ],
+      "wins": 91,
+      "ties": 0,
+      "losses": 9
+    },
+    "quality_vs_original": {
+      "mean_saving": -0.0036328125,
+      "sample_stdev": 0.138624913133933,
+      "normal_approx_ci95": [
+        -0.030803295474250862,
+        0.023537670474250864
+      ],
+      "wins": 49,
+      "ties": 0,
+      "losses": 51
+    },
+    "fast_vs_previous": {
+      "mean_saving": 0.1441015625,
+      "sample_stdev": 0.1110713856899489,
+      "normal_approx_ci95": [
+        0.12233157090477001,
+        0.16587155409523
+      ],
+      "wins": 88,
+      "ties": 0,
+      "losses": 12
+    },
+    "quality_improvement_percent_vs_previous": 1.6268068231121147
+  },
+  "notes": [
+    "Tuning used seeds 0..4. Behavior analysis also used all 100 cases, so seeds 5..99 are not a wholly untouched holdout.",
+    "Extra30 inputs were generated after selecting configurations, from the specified distribution with Python; these are NOT official Rust generator seed IDs.",
+    "Operation labels track planning origin, not a unique causal decomposition after rewrites.",
+    "Timing from parallel sweeps is not used for performance claims."
+  ],
+  "operation_analysis": {
+    "previous": {
+      "requests": 102400,
+      "columns_mean": 26,
+      "opacity_by_role": {
+        "cap": 1,
+        "generic": 12.333333333333334,
+        "pair": 37.441830985915495,
+        "single": 56.08385964912281
+      },
+      "operation_labels": {
+        "dig": 3.06607421875,
+        "lift": 0.785986328125,
+        "fix": 1.75630859375,
+        "ret": 0.655546875,
+        "repair": 0.79779296875,
+        "gen": 1.222822265625,
+        "help": 0.0773828125,
+        "fret": 1.1122265625,
+        "reuse": 0.09375,
+        "fill": 0.278388671875,
+        "fdig": 0.16984375,
+        "relevel": 0.220078125,
+        "hdig": 0.027626953125
+      },
+      "visible_bits_by_role": {
+        "single": 25.642373046875,
+        "pair": 31.421845703125,
+        "generic": 6.75384765625,
+        "cap": 0.18193359375
+      },
+      "mean_visible_papers": 11.76630859375,
+      "mean_top_product_bits": 45.64296875
+    },
+    "original": {
+      "requests": 102400,
+      "columns_mean": 25,
+      "opacity_by_role": {
+        "cap": 1,
+        "generic": 12.666666666666666,
+        "pair": 37.441830985915495,
+        "single": 55.16008771929825
+      },
+      "operation_labels": {
+        "dig": 2.875341796875,
+        "lift": 0.793671875,
+        "fix": 1.742744140625,
+        "ret": 0.6662890625,
+        "gen": 1.23685546875,
+        "repair": 0.815859375,
+        "fret": 1.13005859375,
+        "relevel": 0.210693359375,
+        "fdig": 0.154091796875,
+        "help": 0.077109375,
+        "fill": 0.274599609375,
+        "reuse": 0.0918359375,
+        "hdig": 0.024072265625
+      },
+      "visible_bits_by_role": {
+        "single": 25.006357421875,
+        "pair": 31.924658203125,
+        "generic": 6.890947265625,
+        "cap": 0.178037109375
+      },
+      "mean_visible_papers": 12.188115234375,
+      "mean_top_product_bits": 45.20380859375
+    },
+    "quality": {
+      "requests": 102400,
+      "columns_mean": 26,
+      "opacity_by_role": {
+        "cap": 1,
+        "generic": 12.333333333333334,
+        "pair": 37.401408450704224,
+        "single": 54.949561403508774
+      },
+      "operation_labels": {
+        "dig": 2.791708984375,
+        "lift": 0.798408203125,
+        "fix": 1.7562109375,
+        "ret": 0.660615234375,
+        "reuse": 0.092421875,
+        "gen": 1.2061328125,
+        "fret": 1.162119140625,
+        "fill": 0.283193359375,
+        "help": 0.080947265625,
+        "repair": 0.851806640625,
+        "relevel": 0.229794921875,
+        "fdig": 0.157041015625,
+        "hdig": 0.026455078125
+      },
+      "visible_bits_by_role": {
+        "single": 25.0141796875,
+        "pair": 32.101884765625,
+        "generic": 6.701845703125,
+        "cap": 0.18208984375
+      },
+      "mean_visible_papers": 12.353154296875,
+      "mean_top_product_bits": 45.078701171875
+    },
+    "fast": {
+      "requests": 102400,
+      "columns_mean": 26,
+      "opacity_by_role": {
+        "cap": 1,
+        "generic": 12.333333333333334,
+        "pair": 37.375352112676055,
+        "single": 54.96815789473684
+      },
+      "operation_labels": {
+        "dig": 2.7974609375,
+        "lift": 0.796953125,
+        "fix": 1.796806640625,
+        "ret": 0.66095703125,
+        "fdig": 0.155751953125,
+        "fill": 0.278916015625,
+        "repair": 0.844599609375,
+        "fret": 1.1516796875,
+        "gen": 1.2065625,
+        "relevel": 0.227041015625,
+        "help": 0.0815234375,
+        "reuse": 0.09392578125,
+        "hdig": 0.027548828125
+      },
+      "visible_bits_by_role": {
+        "single": 25.016767578125,
+        "pair": 32.0980859375,
+        "generic": 6.704716796875,
+        "cap": 0.1804296875
+      },
+      "mean_visible_papers": 12.330791015625,
+      "mean_top_product_bits": 45.08677734375
+    },
+    "joint4": {
+      "requests": 102400,
+      "columns_mean": 26,
+      "opacity_by_role": {
+        "cap": 1,
+        "generic": 12.333333333333334,
+        "pair": 37.37830985915493,
+        "single": 54.97219298245614
+      },
+      "operation_labels": {
+        "dig": 2.801904296875,
+        "lift": 0.79140625,
+        "fix": 1.8426171875,
+        "ret": 0.661123046875,
+        "gen": 1.21072265625,
+        "fdig": 0.1594140625,
+        "repair": 0.8209375,
+        "fret": 1.14060546875,
+        "hdig": 0.02521484375,
+        "help": 0.079248046875,
+        "relevel": 0.220791015625,
+        "fill": 0.28283203125,
+        "reuse": 0.0944921875
+      },
+      "visible_bits_by_role": {
+        "single": 25.058779296875,
+        "pair": 32.071298828125,
+        "generic": 6.688720703125,
+        "cap": 0.181201171875
+      },
+      "mean_visible_papers": 12.381875,
+      "mean_top_product_bits": 45.120146484375
+    }
+  },
+  "extra30": {
+    "mean_moves": {
+      "previous": 10.252018229166667,
+      "original": 10.123860677083334,
+      "quality": 10.081868489583334,
+      "fast": 10.137825520833333
+    },
+    "total_moves": {
+      "previous": 314942,
+      "original": 311005,
+      "quality": 309715,
+      "fast": 311434
+    },
+    "quality_vs_previous": {
+      "mean_saving": 0.17014973958333332,
+      "sample_stdev": 0.16392146386972878,
+      "normal_approx_ci95": [
+        0.11149119708179722,
+        0.22880828208486942
+      ],
+      "wins": 27,
+      "ties": 0,
+      "losses": 3
+    },
+    "quality_vs_original": {
+      "mean_saving": 0.0419921875,
+      "sample_stdev": 0.13879063371825032,
+      "normal_approx_ci95": [
+        -0.007673402927176234,
+        0.09165777792717623
+      ],
+      "wins": 19,
+      "ties": 0,
+      "losses": 11
+    }
+  },
+  "source_sha256": "11732bfc67f52cabf482b744f4bd76262e934ce171ea9a07259c4b03fa3371d4",
+  "combined130": {
+    "previous": {
+      "moves": 1365958,
+      "mean_moves": 10.261102764423077
+    },
+    "original": {
+      "moves": 1344551,
+      "mean_moves": 10.10029296875
+    },
+    "quality": {
+      "moves": 1343633,
+      "mean_moves": 10.093396935096154
+    },
+    "fast": {
+      "moves": 1347694,
+      "mean_moves": 10.123903245192308
+    }
+  },
+  "exploration": {
+    "configurations": 76,
+    "runs": 370,
+    "note": "Primarily five-case or three-case sweeps. Not all exploratory outputs were independently validated; validity claims refer only to the final benchmark sets."
+  },
+  "validation_builds": {
+    "new_solvers": "Published main/extra results use final no-LOCAL_BENCH release builds; all 260 case executions were independently validated.",
+    "diagnostic": "Both profiles reproduced all 100 old diagnostic outputs exactly. Release builds can choose different equal-cost paths. On extra-quality seed 17, release uses one more move (10276 vs 10275).",
+    "operation_analysis": "Derived from diagnostic 100-case runs. Release and diagnostic total moves agree case-by-case on these 100 cases.",
+    "interactive": "Both final release profiles also passed one-request-at-a-time tests on seeds 0,50,99."
+  }
+}
