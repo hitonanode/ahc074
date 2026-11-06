@@ -1,0 +1,149 @@
+--- ng_product_v5_overlap.cpp
++++ ng_product_v6.cpp
+@@ -1,20 +1,15 @@
+-// AHC074 research v5: OWNED BACKGROUND PAPERS WITH OVERLAPPING TARGET ASSIGNMENTS.
+-// Default paper budget: cap 1 + background singletons 6 + ordinary singletons 114
+-// + ordinary pairs 71 = 192. The six background targets each ALSO have a normal
+-// primary sheet. Thus 262 memberships cover 256 distinct products; ownership is
+-// deliberately NOT unique. This is an extension of v4, not an equivalent constraint.
+-// Background ink remains constrained to the six actual target patterns. All 191
+-// non-cap papers have genuine declared owners; ordinary primaries ensure coverage.
+-// The background column has no physical access handle. Its metadata uses window
+-// 63 as a virtual handle, excluded from actual payload/handle repairs.
+-// Every move is replayed for visibility and the exact requested display.
+-// No future real order is read during design. Defaults are deterministic iterations.
+-// V5_FORCE_ALTERNATE=1 is a validation-only mode that intentionally forces the
+-// sparse background sheet to be the primary for its owner (slower/worse moves).
+-// See report_ja.md for the overlap qualification, benchmark scope and limitations.
+-// This is a research build; the official 2-second time limit is NOT guaranteed.
+-// Legacy experimental strategy paths are retained below; reported results use
+-// NG_DEFAULT_STRATEGY=1 and the other defaults only.
++// AHC074 research v6: EXISTENTIAL OWNERSHIP CO-DESIGN.
++// Same paper budget and ownership convention as v5_overlap: cap 1 + owned
++// background singletons 6 + ordinary singletons 114 + ordinary pairs 71.
++// No future real request is read during design. The six background owners are
++// inferred jointly with the payload/comparison layout, rather than fixed first.
++// Every background ink pixel agrees with its declared actual product owner.
++// Overlapping ownership is intentional: those six products also have ordinary
++// primary sheets. This is NOT the unique-primary product-only constraint.
++// The final design is audited and every emitted operation is replay-validated.
++// Defaults are deterministic iteration counts. The official 2 s limit is NOT
++// guaranteed; see report_ja.md for measured local runtimes and validation scope.
++// Fast variant changes only the ordinary-column annealing/climb budgets.
+ #define NG_DEFAULT_STRATEGY 1
+ #include <algorithm>
+ #include <array>
+@@ -1387,7 +1382,23 @@
+         dp_mc_scanned += dp_last;
+         dp_mc_count++;
+ #endif
+-        return double(total) / (need * 3600) + (need - matched) * 10.0;
++
++        // Existential ownership, not six preselected owners: each printed sheet
++        // must eventually coincide with some actual product on all its ink.
++        // Complete pair comparisons make exact owner sets pairwise disjoint.
++        int owner_errors=0;
++        for(int sheet=0;sheet<6;sheet++){
++            u64 op=0,bits=0;
++            for(int e=0;e<15;e++){
++                auto[x,y]=ep[e];if(x!=sheet&&y!=sheet)continue;
++                op|=mask[e];bits|=mask[e]&(sheet==x?pol:~pol);
++            }
++            int best=64;
++            for(u64 product:A)best=std::min(best,__builtin_popcountll((product^bits)&op));
++            owner_errors+=best;
++        }
++        const char* pen=std::getenv("V6_OWN_PEN");double lambda=pen?std::atof(pen):.1;
++        return double(total) / (need * 3600) + (need - matched) * 10.0+lambda*owner_errors;
+     };
+     // A move: its windows and sheet pairs; propose changes mask / pol and evaluates the move on all
+     // the pairs (ndir, nrel, valid); apply_move keeps it, undo_move restores mask / pol.
+@@ -9403,9 +9414,87 @@
+         for(auto[cost,i]:edges){auto&p=pairs[i];if(matched[p.u]||matched[p.v])continue;matched[p.u]=matched[p.v]=true;total+=cost;if(++count==pair_need)break;}
+         return total/(100.*pair_need)+(pair_need-count)*30.+(self_weight?self_weight*self_defects()/65.:0.);
+     };
++    // Inverse construction: optimize the background before choosing its owners.
++    bool inverse_ok=false;
++    if(C==1&&R==6&&nohandle&&env_real("V6_INVERSE",1)>0){
++        auto saved_own=own;auto saved_used=used;auto saved_base=base;
++        auto saved_eligible=eligible;auto saved_mask=mask;auto saved_counts=counts;
++        auto saved_group=group;auto saved_payload=payload;
++        auto infer_owners=[&]() -> bool {
++        auto seedA=original;std::vector<int> seedperm(64);std::iota(seedperm.begin(),seedperm.end(),0);
++        Comparator seed;std::mt19937_64 sr(1234567);seed.init(6,G,sr);
++        assign_windows(seedA,6,G,seed.edge,seed.polarity,seedperm,1e300,
++                       (int)env_real("V6_MAP",300000),(int)env_real("V6_CLIMB",60000),0);
++        std::array<u64,6> so{},sb{};
++        for(int j=0;j<G;j++){auto[a,b]=seed.edge[j];u64 bit=1ULL<<seedperm[j];so[a]|=bit;so[b]|=bit;sb[seed.polarity[j]?a:b]|=bit;}
++        std::array<std::array<double,256>,6> dist{};
++        for(int a=0;a<6;a++)for(int u=0;u<P;u++)dist[a][u]=__builtin_popcountll((sb[a]^original[u])&so[a]);
++        double bestOwner=1e100;std::array<int,6> bestOwn{};
++        for(int trial=0;trial<256;trial++){
++            std::array<int,6> seq{0,1,2,3,4,5},chosen{};std::array<bool,256> seen{};
++            for(int i=5;i>0;i--)std::swap(seq[i],seq[rng.below(i+1)]);
++            double score=0;
++            for(int a:seq){int b=-1;double v=1e100;for(int u=0;u<P;u++)if(!seen[u]){
++                double q=dist[a][u]+1e-3*rng.real();if(q<v)v=q,b=u;
++            }chosen[a]=b;seen[b]=true;score+=dist[a][b];}
++            int ones=0;for(int u:chosen)ones+=bool(original[u]&kCapBit);
++            // No physical background handle: its cap colors need not be balanced.
++            u64 covered=0;
++            for(int a=0;a<6;a++)for(int b=a+1;b<6;b++)covered|=original[chosen[a]]^original[chosen[b]];
++            u64 gm=0;for(int j=0;j<G;j++)gm|=1ULL<<seedperm[j];
++            if(gm&~covered)continue;
++            bool good=true;for(int a=0;a<6;a++)for(int b=a+1;b<6;b++)if(!((original[chosen[a]]^original[chosen[b]])&gm))good=false;
++            if(!good)continue;
++            if(score<bestOwner){bestOwner=score;bestOwn=chosen;}
++        }
++        if(bestOwner>1e90)return false;
++        own[0].assign(bestOwn.begin(),bestOwn.end());used.fill(false);for(int u:own[0])used[u]=true;
++        for(int e=0;e<15;e++){auto[a,b]=ep[e];base[e]=original[own[0][a]];eligible[e]=(base[e]^original[own[0][b]])&kActiveWindows;mask[e]=0;counts[e]=0;}
++        group.fill(-1);payload.assign(seedperm.begin(),seedperm.begin()+G);
++        std::vector<int> repair;
++        for(int j=0;j<G;j++){
++            auto[a,b]=seed.edge[j];if(a>b)std::swap(a,b);
++            int e=std::find(ep.begin(),ep.end(),std::make_pair(a,b))-ep.begin(),w=seedperm[j];
++            int intended=seed.polarity[j]^(seed.edge[j].first!=a);
++            if((eligible[e]>>w&1)&&int(base[e]>>w&1)==intended){mask[e]|=1ULL<<w;counts[e]++;group[w]=e;}
++            else repair.push_back(w);
++        }
++        for(int w:repair){
++            int chosen=-1;double best=1e100;
++            for(int e=0;e<15;e++)if(eligible[e]>>w&1){
++                mask[e]|=1ULL<<w;counts[e]++;
++                double cost=objective();for(int n:counts)if(n==0)cost+=20;
++                if(cost<best){best=cost;chosen=e;}
++                mask[e]&=~(1ULL<<w);counts[e]--;
++            }
++            if(chosen<0){return false;}
++            mask[chosen]|=1ULL<<w;counts[chosen]++;group[w]=chosen;
++        }
++        for(int e=0;e<15;e++)if(!counts[e]){
++            int bestw=-1;double best=1e100;
++            for(int w:payload){int old=group[w];if(counts[old]<2||!(eligible[e]>>w&1))continue;
++                mask[old]&=~(1ULL<<w);mask[e]|=1ULL<<w;
++                double score=objective();if(score<best){best=score;bestw=w;}
++                mask[e]&=~(1ULL<<w);mask[old]|=1ULL<<w;
++            }
++            if(bestw<0){return false;}
++            int old=group[bestw];mask[old]&=~(1ULL<<bestw);counts[old]--;
++            mask[e]|=1ULL<<bestw;counts[e]++;group[bestw]=e;
++        }
++        std::cerr<<"inverse_owner_mismatches = "<<bestOwner<<"\ninverse_repair_windows = "<<repair.size()<<'\n';
++        return true;
++        };
++        inverse_ok=infer_owners();
++        if(!inverse_ok){
++            own=std::move(saved_own);used=saved_used;base=std::move(saved_base);
++            eligible=std::move(saved_eligible);mask=std::move(saved_mask);counts=std::move(saved_counts);
++            group=saved_group;payload=std::move(saved_payload);
++        }
++        std::cerr<<"inverse_initialization_ok = "<<inverse_ok<<'\n';
++    }
+     double cur=objective(),initial=cur,best=cur;
+     auto bg=group,bpgroup=group;auto bm=mask;auto bc=counts;auto bp=payload;auto bo=own;auto bch=ch;int owner_accepts=0;
+-    int iterations=(int)env_real("NG_CONTROL_MAP",50000);
++    int iterations=(int)env_real("NG_CONTROL_MAP",inverse_ok?0:50000);
+     for(int it=0;it<iterations;it++){
+         // Co-design the access window of the owned permutation column.
+         // Only a non-payload window is exchanged, so payload coverage is unchanged.

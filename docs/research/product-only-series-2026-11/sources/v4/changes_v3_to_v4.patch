@@ -1,0 +1,324 @@
+--- v3/ng_product_v3.cpp
++++ v4/ng_product_v4.cpp
+@@ -1,3 +1,8 @@
++// AHC074 product-only v4: joint two-product interleaving.
++// Same owned six-sheet staircase architecture as v3; no unowned generic paper.
++// Added exact joint planning of two product helpers, with legal replay and fallback.
++// Incremental map-relation cache is output-equivalent to v3 when V4_JOINT=0.
++// Research build: see report and reproducible benchmarks for runtime limitations.
+ // AHC074 product-only v3: owned permutation column.
+ // Default: cap + 6 owned singleton products in a 6! background column,
+ // plus 185 ordinary staircase product papers (120 singleton + 65 shared pairs).
+@@ -7598,6 +7603,9 @@
+     struct ProductHelperGoal{uint16_t state;uint8_t depth;};
+     struct ProductHelper{int paper;std::vector<ProductHelperGoal> goals;};
+     std::array<std::vector<ProductHelper>,P> product_helpers;
++    std::vector<std::array<u64,7>> product_prefix;
++    std::vector<u64> product_display;
++    long long joint_helper_trials=0,joint_helper_wins=0;
+     long long product_helper_trials=0,product_helper_wins=0,product_helper_count=0;
+     void init_product_helpers(){
+         if(!env_real("PC_HELPERS",1)||control.n!=1||control.ids[0].size()!=6)return;
+@@ -7608,6 +7616,7 @@
+             for(int i=0;i<6;i++){int k=perms[s][i];bits|=paper[k].black&~cover;cover|=paper[k].opaque;prefix[s][i+1]=cover;}
+             disp[s]=bits;
+         }
++        product_prefix=prefix;product_display=disp;
+         for(int u=0;u<P;u++){
+             int d=ded[u];if(col_of[d]<control.n)continue;
+             u64 gh=control.support&~paper[d].opaque;
+@@ -7660,6 +7669,84 @@
+             }
+             std::sort(picks.begin(),picks.end(),[](auto a,auto b){return a.cost<b.cost;});
+             if(picks.size()>6)picks.resize(6);
++
++            if(env_real("V4_JOINT",1)>0){
++                const u64 hh=hmask&~paper[d].opaque&~control.support;
++                struct PairPick{double estimate;int x,y;};
++                std::vector<PairPick> candidates;
++                std::array<int,K> depths{};std::array<int,64> ranks{};
++                depths.fill(-1);
++                for(int k:order)if(col_of[k]>=control.n&&in_column(k,col_of[k]))depths[k]=ranks[col_of[k]]++;
++                const int max_depth=(int)env_real("V4_JOINT_DEPTH",2);
++                for(int x=1;x<K;x++){
++                    if(depths[x]<0||depths[x]>max_depth||col_of[x]==col_of[d])continue;
++                    if((paper[x].black^A[u])&paper[x].opaque&hh)continue;
++                    for(int y=1;y<K;y++){
++                        if(depths[y]<0||depths[y]>max_depth||col_of[y]<=col_of[x]||col_of[y]==col_of[d])continue;
++                        if((paper[y].black^A[u])&paper[y].opaque&hh&~paper[x].opaque)continue;
++                        double estimate=depths[x]+depths[y]+3.4;
++                        for(u64 m=handle_bits(hh&~(paper[x].opaque|paper[y].opaque));m;m&=m-1)estimate+=fix[__builtin_ctzll(m)];
++                        candidates.push_back({estimate,x,y});
++                    }
++                }
++                std::sort(candidates.begin(),candidates.end(),[](auto a,auto b){return a.estimate<b.estimate;});
++                const int limit=(int)env_real("V4_JOINT_LIMIT",12);
++                if((int)candidates.size()>limit)candidates.resize(limit);
++                std::vector<std::pair<int,int>> states;
++                for(int st=0;st<(int)perms.size();st++)states.push_back({control.graph[0].distance(source,st),st});
++                std::sort(states.begin(),states.end());
++                struct Goal{double estimate;int x,y,state,dx,dy;};
++                std::vector<Goal> goals;
++                for(auto pick:candidates){
++                    int bx=-1,by=-1,bs=-1,bd=999;
++                    u64 free=gh&~(paper[pick.x].opaque|paper[pick.y].opaque);
++                    for(auto[dist,state]:states){
++                        if(dist>=bd)break;
++                        // Candidate need not beat the pure background alone:
++                        // it can pay for itself by covering several access handles.
++                        if(dist>base_dist+1)break;
++                        if((product_display[state]^A[u])&free)continue;
++                        for(int dy=6;dy>=0&&bs<0;dy--){
++                            u64 below=(product_display[state]&(product_prefix[state][dy]|~paper[pick.y].opaque))|
++                                      (paper[pick.y].black&~product_prefix[state][dy]);
++                            for(int dx=dy;dx>=0;dx--){
++                                u64 shown=(below&(product_prefix[state][dx]|~paper[pick.x].opaque))|
++                                          (paper[pick.x].black&~product_prefix[state][dx]);
++                                if(!((shown^A[u])&gh)){bx=dx;by=dy;bs=state;bd=dist;break;}
++                            }
++                        }
++                        if(bs>=0)break;
++                    }
++                    if(bs>=0)goals.push_back({pick.estimate+bd,pick.x,pick.y,bs,bx,by});
++                }
++                std::sort(goals.begin(),goals.end(),[](auto a,auto b){return a.estimate<b.estimate;});
++                if(goals.size()>6)goals.resize(6);
++                for(auto pk:goals){
++                    restore(clean);ops=cleanup_ops;OP_TAG(op_tags=cleanup_tags;)invalid=false;check_vis=true;
++                    {OP_LABEL(kOpGen);for(auto[k,dep]:control.graph[0].path(source,pk.state))move(control.ids[0][k],1+dep);}
++                    int placed=0;bool lifted=false;
++                    auto get=[&](int x,int depth){
++                        int c=col_of[x];
++                        if(c>col_of[d]&&!lifted){lift(d);lifted=true;}
++                        for(int guard=0;column_top(c)!=x&&!invalid;guard++){
++                            if(guard>=K){invalid=true;break;}OP_LABEL(kOpHdig);dig(c,x);
++                        }
++                        if(invalid)return;
++                        {OP_LABEL(kOpHelp);move(x,1+depth+placed+int(lifted));}
++                        fillers.push_back({x,0,c});placed++;
++                    };
++                    get(pk.x,pk.dx);get(pk.y,pk.dy);if(!lifted)lift(d);
++                    if(invalid)continue;
++                    finish_handles(u,d,hh&~(paper[pk.x].opaque|paper[pk.y].opaque));
++                    joint_helper_trials++;
++                    if(invalid||display()!=A[u]||ops.size()>2*K)continue;
++                    canonicalize();if(!fillers_reachable())continue;
++                    check_vis=false;ops=post_optimize(initial,ops,u OP_TAG(,op_tags));
++                    ops=post_optimize(initial,ops,u OP_TAG(,op_tags),true);
++                    double score=plan_cost(ops.size());
++                    if(score<best-1e-9){best=score;best_ops=ops;best_state=save();OP_TAG(best_tags=op_tags;)joint_helper_wins++;}
++                }
++            }
+             for(auto pick:picks){
+                 restore(clean);ops=cleanup_ops;OP_TAG(op_tags=cleanup_tags;)invalid=false;check_vis=true;
+                 {OP_LABEL(kOpGen);for(auto[k,dep]:control.graph[0].path(source,pick.state))move(control.ids[0][k],1+dep);}
+@@ -8957,7 +9044,7 @@
+                     int good=__builtin_popcountll(r&gm&p[k].opaque&~bad);
+                     if(!good)continue;
+                     double cost=(__builtin_popcountll(bad&gm)*1.3+__builtin_popcountll(bad&~gm)*.4)/good;
+-                    cost+=.003*col[k];cs.push_back({cost,k,bad});
++                    cost+=env_real("V4_REPAIR_COL",.003)*col[k];cs.push_back({cost,k,bad});
+                 }
+             }
+             std::sort(cs.begin(),cs.end(),[](auto x,auto y){return x.cost<y.cost;});
+@@ -8967,7 +9054,7 @@
+                 u64 op=p[c.k].opaque;p[c.k].opaque&=~c.bits;
+                 int z=0;for(int t=0;t<P;t++)z+=__builtin_popcountll(closure(t)&gm);
+                 p[c.k].opaque=op;
+-                double v=z+.025*__builtin_popcountll(c.bits);
++                double v=z+.025*__builtin_popcountll(c.bits)+env_real("V4_REPAIR_G",0)*__builtin_popcountll(c.bits&gm);
+                 if(z<old&&v<val)best=z,bk=c.k,bb=c.bits,val=v;
+             }
+             if(bk<0)break;
+@@ -9278,24 +9365,112 @@
+             if(u<0||v<0)return -1;cost+=u+v;
+         }return cost;
+     };
++
++    std::vector<uint32_t> map_relation(pairs.size(),0);
++    std::vector<u64> map_closed(pairs.size(),0);
++    std::vector<double> map_costs(pairs.size(),-1);
++    std::vector<u64> last_mask(NE,0),last_base(NE,0);
++    int last_handle=-1,last_hcolors=-1;
++    auto refresh_map_costs=[&](){
++        if(C!=1||R!=6)return;
++        int hc_bits=0;for(int r=0;r<6;r++)hc_bits|=int(original[own[0][r]]>>ch[0]&1)<<r;
++        bool handle_changed=last_handle!=ch[0]||last_hcolors!=hc_bits;
++        std::array<int,15> dirty{};int nd=0;uint32_t erase=0;
++        for(int e=0;e<15;e++)if(mask[e]!=last_mask[e]||((base[e]^last_base[e])&mask[e])){
++            dirty[nd++]=e;erase|=(1U<<e)|(1U<<(e+16));
++        }
++        for(int i=0;i<(int)pairs.size();i++){
++            const auto& p=pairs[i];uint32_t rel=map_relation[i]&~erase;
++            for(int k=0;k<nd;k++){
++                int e=dirty[k];u64 q=p.d&mask[e],x=p.a^base[e];
++                if(q&~x)rel|=1U<<e;if(q&x)rel|=1U<<(e+16);
++            }
++            bool changed=rel!=map_relation[i];map_relation[i]=rel;
++            if(changed){
++                map_closed[i]=(rel&(rel>>16))?kDiagonal:six_relations.closure(rel);
++            }
++            if(!changed&&!handle_changed)continue;
++            u64 cl=map_closed[i];double cost=-1;
++            if(!(cl&kDiagonal)){
++                bool valid=true;
++                if(p.d>>ch[0]&1){
++                    int color=p.a>>ch[0]&1;bool fw=false,rv=false;
++                    for(int r=0;r<6;r++){
++                        int h=hc_bits>>r&1;
++                        fw|=h==color&&!(cl&(0x010101010101ULL<<r));
++                        rv|=h!=color&&!(cl&(63ULL<<(8*r)));
++                    }
++                    valid=fw&&rv;
++                }
++                if(valid)cost=sums->both_of(cl)/720.;
++            }
++            map_costs[i]=cost;
++        }
++        last_mask=mask;last_base=base;last_handle=ch[0];last_hcolors=hc_bits;
++    };
++    const double map_hw=env_real("V4_HW",65),self_weight=env_real("V4_SELF",0);
++    auto self_defects=[&](){
++        int total=0;
++        for(int c=0;c<C;c++)for(int r=0;r<R;r++){
++            std::array<int,6> others{};int n=0;
++            for(int x=0;x<R;x++)if(x!=r)others[n++]=x;
++            int bad[6][6]={};
++            for(int e=0;e<E;e++){
++                auto[a,b]=ep[e];if(a==r||b==r)continue;
++                int cnt=__builtin_popcountll(mask[c*E+e]);
++                int wrong=__builtin_popcountll(mask[c*E+e]&(base[c*E+e]^original[own[c][r]]));
++                bad[a][b]=wrong;bad[b][a]=cnt-wrong;
++            }
++            std::array<int,64> dp;dp.fill(1000);dp[0]=0;
++            for(int s=1;s<(1<<n);s++){
++                for(int i=0;i<n;i++)if(s>>i&1){
++                    int prev=s^(1<<i),v=dp[prev];
++                    for(int j=0;j<n;j++)if(prev>>j&1)v+=bad[others[i]][others[j]];
++                    dp[s]=std::min(dp[s],v);
++                }
++            }
++            total+=dp[(1<<n)-1];
++        }
++        return total;
++    };
+     std::vector<std::pair<int,int>> edges;edges.reserve(pairs.size());
+     auto objective=[&](){
++        refresh_map_costs();
+         u64 gm=0;for(u64 x:mask)gm|=x;edges.clear();
+         for(int i=0;i<(int)pairs.size();i++){
+-            auto&p=pairs[i];if(used[p.u]||used[p.v])continue;double cost=pair_cost(p.a,p.d);if(cost<0)continue;
+-            edges.push_back({int(65*__builtin_popcountll(p.d&~gm)+100*cost+4*p.distance),i});
++            auto&p=pairs[i];if(used[p.u]||used[p.v])continue;double cost=(C==1&&R==6)?map_costs[i]:pair_cost(p.a,p.d);if(cost<0)continue;
++            edges.push_back({int(map_hw*__builtin_popcountll(p.d&~gm)+100*cost+4*p.distance),i});
+         }
+         std::sort(edges.begin(),edges.end());std::array<bool,P> matched{};int count=0,total=0;
+         for(auto[cost,i]:edges){auto&p=pairs[i];if(matched[p.u]||matched[p.v])continue;matched[p.u]=matched[p.v]=true;total+=cost;if(++count==65)break;}
+-        return total/6500.+(65-count)*30.;
++        return total/6500.+(65-count)*30.+(self_weight?self_weight*self_defects()/65.:0.);
+     };
+     double cur=objective(),initial=cur,best=cur;
+-    auto bg=group,bpgroup=group;auto bm=mask;auto bc=counts;auto bp=payload;auto bo=own;int owner_accepts=0;
++    auto bg=group,bpgroup=group;auto bm=mask;auto bc=counts;auto bp=payload;auto bo=own;auto bch=ch;int owner_accepts=0;
+     int iterations=(int)env_real("NG_CONTROL_MAP",50000);
+     for(int it=0;it<iterations;it++){
++        // Co-design the access window of the owned permutation column.
++        // Only a non-payload window is exchanged, so payload coverage is unchanged.
++        if(R==6 && env_real("V4_HANDLE",0)>0 && it%23==0){
++            int c=rng.below(C), w=rng.below(63);
++            if(group[w]>=0 || (handle_reserved>>w&1))continue;
++            int ones=0;for(int u:own[c])ones+=original[u]>>w&1;
++            if(ones==0 || ones==R)continue;
++            int prev=ch[c];ch[c]=w;
++            double score=objective(),temp=.08*std::pow(.0015/.08,double(it)/iterations);
++            if(score<=cur || rng.real()<std::exp((cur-score)/temp)){
++                cur=score;handle_reserved^=(1ULL<<prev)|(1ULL<<w);
++                for(int ce=0;ce<NE;ce++){
++                    auto [a,b]=ep[ce%E];int cc=ce/E;
++                    eligible[ce]=(original[own[cc][a]]^original[own[cc][b]])&kActiveWindows&~handle_reserved;
++                }
++                if(cur<best){best=cur;bg=group;bm=mask;bc=counts;bp=payload;bo=own;bch=ch;}
++            }else ch[c]=prev;
++            continue;
++        }
+         // Large neighborhood: change an owned background product, then reconnect
+         // only comparisons that no longer have opposite printed colors.
+-        if(R==6&&(env_real("PC_OWNERS",1)!=0)&&it%200==0&&it>0){
++        if(R==6&&(env_real("PC_OWNERS",1)!=0)&&it%std::max(1,(int)env_real("V4_OWNER_RATE",200))==0&&it>0){
+             const int c=rng.below(C),r=rng.below(R),old=own[c][r];
+             u64 printed=0;for(int e=0;e<E;e++){auto[a,b]=ep[e];if(a==r||b==r)printed|=mask[c*E+e];}
+             std::vector<std::pair<double,int>> candidates;
+@@ -9332,10 +9507,21 @@
+             double temp=.08*std::pow(.0015/.08,double(it)/iterations);
+             if(possible&&(score<cur||rng.real()<std::exp((cur-score)/temp))){
+                 owner_accepts++;cur=score;
+-                if(cur<best){best=cur;bg=group;bm=mask;bc=counts;bp=payload;bo=own;}
++                if(cur<best){best=cur;bg=group;bm=mask;bc=counts;bp=payload;bo=own;bch=ch;}
+             }else{
+                 own=save_own;used=save_used;base=save_base;eligible=save_eligible;mask=save_mask;counts=save_counts;group=save_group;
+             }
++            continue;
++        }
++        if(env_real("V4_SWAP",0)>0 && it%7==0){
++            int ia=rng.below(G),ib=rng.below(G),a=payload[ia],b=payload[ib],ea=group[a],eb=group[b];
++            if(ea==eb || !(eligible[ea]>>b&1) || !(eligible[eb]>>a&1))continue;
++            u64 flip=(1ULL<<a)|(1ULL<<b);mask[ea]^=flip;mask[eb]^=flip;
++            double score=objective(),temp=.08*std::pow(.0015/.08,double(it)/iterations);
++            if(score<=cur || rng.real()<std::exp((cur-score)/temp)){
++                std::swap(group[a],group[b]);cur=score;
++                if(cur<best){best=cur;bg=group;bm=mask;bc=counts;bp=payload;bo=own;bch=ch;}
++            }else{mask[ea]^=flip;mask[eb]^=flip;}
+             continue;
+         }
+         int pi=rng.below(G),a=payload[pi],ea=group[a],b=a,eb=ea;
+@@ -9347,15 +9533,17 @@
+         mask[ea]&=~(1ULL<<a);mask[eb]|=1ULL<<b;counts[ea]--;counts[eb]++;group[a]=-1;group[b]=eb;payload[pi]=b;
+         double score=objective();double temp=.08*std::pow(.0015/.08,double(it)/iterations);
+         if(score<cur||rng.real()<std::exp((cur-score)/temp)){
+-            cur=score;if(cur<best){best=cur;bg=group;bm=mask;bc=counts;bp=payload;bo=own;}
++            cur=score;if(cur<best){best=cur;bg=group;bm=mask;bc=counts;bp=payload;bo=own;bch=ch;}
+         }else{mask[eb]&=~(1ULL<<b);mask[ea]|=1ULL<<a;counts[eb]--;counts[ea]++;group[b]=-1;group[a]=ea;payload[pi]=a;}
+     }
+-    group=bg;mask=bm;counts=bc;payload=bp;own=bo;used.fill(false);
++    group=bg;mask=bm;counts=bc;payload=bp;own=bo;ch=bch;
++    handle_reserved=0;for(int c=0;c<C;c++)handle_reserved|=1ULL<<ch[c];used.fill(false);
+     for(int c=0;c<C;c++)for(int u:own[c])used[u]=true;
+     for(int c=0;c<C;c++)for(int e=0;e<E;e++){
+         auto[a,b]=ep[e];int j=c*E+e;base[j]=original[own[c][a]];
+         eligible[j]=(base[j]^original[own[c][b]])&kActiveWindows&~handle_reserved;
+     }
++    std::cerr<<"self_defects = "<<self_defects()<<'\n';
+     std::cerr<<"owner_accepts = "<<owner_accepts<<'\n';
+     std::cerr<<"control_map_before = "<<initial<<"\ncontrol_map_after = "<<best<<"\ncontrol_map_sec = "<<elapsed_sec()-start<<'\n';
+     if(best>=30){state.emergency=true;return state;}
+@@ -9399,6 +9587,22 @@
+     }
+     if(next!=K){state.emergency=true;return state;}
+     Feas f(state);f.repair(512);state.papers=f.p;if(f.fails){state.emergency=true;return state;}
++    if(env_real("V4_HEAL",0)>0){
++        int healed=0;auto original_p=state.papers;
++        for(int pass=0;pass<2;pass++)for(int k=1;k<K;k++)if(state.columns[k]>=C){
++            int owner=-1;u64 can=low_bits(G)|kCapBit;
++            for(int c=0;c<=state.columns[k];c++)can|=1ULL<<state.handle[c];
++            for(int u=0;u<P;u++)if(state.ded[u]==k){
++                if(owner<0)owner=u;else can&=~(state.A[owner]^state.A[u]);
++            }
++            for(u64 bits=can&~f.p[k].opaque&kActiveWindows;bits;bits&=bits-1){
++                u64 bit=bits&-bits;auto oldp=f.p[k];
++                f.p[k].opaque|=bit;f.p[k].black|=state.A[owner]&bit;
++                if(f.evaluate()==0)healed++;else f.p[k]=oldp;
++            }
++        }
++        state.papers=f.p;std::cerr<<"healed_holes = "<<healed<<'\n';
++    }
+     if(env_real("PC_PERF",0)>0){
+         auto solver=make_solver(state);Perforation perf(solver);
+         for(auto&bits:perf.allowed)bits&=~low_bits(C);
+@@ -10032,6 +10236,7 @@
+ 
+     // ==== main: statistics ====
+     cf_report();
++    std::cerr<<"joint_helper_trials = "<<solver.joint_helper_trials<<"\njoint_helper_wins = "<<solver.joint_helper_wins<<'\n';
+     std::cerr<<"product_helper_trials = "<<solver.product_helper_trials<<"\nproduct_helper_wins = "<<solver.product_helper_wins<<"\nproduct_helper_count = "<<solver.product_helper_count<<"\n";
+     std::cerr<<"ng_helpers = "<<solver.ng_helpers<<"\nng_candidates = "<<solver.ng_candidates<<"\n";
+     std::cerr << "cf_value_hits = " << solver.cf_value_hits << "\ncf_value_misses = " << solver.cf_value_misses << '\n';
