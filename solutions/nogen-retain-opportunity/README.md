@@ -1,0 +1,3 @@
+改良元: solutions/nogen-tailreserve
+
+注文前に背景内に残る補助紙を数え、そのうち次の商品の背景ヘルパー表に含まれる紙を数える計測専用版。計画と設計は変更しない。retain_orders/papersは背景内の旧補助紙、retain_eligible/eligible_ordersはそのまま次にも背景補助として使える候補の数。
