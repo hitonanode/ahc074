@@ -11,3 +11,9 @@
 - **再評価**: リポジトリの `scripts/pahcer_run.py` を用いて、基準と同時に seed 0～99 を比較。詳細な測定条件は[研究レポート](../../docs/research/product-only-series-2026-11/reports/ahc074_product_only_v6_report_ja.md) を参照。
 
 単独C++23ファイルで、`g++ -std=c++23 -O2 -march=native main.cpp -o solver` を想定する（今回GitHub上での2000ケース評価は未実施）。研究用の実験環境変数は必要なとき以外指定しない。
+
+## 提出制限に関する注意
+
+この `main.cpp` は **532,156バイト**あり、リポジトリの `AGENTS.md` に記載のAtCoder提出ソース上限 **512 KiB（524,288バイト）を7,868バイト超過**している。加えてローカル平均実行時間が2秒超のため、**そのままAtCoderへ提出することを想定していない**。コードサイズ縮小・時間制限対策と公式テスタでの検証が必要。
+
+このPR作成時に `g++ -std=c++23 -O2 -march=native -fsyntax-only main.cpp` の成功をローカルで確認した（実行時間・スコアの再計測ではない）。
