@@ -1,0 +1,24 @@
+{
+  "parent": "solutions/deval-vbranch-o3",
+  "settings": {
+    "DEVAL_REHEAT": 2,
+    "DEVAL_CANDIDATES": 4,
+    "DEVAL_SHARED": 2,
+    "DEVAL_BRANCH_SCALE": 0.25,
+    "CLIMB_ITERS": 50000,
+    "DEVAL_MATCH_ITERS": 2,
+    "ANNEAL_ITERS": 11733750
+  },
+  "share_table": true,
+  "prune_branch": true,
+  "o3_design": true,
+  "parent_sha256": "aa98cc813353771f1dc1ae2e82b84abf4efe174742a646cd6b5c8f15dcf93743",
+  "source_sha256": "d7caf6a1b978cc2d841d54273e865b72169e4ccba7e2ee269d6e0e5ff6acba32",
+  "source_bytes": 506097,
+  "training_seeds": "0-499",
+  "final_test_seeds": "500-999",
+  "value_model": "solutions/deval-vtarget/V.json",
+  "request_guard": "reserve_v1",
+  "design_guard": "submission_absolute_caps_v1",
+  "generator": "solutions/deval-vselect/make_long.py"
+}

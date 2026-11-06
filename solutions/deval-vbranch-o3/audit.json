@@ -1,0 +1,68 @@
+{
+  "all_checks_pass": true,
+  "source_bytes": 506097,
+  "sections": 60,
+  "replayed_real_lists": 1000,
+  "replay_score_mismatches": [],
+  "completed_candidate_counts": {
+    "4": 1997,
+    "3": 3
+  },
+  "selected_candidate_counts": {
+    "2": 500,
+    "3": 450,
+    "1": 495,
+    "0": 555
+  },
+  "runs": {
+    "20261107-062104_deval-vbranch-o3": {
+      "compile_command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-DLOCAL_BENCH",
+        "-o",
+        "/home/sato/ahc074/runs/20261107-062104_deval-vbranch-o3/a.out",
+        "/home/sato/ahc074/runs/20261107-062104_deval-vbranch-o3/src/main.cpp"
+      ],
+      "source_sha256": "aa98cc813353771f1dc1ae2e82b84abf4efe174742a646cd6b5c8f15dcf93743"
+    },
+    "20261107-062543_deval-vbranch-o3": {
+      "compile_command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DCLOCK_SCALE=1.1",
+        "-DLOCAL_BENCH",
+        "-o",
+        "/home/sato/ahc074/runs/20261107-062543_deval-vbranch-o3/a.out",
+        "/home/sato/ahc074/runs/20261107-062543_deval-vbranch-o3/src/main.cpp"
+      ],
+      "source_sha256": "aa98cc813353771f1dc1ae2e82b84abf4efe174742a646cd6b5c8f15dcf93743"
+    },
+    "20261107-062857_deval-vbranch-o3": {
+      "compile_command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DLOCAL_BENCH",
+        "-ULOCAL_BENCH",
+        "-DCLOCK_SCALE=2.2",
+        "-o",
+        "/home/sato/ahc074/runs/20261107-062857_deval-vbranch-o3/a.out",
+        "/home/sato/ahc074/runs/20261107-062857_deval-vbranch-o3/src/main.cpp"
+      ],
+      "source_sha256": "aa98cc813353771f1dc1ae2e82b84abf4efe174742a646cd6b5c8f15dcf93743"
+    }
+  }
+}
