@@ -60,6 +60,7 @@
 //   Prediction
 //   Adapter from the solver's DesignState
 //   V: swaps of completed target assignments (research: the causal test of V)
+//   V: pre-finish climb (research: the causal test of V before the finishing)
 //   Design iteration counts
 //   design_papers: window assignment and the initial design
 //   design_papers: finish each candidate and select by V
@@ -9608,6 +9609,68 @@ DesignState design_papers(const std::vector<u64>& originalA) {
         }
         anneal_sec+=elapsed_sec()-begin;
         total_iters+=des->anneal_iters;
+        // ==== V: pre-finish climb (research: the causal test of V before the finishing) ====
+        // DEVAL_PRECLIMB trials on the annealed design, before its finishing: swap the columns of
+        // two units, or move one unit to another column (pairs stay valid at their handle, both
+        // colors stay in every column). Keep the change when the objective (DEVAL_REFINE_MODEL,
+        // V3 by default) of the natural-mask design, finish(raw), decreases.
+        if (const int pre = env_int("DEVAL_PRECLIMB"); pre > 0) {
+            const int model = std::getenv("DEVAL_REFINE_MODEL") ? env_int("DEVAL_REFINE_MODEL") : 3;
+            std::ostringstream sink;
+            auto* real = std::cerr.rdbuf(sink.rdbuf());
+            const double t0 = elapsed_sec();
+            Design& D = *des;
+            std::vector<std::array<int, 2>> cnt(D.H, {0, 0});
+            for (const auto& u : D.unit) ++cnt[u.c][D.color(u, u.c)];
+            auto eval = [&]() {
+                const auto st = finish(&D, true);
+                return st.emergency ? 1e100 : refine_objective(value, st, model);
+            };
+            double cur = eval();
+            const double before = cur;
+            XorShift prng{0x51ab0c3e7d2f4a91ULL ^ (u64(i) << 32)};
+            int acc = 0, tried = 0;
+            for (int it = 0; it < pre; ++it) {
+                const int x = prng.below(D.U);
+                auto& ux = D.unit[x];
+                const int a = ux.c;
+                if (it & 1) {  // move x to a nearby column
+                    const int b = std::clamp(a + int(prng.below(9)) - 4, 0, D.H - 1);
+                    if (b == a || !D.valid(ux, b) || cnt[a][D.color(ux, a)] <= 1) continue;
+                    ++tried;
+                    --cnt[a][D.color(ux, a)]; ux.c = b; ++cnt[b][D.color(ux, b)];
+                    const double v = eval();
+                    if (v < cur) { cur = v; ++acc; }
+                    else { --cnt[b][D.color(ux, b)]; ux.c = a; ++cnt[a][D.color(ux, a)]; }
+                } else {  // swap the columns of x and y
+                    const int y = prng.below(D.U);
+                    auto& uy = D.unit[y];
+                    const int b = uy.c;
+                    if (a == b || !D.valid(ux, b) || !D.valid(uy, a)) continue;
+                    --cnt[a][D.color(ux, a)]; --cnt[b][D.color(uy, b)];
+                    ++cnt[b][D.color(ux, b)]; ++cnt[a][D.color(uy, a)];
+                    if (cnt[a][0] < 1 || cnt[a][1] < 1 || cnt[b][0] < 1 || cnt[b][1] < 1) {
+                        --cnt[b][D.color(ux, b)]; --cnt[a][D.color(uy, a)];
+                        ++cnt[a][D.color(ux, a)]; ++cnt[b][D.color(uy, b)];
+                        continue;
+                    }
+                    ++tried;
+                    ux.c = b; uy.c = a;
+                    const double v = eval();
+                    if (v < cur) { cur = v; ++acc; }
+                    else {
+                        ux.c = a; uy.c = b;
+                        --cnt[b][D.color(ux, b)]; --cnt[a][D.color(uy, a)];
+                        ++cnt[a][D.color(ux, a)]; ++cnt[b][D.color(uy, b)];
+                    }
+                }
+            }
+            D.rebuild();
+            std::cerr.rdbuf(real);
+            std::cerr << "dv_preclimb_tried = " << tried << "\ndv_preclimb_accepted = " << acc
+                      << "\ndv_preclimb_before = " << before << "\ndv_preclimb_after = " << cur
+                      << "\ndv_preclimb_sec = " << elapsed_sec() - t0 << '\n';
+        }
         std::ostringstream log;
         auto* old=std::cerr.rdbuf(log.rdbuf());
         Design::kClimbProxyWeight=env_real("DEVAL_CLIMB_WEIGHT",.5)+(env_int("DEVAL_CLIMB_GRID")?.3*i:0.);

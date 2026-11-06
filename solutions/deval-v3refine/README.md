@@ -10,3 +10,5 @@ V を目的関数として直接下げると、本当の手数も下がるか（
 - `DEVAL_REFINE_LIMIT`: 改善を打ち切る設計の経過秒（既定は打ち切らない）。
 
 `DEVAL_REFINE` を指定しなければ deval-vbranch-nofb と同じ出力。stderr の `dv_refine_accepted` は採った手の数、`dv_refine_v16_before/after` と `dv_refine_v3_before/after` は改善の前後の V16 と V3、`dv_refine_sec` はその時間。
+
+`DEVAL_PRECLIMB` は、各候補の焼きなましの直後・仕上げの前に、2 つの紙（unit）の列を入れ替えるか 1 つの紙を近くの列へ動かす手を指定回数試し、穴あけ前の自然な紙（`finish(raw)`）で測った目的関数（`DEVAL_REFINE_MODEL`、既定 V3）が下がる手を採る。採った後に設計の集計を作り直し、通常どおり仕上げる。stderr の `dv_preclimb_tried` / `dv_preclimb_accepted` / `dv_preclimb_before` / `dv_preclimb_after` / `dv_preclimb_sec`。
