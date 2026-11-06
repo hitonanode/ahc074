@@ -1,0 +1,109 @@
+--- esw-clean-original.cpp
++++ esw-paper-count.cpp
+@@ -85,7 +85,13 @@
+ 
+ // ==== Common: constants, clock, random numbers ====
+ 
+-constexpr int N = 64, K = 192, P = 256;
++// Counterfactual paper-budget experiment. The original defaults remain unchanged.
++#ifndef PAPER_COUNT
++#define PAPER_COUNT 192
++#endif
++constexpr int N = 64, K = PAPER_COUNT, P = 256;
++static_assert(182 <= K && K <= 202, "This experiment supports K=182..202 only");
++constexpr int kPaperWords = (K + 63) / 64;
+ constexpr int kCapWindow = 63, kCapPaper = 6;
+ constexpr u64 kCapBit = 1ULL << kCapWindow;
+ constexpr u64 kActiveWindows = kCapBit - 1;
+@@ -1271,7 +1277,7 @@
+     dp_cycles[dp_aw_sums] += __builtin_ia32_rdtsc() - dp_sums_start;
+ #endif
+     XorShift rng{0x71eb2566be932e31ULL};
+-    const int n = int(A.size()), need = 256 - (191 - m);
++    const int n = int(A.size()), need = P - (K - 1 - m);
+     std::vector<std::pair<int, int>> ep;  // the pairs of sheets
+     int index[8][8];
+     std::memset(index, -1, sizeof(index));
+@@ -2314,7 +2320,7 @@
+     double proxy_before = 0, proxy_after = 0;
+ 
+     static int pc(u64 x) { return __builtin_popcountll(x); }
+-    Design(const std::vector<u64>& a, int m, int g) : G(g), H(63 - g), U(191 - m), need(256 - U), A(a) {
++    Design(const std::vector<u64>& a, int m, int g) : G(g), H(63 - g), U(K - 1 - m), need(P - U), A(a) {
+         handle.resize(H);
+         std::iota(handle.begin(), handle.end(), G);
+         hb.resize(256);
+@@ -6258,8 +6264,8 @@
+     // Exact canonicalization using unchanged, monotonically ordered column runs. Such a run is
+     // entirely in place when its last column is <= cur; only displaced papers need records.
+     // The old filler priority is preserved exactly, including holes left by empty columns.
+-    void canonicalize_post(const Links& previous, const std::array<u64, 3>& moved,
+-                           const std::array<u64, 3>& breaks) {
++    void canonicalize_post(const Links& previous, const std::array<u64, kPaperWords>& moved,
++                           const std::array<u64, kPaperWords>& breaks) {
+         int cur = H, ntop = -1, count = 0, position = K - 1;
+         bool gen_seen = false;
+         u64 nonempty = 0;
+@@ -6396,7 +6402,7 @@
+         std::array<uint16_t, K> input_counts{};
+         if (neutral_collect && cfg.new_only)
+             for (auto [k, d] : input_ops) { input_moved[k] = true; input_counts[k]++; }
+-        std::array<u64, 3> parent_owner_moves{};
++        std::array<u64, kPaperWords> parent_owner_moves{};
+         if (neutral_collect && (cfg.hidden_rank || cfg.predict)) {
+             u64 covered = 0;
+             for (int k : seed.order) {
+@@ -6428,7 +6434,7 @@
+             F3_DIAG(fp_trials[fp_op]++;)
+             EndMemo* memo = nullptr;
+             bool memo_hit = false;
+-            std::array<u64, 3> moved{}, breaks{};
++            std::array<u64, kPaperWords> moved{}, breaks{};
+             auto next = initial_next, prev = initial_prev;
+             {
+                 CF_SCOPE(eval_filter);
+@@ -6458,7 +6464,7 @@
+                     int w = i >> 6;
+                     u64 m = breaks[w] & (~0ULL << (i & 63));
+                     while (!m) {
+-                        if (++w == 3) return K - 1;
++                        if (++w == kPaperWords) return K - 1;
+                         m = breaks[w];
+                     }
+                     return w * 64 + __builtin_ctzll(m);
+@@ -6620,7 +6626,7 @@
+                 }();
+                 bool has_new_paper = !cfg.new_only;
+                 int repeats = 0;
+-                std::array<u64, 3> retained_moves{};
++                std::array<u64, kPaperWords> retained_moves{};
+                 if (cfg.candidate_mode == 2 || cfg.candidate_priority || cfg.promising_slack > 0) {
+                     std::array<uint16_t, K> count{};
+                     for (auto [k, d] : path) {
+@@ -6639,7 +6645,7 @@
+                     // Hash the top-down paper sequence that owns at least one of the first two
+                     // opaque layers. This is approximate diversity filtering, not a validity test.
+                     u64 seen = 0, twice = 0, signature = 7819213141ULL;
+-                    std::array<u64, 3> still_visible{};
++                    std::array<u64, kPaperWords> still_visible{};
+                     for (int k : order) {
+                         const u64 op = paper[k].opaque;
+                         if ((cfg.hidden_rank || cfg.predict) && (op & ~seen))
+@@ -6650,7 +6656,7 @@
+                         if (twice == ~u64(0)) break;
+                     }
+                     int hides = 0;
+-                    for (int w = 0; w < 3; w++)
++                    for (int w = 0; w < kPaperWords; w++)
+                         hides += __builtin_popcountll(parent_owner_moves[w] & retained_moves[w] & ~still_visible[w]);
+                     bool found = false;
+                     for (auto& c : neutral_candidates)
+@@ -7974,7 +7980,7 @@
+         output = std::to_string(__builtin_popcountll(different)) + '\n';
+         for (u64 s = different; s; s &= s - 1) {
+             int j = __builtin_ctzll(s), k = j + ((current >> j & 1) ? 64 : 0);
+-            output += std::to_string(k) + " 191\n";
++            output += std::to_string(k) + " " + std::to_string(K - 1) + "\n";
+             total++;
+         }
+ #ifdef LOCAL_BENCH
