@@ -1,0 +1,40 @@
+[pahcer_run] run-id: 20261107-083600_deval-vbranch-o3
+[pahcer_run] run-id: 20261107-083600_deval-filterprefix
+[deval] reused build: 20261107-080520_deval-vbranch-o3
+[pahcer_run] 実行中の評価の終了を待っています: 20261107-083945_deval-cold600 ほか 0 個の比較 (pid 5, 2026-11-07T08:44:39+09:00 から) (scripts/pahcer_run.py --status で状況を見られる)
+Traceback (most recent call last):
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 921, in acquire_lock
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 11] Resource temporarily unavailable
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 1397, in evaluate_compare
+    lock_fd = acquire_lock(runs_dir / ".lock", f"{group[0]} ほか {count - 1} 個の比較")
+              ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 925, in acquire_lock
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+deval_pahcer_run.Interrupted
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/deval-speed/run.py", line 56, in <module>
+    raise SystemExit(mod.main())
+                     ~~~~~~~~^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 1779, in main
+    return evaluate_compare(args, root, template)
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 1470, in evaluate_compare
+    arm["meta"]["finished_at"] = now_iso()
+                                 ~~~~~~~^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 141, in now_iso
+    return datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+deval_pahcer_run.Interrupted

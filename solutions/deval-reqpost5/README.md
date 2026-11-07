@@ -1,0 +1,7 @@
+# deval-reqpost5
+
+改良元: solutions/deval-vbranch-o3。
+
+注文探索の既定設定だけを変更: {'POST_CANDIDATES': 5}。F3_*環境変数で上書きできる。設計段は変更しない。
+
+時間ガード、DesignStore、@paper/@opsは維持。LOCAL_BENCHでは注文探索予算は固定。
