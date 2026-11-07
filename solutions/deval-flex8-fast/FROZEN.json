@@ -1,0 +1,20 @@
+{
+  "solution": "deval-flex8-fast",
+  "sha256": "3cc0785e2a14076fb52c50aa7dc467ff65304f82585bdb1eaae5c49a4650c605",
+  "bytes": 521787,
+  "time": "2026-11-07T16:53:05.467045+09:00",
+  "selection_seeds": [
+    0,
+    500
+  ],
+  "held_out_seeds": [
+    500,
+    1000
+  ],
+  "priority": [
+    "deval-flex125-plan3",
+    "deval-flex125",
+    "deval-flex8-fast"
+  ],
+  "rule": "Fixed priority from training; take the first solver with judge mean <=1.10*old and p99 <=nofb in the final same compare. Do not use scores to choose. Run held-out replay only for that one solver."
+}

@@ -1,0 +1,41 @@
+[pahcer_run] run-id: 20261107-144301_deval-ordered8
+[pahcer_run] run-id: 20261107-144301_deval-vheads
+[pahcer_run] run-id: 20261107-144301_deval-vdraw
+[pahcer_run] run-id: 20261107-144301_deval-vfast
+[deval] reused build: 20261107-141819_deval-ordered8
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/deval-vheads/main.cpp: In constructor ‘{anonymous}::deval::Donors::Donors(const {anonymous}::deval::State&, const std::array<double, 63>&)’:
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/deval-vheads/main.cpp:8981:70: error: no matching function for call to ‘max(int&, const std::array<double, 192>::value_type&)’
+ 8981 |             auto& f=maxfreq[s.col[k]][s.bl[k]>>s.col[k]&1];f=std::max(f,s.freq[k]);
+      |                                                              ~~~~~~~~^~~~~~~~~~~~~
+In file included from /usr/include/c++/13/algorithm:60,
+                 from /home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/deval-vheads/main.cpp:78:
+/usr/include/c++/13/bits/stl_algobase.h:257:5: note: candidate: ‘template<class _Tp> constexpr const _Tp& std::max(const _Tp&, const _Tp&)’
+  257 |     max(const _Tp& __a, const _Tp& __b)
+      |     ^~~
+/usr/include/c++/13/bits/stl_algobase.h:257:5: note:   template argument deduction/substitution failed:
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/deval-vheads/main.cpp:8981:70: note:   deduced conflicting types for parameter ‘const _Tp’ (‘int’ and ‘std::array<double, 192>::value_type’ {aka ‘double’})
+ 8981 |             auto& f=maxfreq[s.col[k]][s.bl[k]>>s.col[k]&1];f=std::max(f,s.freq[k]);
+      |                                                              ~~~~~~~~^~~~~~~~~~~~~
+/usr/include/c++/13/bits/stl_algobase.h:303:5: note: candidate: ‘template<class _Tp, class _Compare> constexpr const _Tp& std::max(const _Tp&, const _Tp&, _Compare)’
+  303 |     max(const _Tp& __a, const _Tp& __b, _Compare __comp)
+      |     ^~~
+/usr/include/c++/13/bits/stl_algobase.h:303:5: note:   template argument deduction/substitution failed:
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/deval-vheads/main.cpp:8981:70: note:   deduced conflicting types for parameter ‘const _Tp’ (‘int’ and ‘std::array<double, 192>::value_type’ {aka ‘double’})
+ 8981 |             auto& f=maxfreq[s.col[k]][s.bl[k]>>s.col[k]&1];f=std::max(f,s.freq[k]);
+      |                                                              ~~~~~~~~^~~~~~~~~~~~~
+In file included from /usr/include/c++/13/algorithm:61:
+/usr/include/c++/13/bits/stl_algo.h:5795:5: note: candidate: ‘template<class _Tp> constexpr _Tp std::max(initializer_list<_Tp>)’
+ 5795 |     max(initializer_list<_Tp> __l)
+      |     ^~~
+/usr/include/c++/13/bits/stl_algo.h:5795:5: note:   template argument deduction/substitution failed:
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/deval-vheads/main.cpp:8981:70: note:   mismatched types ‘std::initializer_list<_Tp>’ and ‘int’
+ 8981 |             auto& f=maxfreq[s.col[k]][s.bl[k]>>s.col[k]&1];f=std::max(f,s.freq[k]);
+      |                                                              ~~~~~~~~^~~~~~~~~~~~~
+/usr/include/c++/13/bits/stl_algo.h:5805:5: note: candidate: ‘template<class _Tp, class _Compare> constexpr _Tp std::max(initializer_list<_Tp>, _Compare)’
+ 5805 |     max(initializer_list<_Tp> __l, _Compare __comp)
+      |     ^~~
+/usr/include/c++/13/bits/stl_algo.h:5805:5: note:   template argument deduction/substitution failed:
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/deval-vheads/main.cpp:8981:70: note:   mismatched types ‘std::initializer_list<_Tp>’ and ‘int’
+ 8981 |             auto& f=maxfreq[s.col[k]][s.bl[k]>>s.col[k]&1];f=std::max(f,s.freq[k]);
+      |                                                              ~~~~~~~~^~~~~~~~~~~~~
+[pahcer_run] 20261107-144301_deval-vheads のコンパイルに失敗しました (run ディレクトリはすべて削除しました)
