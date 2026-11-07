@@ -1,5 +1,15 @@
-改良元: `solutions/deval-equalwide-fast`。
+改良元: `solutions/deval-flex125-plan3`（途中の版 `deval-helpeq1` / `deval-helpeq-fast` / `deval-equalwide-fast` を経由した）。`solutions/deval-helper-one` との違いは、注文処理の探索の幅 `NEUTRAL_WIDTH` の既定値（3 → 4）の 1 行だけ。
 
-canonicalizeのK要素初期化を、現在の世代と旧fillerの印を一緒に保存するunsigned stampへ置き換える。世代のwrap時だけ配列を初期化する。候補の順・重複・旧filler優先順位を保つ。ejectの整数SIMDとcache keyの整数圧縮は改良元を引き継ぐ。設計の全予算・出力はflex125-plan3と同じ。注文だけの変更で、同generic移動数のhelperを見積り上位1件追加し、同距離goalは既存future優先で選ぶ。単独helper全体は上位6件、NS_ROUNDS=2、PLAN_SHORTLIST=3。
+設計は改良元と同じ（予算、候補数 8、列の中の紙の初期の順）。変えたのは注文処理だけ。
 
-NEUTRAL_WIDTH=4。全予算は固定で、時間不足による切替えはない。DesignStoreは選んだ設計を保存し、@paper/@ops・全指標・trace・profiler・実験switch・段の目次を保つ。
+- **補助紙の候補を足す。** これまでの候補は、汎用紙の並べ替えの手数を減らす単独の補助紙だけだった。手数が同じでも、補助紙は複数の取っ手を同時に覆えるので、全体の手数は減りうる。そこで、汎用紙の手数が通常の計画と同じ単独の補助紙も、残る取っ手の修正を含む事前の見積りで上位 1 件だけ候補に入れる。従来の候補と合わせて最大 6 件を実行し、既存の計画の費用（plan_cost）と後処理で選ぶ。手数が同じ補助紙の行き先（goal）は、次の注文の期待費用（future）が小さい方を選び、さらに同点なら深い位置を選ぶ。
+- **注文処理の探索の幅 `NEUTRAL_WIDTH` を 3 から 4 にする。**
+- **時間を賄うため、出力を変えない高速化を 3 つ入れる。**
+  - eject の整数の必要条件を、紙 4 枚ずつ AVX2 で検査する（通る候補の順は保つ）。
+  - 次の費用のキャッシュのキーを、整数の SIMD で詰める（キー全体の照合と、浮動小数点の足す順は保つ）。
+  - canonicalize の配列の初期化を、世代の印（stamp）に置き換える（古いフィラーの順と重複も保つ。unsigned の値が一周したときだけ配列を初期化する）。
+- **ソースを空ける。** 呼ばれない 4 関数、必ず上書きされる古い列 MDP の分類、古いコメントを削った（521,712 バイト）。
+
+主なパラメータ（注文処理の設定は環境変数 `F3_<名前>` で変えられる。評価では何も設定しない）: NEUTRAL_WIDTH=4、NS_ROUNDS=2、PLAN_SHORTLIST=3、単独の補助紙の候補は最大 6 件。全予算は固定で、時間不足による軽量化・設計の打ち切り・候補数の切り替えはない。
+
+指標と出力は改良元と同じ。DesignStore は選んだ設計を保存する。`dv_candidates` / `dv_chosen` は仕上げた設計の候補の数と、選んだ候補の番号。`req_sec` / `end_sec` は CLOCK_SCALE を掛けた注文処理の時間と終了時刻。ログ、統計、@paper / @ops、trace、profiler、実験の切り替え、段の目次を保つ。
