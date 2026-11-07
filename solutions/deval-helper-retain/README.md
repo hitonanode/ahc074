@@ -1,0 +1,3 @@
+改良元: `solutions/deval-helpeq1`。
+
+helper計画を作る前に、旧fillerを全て返す制約を緩める。旧fillerが全て見えていて、対象の列を隠さず、genericより下で今回の要求色を満たしているfillerは、その場に残す。その他だけを従来の可視順で返す。残したfillerの表示範囲は追加filler・handle fixの必要範囲から除き、残した紙自身は新規helper候補から外す。候補数は同じで追加の計画列挙はしない。全計画は既存の表示・可視性・fillers_reachable検査とplan_costを通す。他の設計・固定予算・ログと実験スイッチを保ち、時計では切り替えない。

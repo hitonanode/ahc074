@@ -1,0 +1,8 @@
+## 出力を保つ実装変更の根拠
+
+- eject: 元の各紙の整数必要条件を4lane同時に計算する。owner stampが現在のtrialと一致するlaneだけ所有窓をgatherし、ほかは0にする。paddingは0初期化、最後のmaskで有効候補数外を除く。通過laneを下位bitから処理するため元の紙番号順を保つ。修復位置の検証と浮動小数点の評価は元のまま。
+- next-cost cache key: 元と同じin-column subsequenceを、16byteずつ読む整数shuffleで圧縮する。generic/capの紙番号の前提はinit時に全紙で検査し、前提が異なる設計には元のscalar走査を使う。top_dとfillerの除外は同じ。下側fillerの追記、padding、hash、完全key照合、cache miss時の加算順は保つ。
+- canonicalize: bottom-up走査と新fillerの順は同じ。全K要素を毎回初期化する代わりに偶数の世代を付け、下位bitで旧fillerの優先印を保持する。旧記録に重複がある場合も元と同じ数だけ残す。unsigned wrap時は全stampを0にし世代2へ進める。
+- 容量整理: 呼出しがない4メソッド、必ず後で上書きされる旧MDP分類、古いコメントを除いた。ログ・統計・注釈・実験switch・profiler・段の目次を残した。ソース整理だけのGCC/Clang各250ケースの一致は全試行表にある。
+
+速度の判断はdefault flagsの24並列同時比較による。`-march=native`の検証は両compiler内での出力一致と提出用buildであり、その時間をdefault flagsの測定と混ぜない。異なるcompiler同士の出力一致は要求していない。時刻fallbackを持たないため、出力の不一致を時間打切りのせいとして除外していない。

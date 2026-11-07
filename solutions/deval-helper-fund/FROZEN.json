@@ -1,0 +1,22 @@
+{
+  "solution": "deval-helper-fund",
+  "sha256": "04bc1359cc47d1a058cdd7a22efdb40bca117de5bdf9f2f917fb7c00d931520c",
+  "bytes": 521918,
+  "time": "2026-11-07T21:02:26.340889+09:00",
+  "selection_seeds": [
+    0,
+    500
+  ],
+  "held_out_seeds": [
+    500,
+    1000
+  ],
+  "request_only": false,
+  "priority": [
+    "deval-helper-fund",
+    "deval-helper-gap1",
+    "deval-helper-wide",
+    "deval-helper-one"
+  ],
+  "rule": "Fixed priority from training; take the first solver with judge mean <=1.10*old and p99 <=nofb in the final same compare. Do not use scores to choose. Run held-out replay only for that one solver."
+}
