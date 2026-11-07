@@ -1,0 +1,370 @@
+--- solutions/deval-flex125-plan3/main.cpp	2026-11-07 16:44:23.387691893 +0900
++++ solutions/deval-helper-fund/main.cpp	2026-11-07 20:23:42.921643231 +0900
+@@ -3596,8 +3596,7 @@
+ 
+ // ==== Head-aware reassignment of the targets (Hungarian matching) ====
+ 
+-// Empty for ordinary finishing. The final design-only search can accept a
+-// complete Hungarian cycle using V instead of its linear proposal model.
++// Statistics of the native finishing objective; V selects completed designs.
+ struct MatchStats {
+     int iterations = 0, accepted_cycles = 0, changed = 0;
+     double decrease = 0, seconds = 0;
+@@ -4129,12 +4128,12 @@
+             if (k < GM) p.push_back(k);
+         return comp->order_index(p);
+     }
+-    Pick best(int s, const Helper& h) const {
+-        CF_SCOPE(single_helper);  // the nearest goal (deeper on ties)
++    Pick best(int s, const Helper& h,const std::vector<double>& future) const {
++        CF_SCOPE(single_helper);  // nearest goal, then future cost, then depth
+         Pick b{h.paper, -1, 0, 255};
+         for (auto g : h.goals) {
+             const int d = comp->distance(s, g.state);
+-            if (d < b.distance || (d == b.distance && g.depth > b.depth)) b = {h.paper, g.state, g.depth, d};
++            if(d<b.distance || (d==b.distance && (future[g.state]<future[b.goal] || (future[g.state]==future[b.goal] && g.depth>b.depth))))b={h.paper,g.state,g.depth,d};
+         }
+         return b;
+     }
+@@ -4690,6 +4689,8 @@
+         for (int k = 0; k < K; k++) if (col_of[k] >= 0) sizes[col_of[k]]++;
+         const int stride = *std::max_element(sizes.begin(), sizes.begin() + H) + 1;
+         depth_terms.resize(K * stride);
++        key_roles_ordinary=true;
++        for(int k=0;k<K;++k)if((col_of[k]>=0)!=(k>kCapPaper))key_roles_ordinary=false;
+         for (int k = 0; k < K; k++) {
+             for (int depth = 0; depth < stride; depth++)
+                 depth_terms[k * stride + depth] = adaptive_weights[k] * depth / P;
+@@ -4763,6 +4764,7 @@
+     struct NextPaper { uint16_t offset; uint8_t color, type; };
+     std::array<NextPaper, K> next_paper;
+     std::vector<double> depth_terms;
++    bool key_roles_ordinary=false;
+     // A value depends on the ordered in-column subsequence and the below-generic
+     // fillers (paper, level), not on the positions/order of generic sheets. The
+     // excluded column papers also determine available colors. Compare the complete
+@@ -4774,14 +4776,34 @@
+     };
+     mutable std::array<NextValueEntry, 256> next_value_cache;
+     mutable long long cf_value_hits = 0, cf_value_misses = 0;
+-    double adaptive_next_cost(const GenericSplit& split) const {
++    __attribute__((target("ssse3,sse4.1,popcnt"))) double adaptive_next_cost(const GenericSplit& split) const {
+         CF_SCOPE(next_cost);
+         std::array<bool, K> extra{};  // the lifted paper and the fillers (out of their columns)
+         if (top_d >= 0) extra[top_d] = true;
+         for (auto f : fillers) extra[f.paper] = true;
+         std::array<uint8_t, 3 * K + 8> key;
+         int key_size = 0;
+-        for (int k : order) if (col_of[k] >= 0 && !extra[k]) key[key_size++] = k;
++        // Pack the same key in lane order; unusual role maps use the scalar path.
++        static const auto shuffle=[] {
++            std::array<std::array<uint8_t,16>,256> t{};
++            for(int mask=0;mask<256;++mask){t[mask].fill(128);int at=0;
++                for(int j=0;j<8;++j)if(mask>>j&1)t[mask][at++]=j;}
++            return t;
++        }();
++        if(key_roles_ordinary) {
++            for(int i=0;i<K;i+=16) {
++                const __m128i v=_mm_loadu_si128((const __m128i*)(order.data()+i));
++                __m128i excluded=_mm_cmpeq_epi8(_mm_min_epu8(v,_mm_set1_epi8(kCapPaper)),v);
++                if(top_d>=0)excluded=_mm_or_si128(excluded,_mm_cmpeq_epi8(v,_mm_set1_epi8(top_d)));
++                for(const auto& f:fillers)excluded=_mm_or_si128(excluded,_mm_cmpeq_epi8(v,_mm_set1_epi8(f.paper)));
++                const unsigned mask=~_mm_movemask_epi8(excluded)&65535;
++                const unsigned lo=mask&255,hi=mask>>8;
++                _mm_storel_epi64((__m128i*)(key.data()+key_size),_mm_shuffle_epi8(v,_mm_loadu_si128((const __m128i*)shuffle[lo].data())));
++                key_size+=__builtin_popcount(lo);
++                _mm_storel_epi64((__m128i*)(key.data()+key_size),_mm_shuffle_epi8(_mm_srli_si128(v,8),_mm_loadu_si128((const __m128i*)shuffle[hi].data())));
++                key_size+=__builtin_popcount(hi);
++            }
++        } else for(int k:order)if(col_of[k]>=0 && !extra[k])key[key_size++]=k;
+         const int in_place = key_size;
+         key[key_size++] = 255;
+         for (const auto& f : fillers) if (split.below(f.paper)) {
+@@ -4962,18 +4984,9 @@
+ 
+     // ==== Solver: column MDP values in the future-cost model ====
+ 
+-    // A ColumnMdp per column (init_colmdp, after the adaptive weights; ColMdpConfig). The type of a
+-    // paper: 2 * (it serves two targets) + its color at its column's handle; the rate of a type: the
+-    // mean adaptive weight of its papers in the column / P; the rate of a handle color: adaptive_holes
+-    // (the units of the one-step model, per request). In a covered column (ok):
+-    //   - adaptive_insert: the value of a gap is (1 - colmdp_drop) times the one-step cost plus
+-    //     colmdp_weight[c] times the MDP value of the column after the insertion (colmdp_gap_values),
+-    //     plus the digs of this request as before;
+-    //   - adaptive_next_cost: (1 - colmdp_next_drop) times its cost plus colmdp_next_weight[c] times F
+-    //     of the papers in place of every column.
+-    // The weights are COLMDP_MIX / COLMDP_NEXTMIX, times the column's events per request W with
+-    // COLMDP_UNIT=0 (the values per request, as the one-step model), times 1 with COLMDP_UNIT=1 (the
+-    // values per event: moves over the long run).
++    // Four rate classes: two fitted weight groups per color. The MDP uses the
++    // actual filler-aware rates; insertion/terminal weights and rate units remain
++    // configurable through ColMdpConfig. One-step paper weights stay exact.
+     std::vector<ColumnMdp> colmdp;
+     std::vector<int> colmdp_type;       // per paper: its type in its column (-1: not a column paper)
+     std::vector<double> colmdp_weight;  // per column (0: not covered)
+@@ -4993,22 +5006,11 @@
+         colmdp_next_weight.assign(H, 0.0);
+         if (!config.on) return;
+         const auto start = Clock::now();
+-        std::vector<int> targets(K, 0);
+-        for (int u = 0; u < P; u++)
+-            if (ded[u] >= 0) targets[ded[u]]++;
+         for (int c = 0; c < H; c++) {
+             std::array<int, 4> count{};
+             std::array<double, 4> weight{}, rate{};
+-            for (int k = 0; k < K; k++) {
+-                if (col_of[k] != c) continue;
+-                const int t = 2 * int(targets[k] >= 2) + int(paper[k].black >> handle[c] & 1);
+-                colmdp_type[k] = t;
+-                count[t]++;
+-                weight[t] += adaptive_weights[k];
+-            }
+             // Two weight classes per color, fitted to the actual filler-aware
+             // paper rates rather than only the number of dedicated targets.
+-            count.fill(0);weight.fill(0.);
+             for(int color=0;color<2;++color) {
+                 std::vector<int> group;
+                 for(int k=0;k<K;++k)if(col_of[k]==c && (column_color[k]&1)==color)group.push_back(k);
+@@ -6254,6 +6256,9 @@
+     // place below) is in place, one of a column > cur is out (a filler of level cur), and a column
+     // paper above a generic sheet is out (level 0); the paper on the very top is the lifted one.
+     // (fixed-size arrays instead of vectors; the same records.)
++    std::array<unsigned,K> canonical_stamp{};
++    std::array<int,K> canonical_index{};
++    unsigned canonical_epoch=0;
+     void canonicalize() {
+         CF_SCOPE(canonicalize);
+         std::array<char, 64> nonempty{};
+@@ -6273,22 +6278,24 @@
+             else nf[nf_count++] = {k, gen_seen ? 0 : std::min(cur, c), c};
+         }
+         std::reverse(nf.begin(), nf.begin() + nf_count);
+-        std::array<int, K> nf_index;
+-        nf_index.fill(-1);
++        // Even epoch is current; its low bit marks old fillers. Clear only on wrap.
++        unsigned epoch=(canonical_epoch+=2);
++        if(!epoch){canonical_stamp.fill(0);canonical_epoch=epoch=2;}
++        auto& nf_index=canonical_index;
+         for (int i = 0; i < nf_count; i++) {
+             while (nf[i].lvl > 0 && !nonempty[nf[i].lvl - 1]) nf[i].lvl--;
+             nf_index[nf[i].paper] = i;
++            canonical_stamp[nf[i].paper]=epoch;
+         }
+         // the old fillers first, in their order, then the others in the order of the stack
+         std::array<Filler, 2 * K> res;
+-        std::array<bool, K> old_filler{};
+         int res_count = 0;
+-        for (auto& f : fillers) {
+-            old_filler[f.paper] = true;
+-            if (nf_index[f.paper] >= 0) res[res_count++] = nf[nf_index[f.paper]];
++        for(auto& f:fillers)if((canonical_stamp[f.paper]&~1U)==epoch) {
++            res[res_count++]=nf[nf_index[f.paper]];
++            canonical_stamp[f.paper]=epoch|1U;
+         }
+-        for (int i = 0; i < nf_count; i++)
+-            if (!old_filler[nf[i].paper]) res[res_count++] = nf[i];
++        for(int i=0;i<nf_count;++i)
++            if(canonical_stamp[nf[i].paper]==epoch)res[res_count++]=nf[i];
+         top_d = ntop;
+         fillers.assign(res.begin(), res.begin() + res_count);
+     }
+@@ -6441,20 +6448,21 @@
+             helper_depth[k] = helper_rank[c];
+             if (in_column(k, c)) helper_rank[c]++;
+         }
+-        // single helpers: at most 5 deep in their column, fewer generic moves than without; the 6 of
+-        // least distance + depth + 1.8 + digs of the handle holes they do not cover
++        // Helpers of depth <=5: rank by generic distance + depth + 1.8 + remaining fixes.
+         std::vector<std::pair<double, Interleave::Pick>> picks;
+         for (const auto& h : interleave->helpers[u]) {
+             const int dep = helper_depth[h.paper];
+             if (dep < 0 || dep > 5) continue;
+-            auto pk = interleave->best(s, h);
+-            if (pk.distance >= base_generic) continue;
++            auto pk = interleave->best(s, h, future);
++            if (pk.distance > base_generic) continue;
+             double score = pk.distance + dep + 1.8;
+             for (u64 z = ~h_opq[h.paper] & low_bits(H); z; z &= z - 1) score += fixes[__builtin_ctzll(z)];
+             picks.push_back({score, pk});
+         }
+         std::sort(picks.begin(), picks.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+-        if (picks.size() > 6) picks.resize(6);
++        int equal_count=0;
++        std::erase_if(picks,[&](const auto& p){return p.second.distance==base_generic && ++equal_count>1;});
++        if (picks.size() > 3) picks.resize(3);
+         // pairs: a helper x at most 3 deep and a paper y of a deeper column (not D's) at most 3 deep
+         // that is right on the handle holes of D that x leaves; the 12 of least estimate, then the 6
+         // of least estimate + distance
+@@ -6531,7 +6539,7 @@
+         if(const char* value=std::getenv(local.c_str()))return value;
+         if(std::strcmp(name,"REPEAT_MIN")==0)return ".05";
+         if(std::strcmp(name,"POST_CANDIDATES")==0)return "5";
+-        if(std::strcmp(name,"NEUTRAL_WIDTH")==0)return "3";
++        if(std::strcmp(name,"NEUTRAL_WIDTH")==0)return "4";
+         return nullptr;
+     }
+     struct SearchConfig {
+@@ -6580,7 +6588,7 @@
+         int candidate_mode = get("CANDIDATE_MODE", mode ? 2 : 1);
+         int candidate_priority = get("CANDIDATE_PRIORITY", mode != 0);
+         int one_limit = std::max(0, get("ONE_LIMIT", 0));
+-        int plan_shortlist = get("PLAN_SHORTLIST", mode == 1 ? 3 : 0);
++        int plan_shortlist = get("PLAN_SHORTLIST", mode == 1 ? 6 : 0);
+         double repeat_min = number("REPEAT_MIN", mode == 2 ? .05 : 0);
+         bool lazy_tail = get("LAZY_TAIL", 1);
+         int one_anchors = std::max(0, get("ONE_ANCHORS", mode ? 2 : 0));
+@@ -7275,7 +7283,7 @@
+     // when k is visible (not after the first illegal edit of the trial). evaluate keeps the better
+     // results.
+     template <class Evaluate>
+-    void eject_repairs(const State& initial, const std::vector<Edit>& base_edits, int u, const Links& initial_next,
++    __attribute__((target("avx2"))) void eject_repairs(const State& initial, const std::vector<Edit>& base_edits, int u, const Links& initial_next,
+                        const Links& initial_prev, const ByteOrder& initial_bytes, Evaluate& evaluate, int removed = 2) {
+         CF_SCOPE(eject);
+         const auto& cfg = search_config();
+@@ -7292,10 +7300,16 @@
+                 if (paper[k].opaque & ~blocked) possible[k] = true;
+                 blocked |= paper[k].opaque;
+             }
+-        std::array<int, K> candidates;
++        alignas(32) std::array<int, K+4> candidates{};
++        alignas(32) std::array<u64, K+4> candidate_opq{}, candidate_wrong{};
+         int candidate_count = 0;
+         for (int k = 0; k < K; k++)
+-            if (k != kCapPaper && possible[k]) candidates[candidate_count++] = k;
++            if (k != kCapPaper && possible[k]) {
++                candidates[candidate_count]=k;
++                candidate_opq[candidate_count]=paper[k].opaque;
++                candidate_wrong[candidate_count]=paper[k].opaque & (paper[k].black ^ A[u]);
++                ++candidate_count;
++            }
+         auto& trial = eject_trial;
+         auto& next = eject_next;
+         auto& anchors = eject_anchors;
+@@ -7401,14 +7415,25 @@
+                     }
+                 };
+                 if (shown == A[u]) continue;  // nothing to repair (a single wrong window is enough)
+-                for (int ci = 0; ci < candidate_count; ci++) {
+-                    const int k = candidates[ci];
+-                    // The display with k lifted out (its own windows show the paper below) and the
+-                    // windows then wrong; k must cover them all with the right colors.
+-                    const u64 own = owner_stamp[k] == trial_stamp ? owned[k] : 0;
+-                    u64 after = shown ^ ((shown ^ second_black) & own), bad = after ^ A[u];
+-                    u64 wrong = paper[k].opaque & (paper[k].black ^ A[u]);
+-                    if (!bad || (bad & ~paper[k].opaque) || (bad & wrong)) continue;
++                // Exact four-lane tests; gather stamped owners, visit survivors in order.
++                for(int cb=0;cb<candidate_count;cb+=4) {
++                    const __m128i index=_mm_load_si128((const __m128i*)(candidates.data()+cb));
++                    const __m128i stamps=_mm_i32gather_epi32(owner_stamp.data(),index,4);
++                    const __m256i live=_mm256_cvtepi32_epi64(_mm_cmpeq_epi32(stamps,_mm_set1_epi32(trial_stamp)));
++                    const __m256i own=_mm256_mask_i32gather_epi64(_mm256_setzero_si256(),(const long long*)owned.data(),index,live,8);
++                    const __m256i bad4=_mm256_xor_si256(_mm256_set1_epi64x(shown ^ A[u]),
++                        _mm256_and_si256(_mm256_set1_epi64x(shown ^ second_black),own));
++                    const __m256i wrong4=_mm256_load_si256((const __m256i*)(candidate_wrong.data()+cb));
++                    const __m256i opq4=_mm256_load_si256((const __m256i*)(candidate_opq.data()+cb));
++                    const __m256i failed=_mm256_or_si256(_mm256_andnot_si256(opq4,bad4),_mm256_and_si256(wrong4,bad4));
++                    const __m256i valid=_mm256_andnot_si256(_mm256_cmpeq_epi64(bad4,_mm256_setzero_si256()),
++                        _mm256_cmpeq_epi64(failed,_mm256_setzero_si256()));
++                    unsigned ready=_mm256_movemask_pd(_mm256_castsi256_pd(valid)) & ((1U<<std::min(4,candidate_count-cb))-1);
++                    alignas(32) u64 bad_lanes[4];_mm256_store_si256((__m256i*)bad_lanes,bad4);
++                    while(ready) {
++                    const int lane=__builtin_ctz(ready),ci=cb+lane;ready&=ready-1;
++                    const int k=candidates[ci];
++                    const u64 bad=bad_lanes[lane],wrong=candidate_wrong[ci];
+                     prepare_order();
+                     prepare_positions();
+                     // without_pos(w): the position, in the order without k, of the top opaque paper
+@@ -7503,6 +7528,7 @@
+                             }
+                         }
+                     }
++                    }
+                 }
+             }
+     }
+@@ -8126,7 +8152,7 @@
+                     }
+                     if (cfg.plan_shortlist && !(c.path.size() < chosen_path.size() ||
+                         (cfg.plan_shortlist == 1 && repeated) ||
+-                        (cfg.plan_shortlist == 3 && c.path.size() == chosen_path.size()))) {
++                        ((cfg.plan_shortlist == 3 || cfg.plan_shortlist >= 4) && c.path.size() == chosen_path.size()) || ((cfg.plan_shortlist == 5 || (cfg.plan_shortlist == 4 && repeated) || (cfg.plan_shortlist == 6 && c.cost <= baseline_value + 1.5)) && c.path.size() == chosen_path.size()+1))) {
+                         f2_plan_skipped++;
+                         continue;
+                     }
+@@ -8572,7 +8598,6 @@
+         }
+         return dp;
+     }
+-    int solve_edges(const Edges& edges) const { return forward_values(edges)[H]; }
+     QueryCache make_cache(const Edges& edges) const {
+         QueryCache q;
+         q.forward = forward_values(edges);
+@@ -9320,20 +9345,6 @@
+         out[key+"_moment"+std::to_string(power)]=v;
+     }
+ }
+-inline void add_filler_features(FeatureMap& out,const State& s,double strength,
+-                                const std::vector<double>& prices,int nSamples) {
+-    const auto p=s.probabilities(strength);
+-    const Donors donors(s,p);
+-    const std::string skey="f_s"+std::to_string(int(strength));
+-    out[skey+"_headutility"]=donors.head_utility(s,p);
+-    for(double price:prices) {
+-        std::ostringstream name;name<<price;
+-        const std::string key=skey+"_p"+name.str();
+-        const auto r=expectation(s,donors,p,samples_for(s.H),nSamples,price);
+-        add_cover_summary(out,key,r,true);
+-    }
+-}
+-
+ // Two-state mean-field update. Conditional rates, rather than surviving demand
+ // counts, account for the fact that a filler is selected depending on current
+ // head colours. Representatives remain fixed during this cheap approximation.
+@@ -9537,36 +9548,10 @@
+         }
+         return (*this)(s,nSamples);
+     }
+-    template<class DesignState> FeatureMap features_from_design(const DesignState& d,int nSamples=16) const {
+-        State s;s.M=d.M;s.G=d.G;s.H=d.H;
+-        for(int t=0;t<P;++t)s.target[t]=d.A[t],s.ded[t]=d.ded[t];
+-        for(int k=0;k<K;++k) {
+-            s.opaque[k]=d.papers[k].opaque;s.black[k]=d.papers[k].black;s.col[k]=d.columns[k];
+-        }
+-        for(int c=0;c<s.H;++c)s.handle[c]=d.handle[c];
+-        for(int j=0;j<s.G;++j) {
+-            s.edge[j]={d.edge[j].first,d.edge[j].second};s.polarity[j]=d.polarity[j];
+-        }
+-        s.prepare(); auto features=static_features(s,generic_); add_stationary_features(features,s,nSamples,2); return features;
+-    }
+-    template<class DesignState> FeatureMap head_features_from_design(const DesignState& d,int nSamples=16) const {
+-        State s;s.M=d.M;s.G=d.G;s.H=d.H;
+-        for(int t=0;t<P;++t)s.target[t]=d.A[t],s.ded[t]=d.ded[t];
+-        for(int k=0;k<K;++k) {
+-            s.opaque[k]=d.papers[k].opaque;s.black[k]=d.papers[k].black;s.col[k]=d.columns[k];
+-        }
+-        for(int c=0;c<s.H;++c)s.handle[c]=d.handle[c];
+-        for(int j=0;j<s.G;++j) {
+-            s.edge[j]={d.edge[j].first,d.edge[j].second};s.polarity[j]=d.polarity[j];
+-        }
+-        s.prepare(); auto features=static_features(s,generic_); const auto p=s.probabilities(2.); const Donors donors(s,p); features["f_s2_headutility"]=donors.head_utility(s,p); return features;
+-    }
++
+ };
+ } // namespace deval
+ 
+-// A proposal exchanges complete single/pair target units between physical slots.
+-
+-
+ // ==== Design iteration counts ====
+ 
+ // Design budgets: window annealing, its matching climb, product/column annealing, filler climb,
+@@ -9651,7 +9636,7 @@
+               << "\nclimb_evaluated = " << des->climb_evaluated << "\nclimb_cached = " << des->climb_cached
+               << "\nproxy_before = " << des->proxy_before / P << "\nproxy_after = " << des->proxy_after / P
+               << "\nclimb_end_sec = " << elapsed_sec() << '\n';
+-    const auto match = rematch_probability(*des, extra?1:2, 1.0, 2.0);
++    const auto match = rematch_probability(*des, 1, 1.0, 2.0);
+     std::cerr << "match_iterations = " << match.iterations << "\nmatch_cycles = " << match.accepted_cycles
+               << "\nmatch_changed = " << match.changed << "\nmatch_decrease = " << match.decrease
+               << "\nmatch_sec = " << match.seconds << "\nmatch_end_sec = " << elapsed_sec() << '\n';

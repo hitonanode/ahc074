@@ -1,0 +1,5 @@
+改良元: `solutions/deval-helpeq1`。
+
+helperの事前順位に、generic future×0.5と既存列MDPの差を加える。列MDPの差は、掘り出した紙までのprefixを除いたsuffixのF値−現在列のF値に、既存の終端MDP係数を掛けたもの。Fは取り出したprefixの最良再挿入を表す。状態を変更せず、全列のsuffix rankを逆順1走査で計算する。2枚helperは別列なので、それぞれの差を加算する。
+
+同generic距離の追加helperは上位1件、通常候補と合計6件のまま。実行した候補は従来通り実際のplan_costと合法性で評価する。設計と探索予算は固定し、時計による切替えはない。

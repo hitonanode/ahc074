@@ -1,0 +1,11 @@
+改良元: `solutions/deval-flex125-plan3`（実装は `deval-equalfund-fast` を経由）。
+
+最初の4枝の穴あけ前rematchを2回から1回へ減らし、注文の候補に時間を回す。窓割当て・焼きなましの反復数、完成8候補からVで選ぶ構成は同じ。
+
+単独helperは、通常の計画とgeneric移動数が同じでも候補にする。ハンドルをまとめて覆う利得を実際の全計画で評価するためである。同距離候補は従来の見積りで上位1件、strictに移動数を減らす候補と合わせて上位3件まで。最少generic距離のgoalが複数あるときは、既存の1注文先futureが小さい方を選ぶ。
+
+NEUTRAL_WIDTHは3から4へ増やす。PLAN_SHORTLIST=6を追加し、現計画以下の手数に加え、1手長い計画もraw plan_costの差が1.0以下なら後処理する。従来のモードとTask6の実験用モード4/5を残す。NS_ROUNDS=2。探索予算は固定し、時間不足で軽量化したり候補数を変えたりしない。
+
+整数演算だけを変える短縮を三つ加える。ejectの必要条件はAVX2で4紙同時に検査し、元の順で通過候補を処理する。adaptive_next_costのcache keyはSSEのshuffleで元と同じbyte列に詰める。canonicalizeは世代stampで全配列クリアを省き、旧fillerの順と重複も保つ。浮動小数点の演算順は変えない。
+
+容量のため、どの設定からも呼ばれない関数、必ず上書きされる旧MDP分類、古いコメントを除いた。DesignStore、@paper/@ops、ログ・trace・profiler・実験switch、段の目印と目次を保つ。dv_candidates/dv_chosenは設計選択、dv_finish_secは仕上げ累計、req_sec/end_secはCLOCK_SCALE付きの注文時間/終了時刻。

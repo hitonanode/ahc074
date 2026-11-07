@@ -1,0 +1,3 @@
+改良元: `solutions/deval-trim6b`。
+
+canonicalizeのnf_index・old_filler全配列クリアを世代stampに変える。現在見つかったcolumn外紙だけindexとstampを書き、stampの下位bitで旧fillerの優先順に出力済みであることを記録する。旧記録に同一紙が重複していた場合も元の列挙順・重複数を保つ。unsigned世代が一周するときだけ全stampをクリアする。紙の走査、再構成結果、候補の受理順は同じ。ログ・統計・profiler・experiment switchと固定予算を保つ。
