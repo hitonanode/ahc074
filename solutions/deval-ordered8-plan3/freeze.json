@@ -1,0 +1,38 @@
+{
+  "frozen_at": "2026-11-07T13:31:30.633366+09:00",
+  "training_seeds": [
+    0,
+    500
+  ],
+  "unseen_test_seeds": [
+    500,
+    1000
+  ],
+  "candidate_preference": [
+    "deval-ordered8-plan3",
+    "deval-ordered8"
+  ],
+  "selection_rule": "Use first preferred frozen candidate satisfying judge mean <= 1.10 * argon and p99 <= nofb in the final simultaneous comparison. Do not use final normal scores to select. Replay only the runtime-qualified choice on unseen 500-999.",
+  "candidates": [
+    {
+      "name": "deval-ordered8-plan3",
+      "source_sha256": "8dd2a99543746870ecf9cf9700c6d29ad8d0cb0af81dcd5f7c2b28c78b08ef45",
+      "source_bytes": 518083,
+      "training_replay": "20261107-132614_deval-ordered8-plan3",
+      "fresh_gain": [
+        -0.06935022157156975,
+        0.005670498162112652
+      ]
+    },
+    {
+      "name": "deval-ordered8",
+      "source_sha256": "4d20a050f699138fc26b3eb52d3bbd83cc4a46a9782be03a5750342745fb0d37",
+      "source_bytes": 518022,
+      "training_replay": "20261107-130357_deval-ordered8",
+      "fresh_gain": [
+        -0.05943028442473839,
+        0.005631840671683239
+      ]
+    }
+  ]
+}
