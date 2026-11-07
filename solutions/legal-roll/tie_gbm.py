@@ -21,7 +21,7 @@ USE = list(range(8))  # fc nc gb nf nfb wtop wfill other (common to both feature
 
 def rows(ds, gap):
     X, y = [], []
-    for seed, r, src, ln, val, T, F in ds:
+    for seed, r, src, ln, val, T, F, *_ in ds:
         m = T.mean(axis=1)
         for i in range(1, len(src)):
             g = val[i] - val[0]
@@ -35,7 +35,7 @@ def rows(ds, gap):
 def evaluate(ds, total, model, gap):
     # batch the predictions of all near-tie alternatives, then choose per decision
     xs, idx = [], []
-    for di, (seed, r, src, ln, val, T, F) in enumerate(ds):
+    for di, (seed, r, src, ln, val, T, F, *_) in enumerate(ds):
         for i in range(1, len(src)):
             g = val[i] - val[0]
             if g < gap:
@@ -47,7 +47,7 @@ def evaluate(ds, total, model, gap):
         if p < best.get(di, (0, 0.0))[1]:
             best[di] = (i, p)
     gains, per_seed, changed = [], {}, 0
-    for di, (seed, r, src, ln, val, T, F) in enumerate(ds):
+    for di, (seed, r, src, ln, val, T, F, *_) in enumerate(ds):
         i = best.get(di, (0, 0.0))[0]
         gain = T[0].mean() - T[i].mean()
         gains.append(gain)

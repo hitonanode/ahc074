@@ -21,7 +21,8 @@ import replay  # noqa: E402
 
 NAMES = ["fc", "nc", "gb", "nf", "nfb", "wtop", "wfill", "other"]
 LABELS = ["other", "ret", "fret", "reuse", "relevel", "gen", "dig", "lift", "fdig", "fill", "hdig", "help", "fix", "repair"]
-EXTRA = ["stay", "genmv", "lvl"]  # present in runs logged after 06:40 (legal-roll-feat2)
+EXTRA = ["stay", "genmv", "lvl", "ncdig", "nchand", "ncmdp"]  # stay..lvl from 06:40 (legal-roll-feat2), nc parts from legal-roll3
+EVERY_DEFAULT = [12]  # decisions per request for make_roll2.py runs (ROLL_EVERY), set by --every
 
 
 def load(run_dir: Path, seeds: range):
@@ -36,14 +37,20 @@ def load(run_dir: Path, seeds: range):
         if not path.exists():
             continue
         lines = path.read_text(errors="replace").splitlines()
+        found = False
         for line in lines:
             if line.startswith("roll_decisions = "):
                 total += int(line.split()[2])
+                found = True
+        if not found:
+            # make_roll2.py runs: a decision at every ROLL_EVERY-th request (12 unless the file says otherwise)
+            total += -(-1024 // EVERY_DEFAULT[0])
         i = 0
         while i < len(lines):
             if lines[i].startswith("#rollmat "):
-                _, r, u, n = lines[i].split()
-                n = int(n)
+                tok = lines[i].split()
+                r, n = tok[1], int(tok[3])
+                chosen = int(tok[4]) if len(tok) > 4 else 0  # the policy's choice (make_roll2.py runs)
                 src, ln, val, T, F = [], [], [], [], []
                 for j in range(n):
                     rc = lines[i + 1 + 2 * j].split()
@@ -54,7 +61,7 @@ def load(run_dir: Path, seeds: range):
                     val.append(float(rc[3]))
                     T.append([int(rc[2]) + float(x) for x in rc[4:]])
                     F.append([float(x) for x in rf[1:]])
-                out.append((seed, int(r), np.array(src), np.array(ln), np.array(val), np.array(T), np.array(F)))
+                out.append((seed, int(r), np.array(src), np.array(ln), np.array(val), np.array(T), np.array(F), chosen))
                 i += 1 + 2 * n
             else:
                 i += 1
@@ -64,7 +71,7 @@ def load(run_dir: Path, seeds: range):
 def design(ds, gap):
     """Rows (alternatives) of the near-tie regression: X = [d features, d length], target r = y - g."""
     X, y, g = [], [], []
-    for seed, r, src, ln, val, T, F in ds:
+    for seed, r, src, ln, val, T, F, *_ in ds:
         m = T.mean(axis=1)
         for i in range(1, len(src)):
             gi = val[i] - val[0]
@@ -87,8 +94,12 @@ def main():
     ap.add_argument("--ridge", type=float, default=1.0)
     ap.add_argument("--nolabels", action="store_true", help="state features and the length only (no move labels)")
     ap.add_argument("--out", default="", help="write the weights (per raw unit) to this JSON file")
+    ap.add_argument("--noextra", action="store_true", help="without the extra features (stay, genmv, lvl)")
+    ap.add_argument("--every", type=int, default=12, help="ROLL_EVERY of make_roll2.py runs (for the decision count)")
+    ap.add_argument("--features", default="", help="comma list of the features to use (default: all kept by the flags)")
     args = ap.parse_args()
     run = replay.resolve_run(args.run)
+    EVERY_DEFAULT[0] = args.every
     a, b = map(int, args.train.split("-"))
     c, d = map(int, args.valid.split("-"))
     train, ntrain = load(run, range(a, b + 1))
@@ -100,6 +111,11 @@ def main():
     keep = X.std(axis=0) > 1e-9
     if args.nolabels:
         keep &= np.array([not n.startswith("lab_") for n in names])
+    if args.noextra:
+        keep &= np.array([n not in EXTRA for n in names])
+    if args.features:
+        want = set(args.features.split(","))
+        keep &= np.array([n in want for n in names])
     X = X[:, keep]
     names = [n for n, k in zip(names, keep) if k]
     sd = X.std(axis=0)
@@ -132,7 +148,7 @@ def main():
 
     def choose_masked(ds, w, sd, gap, margin, keep):
         gains, changed, per_seed = [], 0, {}
-        for seed, r, src, ln, val, T, F in ds:
+        for seed, r, src, ln, val, T, F, *_ in ds:
             best, bs = 0, -margin
             for i in range(1, len(src)):
                 gi = val[i] - val[0]
@@ -159,7 +175,7 @@ def main():
     for label, ds, total in [("train", train, ntrain), ("valid", valid, nvalid)]:
         rng = np.random.default_rng(1)
         tot = 0.0
-        for seed, r, src, ln, val, T, F in ds:
+        for seed, r, src, ln, val, T, F, *_ in ds:
             S = T.shape[1]
             g = 0.0
             for _ in range(10):
