@@ -376,3 +376,45 @@
 - `REPORT12.md`、`TABLES12.md`、`EXACTNESS12.md`を確定。**最終版dcomp-combo-dual30を採用候補として推奨**。通常2000でalt1比−0.031929±0.001837%、dual25比−0.003813±0.000489%。GCC平均argon比1.075306、p99 alt1比−20.398ms。未使用seed500–1999・追加列でもalt1比−0.031149±0.001191%、dual25比−0.005056±0.000328%。指定された採用床と時間条件の確認を終えたため、ここで停止する。
 - GCC helperの原因は特定できていない。命令数・計算量の増加はなく、alignment実験も回収せず。最終版で以前の+6msは再現しなかったが、配置問題を修正したと主張しない。
 - 小さい有効な部品はcompact whole-post memo（req GCC約−4.8/Clang約−4.1ms、出力同一）とClang prefix無効（約−2.9ms）。slack .35は訓練でdual25比−0.005568±0.000639%だが、Clang end+1.859±3.231msで時間余裕を確定できず、通常2000の確認は行っていない。commitなし、共有ファイル変更なし。
+
+# Task 13
+
+## 11-08 23:15 — 開始、設計境界profile
+
+- 最新指示により設計の時間化を行う。要求処理はdual30のまま、他agentのpacerは編集しない。CLAUDE/STATEを再読。新規dcomp-time-*とTask13 notesだけに書く。
+- dcomp-time-profileは境界時刻のみを追加。窓setup/search/gopt/restore、初期matching、共有・分岐の各anneal区間、全9候補のfiller/match/perforation/late-match/V、初期順序、helperを測る。時計読みの費用を別に校正する。
+- GCC既定とClang nativeで親との通常200件compareを行い、出力同一を確認して段の比率を求める。固定作業は有限パスとして残し、探索反復だけを絶対期限へ変換する。
+
+## 11-08 23:40 — 配分の測定と時間版の動作確認
+
+- profile `20261108-231547` GCC / `231826` Clang、各200件。両方親dual30と200/200 stdout一致。計測なし親のhelper平均は1.054993 / 1.038165s、等重み平均1.046579s。段別の平均と共通配分は`SHARES13.md` / `t13-shares.json`。窓検索31.9215%、gopt（窓climbと同一段）7.9662%、共有anneal20.4111%、分岐anneal合計16.1216%、残り23.5796%。
+- 時計1回の平均費用22.64 / 23.05ns。窓/gopt512反復、anneal/filler2048反復ごとの確認とし、推定clock費用は各段最大0.0362 / 0.0388%、0.1%未満。新しいclockは全てelapsed_sec→scaled_since経由。
+- `dcomp-time-same`は予算1.05s、`dcomp-time-target`は1.22s。GCC/Clang共通の段比率・秒数。絶対期限はdesign開始+累積比率×予算。固定パスを完了した時点の余り/超過を次の可変段へ吸収する。9候補とVを保ち、deadline超過時も固定仕上げを省かない。
+- 自分のClang最終run230504のreq平均0.489128s。校正run220933のlibc++＋zero-initによる倍率は0.511245/0.494963=1.03290。さらにjudge係数1.25を掛けると約0.6315s。custom testのその他時間は1.684−1.100−0.581=0.003s。設計終了の目安は約1.2155s。予算1.22sの末尾には固定作業約66msが残り、比率配分の余りを待たないため、終了は約1.21sになる見込み。
+- 旧固定反復への切替による回帰確認 `233215` GCC / `233447` Clang、各200件で親と200/200 stdout一致。Solver本体から要求処理、mainの要求処理以降は親とbyte同一であることもgeneratorでassertする。
+- 最初のGCC50件 `232720`: same helper平均1.049860/p99 1.066561s、target1.209662/p99 1.227687s。スコアは−0.0006±0.1752 / −0.3552±0.1645%で少数件のため判断しない。現在版では各段の反復数を追加し、DesignStoreにも診断を保存する。Clang50件と期限切れの妥当性を確認後、指定の通常2000件・Clang500件を凍結実行する。
+
+## 11-08 23:44 — 構成を凍結、指定の最終比較へ
+
+- Clang50件 `233818`: same helper平均1.048642/p99 1.072402s、target1.211066/p99 1.239262s。スコア−0.1282±0.1703 / +0.0282±0.1747%で差の判断はしない。小標本のスコアで配分を選び直していない。
+- 期限切れ検査 `234005`、DESIGN_SECONDS=0.01、20件。map/全anneal/fillerが全て0反復でも、全20件で9候補を仕上げ、正常な正のscoreで完了。固定作業は省略しないためhelper終了0.37–0.47sとなる。任意の短い予算へ固定作業まで収める保証ではない。この事実は報告に残す。
+- same/targetのソースを凍結（`t13-freeze.json`）。以後変更せず、argon/dual30/same/targetの記録付き通常2000件→同4者Clang native500件を実行する。固定反復の同一性はGCC/Clang各200/200、要求処理のソースも親と同一。
+
+## 11-09 00:01 — 通常2000件の結果
+
+- 指定の記録付き4者compare `20261108-234310`（targetのみ234311）は全2000件正常、WA0/E0、外部負荷mean0.20/max1.25core。凍結後の設定変更なし。
+- same 1.05s: dual30比 **+0.044353±0.025524%**、974/8/1018。helper平均1.049316/p99 1.071725/max1.139070s、req平均0.494541、end平均1.558821/p99 1.644814/max1.764880s。dual30との対応helper差−0.467±1.501ms。スコア悪化方向だが2SE未満。
+- target 1.22s: dual30比 **−0.005872±0.026113%**、1010/5/985。helper平均1.208562/p99 1.228801/max1.250650s、req平均0.494992、end平均1.718716/p99 1.804385/max1.969500s。対応helper差+158.779±1.500ms。スコア改善の有意な証拠ではない。
+- 全caseで9候補を完了。sameの0反復はc1_s2:2、c2_s2:1、c2_filler:1、c4_filler:25、c6_filler:61件。targetはc1_filler:1、c2_s2:1、c4_filler:6、c6_filler:10件。固定作業の超過が次の短い探索を使い切る場合もあるが、候補自体は除外しない。
+- GCC/Clang native、およびClang native+libc+++zero-initの提出用（LOCAL_BENCHなし）build成功。成果物binaryは/tmpのみ。design.patchはdual30にdry-run適用成功、dual25への3-way mergeもcleanで要求コード同一。
+- Clang native500件は`20261109-000022`。保存設計のround-trip50件は`000023`。共有lock内で順に進行中。
+
+## 11-09 00:17 — Task13完了
+
+- Clang nativeの指定4者500件 `20261109-000022` も完了、記録済み、WA0/E0、外部負荷mean0.21/max1.39core。sameはdual30比 **+0.027891±0.050587%**、242/0/258。targetは **+0.021444±0.053340%**、241/3/256。いずれも2SE未満。
+- Clang same: helper平均1.048293/p99 1.065476/max1.078690s、req平均0.468168、end平均1.531443/p99 1.626172/max1.654850s。target: helper1.209054/p99 1.227105/max1.239610s、req0.466207、end1.690107/p99 1.771792/max1.806410s。
+- 最終Clangの親helperは1.002172sと事前profile時より速く、sameの対応helper差は+46.121±2.188ms、targetは+206.882±2.191ms。共通予算を事前に固定した結果であり、compiler別に予算を変えたり、最終結果で再調整したりしていない。
+- 保存設計の再読込 `000023`、50件でdual30/targetとも元の通常target出力と50/50 byte一致、E0。最終監査`t13-audit.json`で全runの件数・記録・E0・凍結source hash・現在sourceの一致を確認した。通常GCC2000/Clang500はいずれも9候補を全件完成。
+- 推奨は**dcomp-time-target、設計配分1.22秒**。正常時の要求を0.60–0.63秒と見積もり、今回のClang最終値ではjudge終了約1.814秒、事前の遅い校正では約1.844秒。今回はスコア改善の実証ではなく、指定の時間管理への変換。要求pacerは含めず、統合後の最終確認は別agentの担当部分と合わせて行う。
+- 成果物: `solutions/dcomp-time-{same,target}/main.cpp`、各READMEと`design.patch`。target patchはdual30にdry-run適用可、dual25への3-way portもcleanで要求コード同一。提出用GCC/Clang/native libc++ zero-initビルド成功。binaryは/tmpのみ。
+- `REPORT13.md`に全段の配分、両比較、終了時刻の分布、0反復件数、校正と推奨、統合手順を記録。全段表は`SHARES13.md`。STATEを再読したがTask13より新しい指示はなかった。以後の設定探索なし、commit・共有ファイル変更なし。

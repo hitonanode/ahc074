@@ -1,0 +1,11 @@
+改良元: solutions/dcomp-combo-dual30
+
+設計の探索回数を、設計開始からの絶対期限で決める。全設計の予算は1.05秒（CLOCK_SCALE適用済み）。窓探索、窓の最終climb(gopt)、共有2区間と4分岐の各anneal区間、6回のfiller climbが対象。期限はGCC/Clang各200件で測った段の時間比率の等重み平均を用い、両コンパイラで共通とする。
+
+Hungarianと後段再割当、穴あけの一巡、V、初期列順DP、helper表は同じ固定作業を完了する。その時間を含めた累積期限を次の可変段が使う。途中が遅くても後の段の期限を後ろへ延ばさない。9候補を全て仕上げてVで選び、候補の時間切れ除外は行わない。anneal温度は各区間の残り時間に沿って進める。
+
+時計確認は窓/gopt512回、anneal/filler2048回ごと。全てscaled_since経由で倍率を適用する。dt_<段>_sec/begin/endは段別の実測、dt_<段>_itersは実行した反復数、design_time_budget_sec/end_secは予算と最終予定時刻、design_clock_readsは探索中の確認回数。c0–c8は候補番号。段の診断はDesignStoreにも保存する。
+
+LOCAL_BENCHだけでDESIGN_SECONDSにより予算を上書きできる。DESIGN_FIXED_ITERS=1なら旧固定反復へ戻して同一性を検査でき、その時は既存のMAP_ITERS/GOPT_STEPS/ANNEAL_ITERS等も有効。通常は時間が優先される。
+
+要求の計画・修復・予算・操作は変更しない。この版単独には要求pacerを含めず、別のpatchと統合する。helperの旧cutoffは現在1e300で無効のまま、表を全て構築する。DesignStore、ログ、@paper/@ops、profiler、目次と段の目印は保持する。

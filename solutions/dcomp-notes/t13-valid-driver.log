@@ -1,0 +1,15 @@
+complete: t13-fixed-gcc
+complete: t13-fixed-clang
+complete: t13-smoke-clang
+Traceback (most recent call last):
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/dcomp-notes/task13_run.py", line 13, in <module>
+    with (N/(a.tag+'.log')).open('w') as f:subprocess.run(['nice','-n','10',sys.executable,str(N/'task10_run.py'),*args],env=env,cwd=R,stdout=f,stderr=subprocess.STDOUT,check=True)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['nice', '-n', '10', '/usr/bin/python3', '/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/dcomp-notes/task10_run.py', '--compare', 'solutions/dcomp-time-target', '--seeds', '0-20', '-c', 'Task13 t13-expired-gcc']' returned non-zero exit status 1.
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+  File "/usr/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['python3', 'solutions/dcomp-notes/task13_run.py', 't13-expired-gcc', '--seeds', '0-20', 'dcomp-time-target']' returned non-zero exit status 1.

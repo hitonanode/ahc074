@@ -1,0 +1,475 @@
+--- a/main.cpp
++++ b/main.cpp
+@@ -5,16 +5,17 @@
+ // Design: assign windows, anneal pairs/columns/handles, improve fillers, rematch, then perforate.
+ // Requests: choose return/filler/helper plans using moves plus a one-step/column-MDP state value;
+ // shorten them by legal replay, then explore one-to-one and two-to-two neutral rewrites.
+-// Defaults use fixed random seeds and iteration counts; no future order is read during design.
++// Design search uses cumulative absolute deadlines and fixed random seeds; no future orders are read.
+ // V16 with target-specific Sobol shifts and exact mismatch control variates selects designs.
+-// Time-shortage fallback is intentionally absent (PR #117); restore it before the final submission
+-// (solutions/deval-vbranch-o3 has the light request modes and the design caps).
++// The request policy is unchanged here. A separate submission patch supplies its pacer.
+ // Experiments: F3_* configures request search, COLMDP_* the column value model. ITER_SCALE scales
+-// design iterations; MAP_ITERS / GOPT_STEPS / ANNEAL_ITERS override individual stages; filler climbs are fixed.
++// legacy design iterations when LOCAL_BENCH DESIGN_FIXED_ITERS=1. DESIGN_SECONDS overrides the local time budget.
+ // Profiling, heavy traces, POSET_VERIFY, SIM_HARNESS, and LOCAL_BENCH analysis remain available.
+ //
+ // Contents (section markers below):
+ //   Common: constants, clock, random numbers
++//   Design phase timing
++//   Design absolute deadlines
+ //   Request profiling (COLFAST_PROFILE): inclusive and exclusive times
+ //   Analysis output (LOCAL_BENCH): move labels
+ //   Generic layer: the comparator of the six sheets
+@@ -133,6 +134,141 @@
+ const auto kStartTime = Clock::now();
+ #endif
+ double elapsed_sec() { return scaled_since(kStartTime); }
++
++// ==== Design phase timing ====
++// Boundary-only accounting; all times use the program's scaled clock.
++struct DesignPhaseTrace {
++    struct Row { std::string name; double begin, end; };
++    int candidate = -1;
++    std::vector<Row> rows;
++    std::vector<std::pair<std::string,long long>> counts;
++    void count(const std::string& phase,long long iterations) {
++        counts.push_back({name(phase),iterations});
++    }
++    std::string name(const std::string& phase) const {
++        return candidate < 0 ? phase : "c" + std::to_string(candidate) + "_" + phase;
++    }
++    void note(const std::string& phase, double begin) {
++        rows.push_back({name(phase),begin,elapsed_sec()});
++    }
++    void report() const {
++        std::ostringstream out;
++        for(const auto& row:rows)
++            out << "dt_" << row.name << "_sec = " << row.end-row.begin
++                << "\ndt_" << row.name << "_begin = " << row.begin
++                << "\ndt_" << row.name << "_end = " << row.end << '\n';
++        for(const auto& [name,count]:counts)out<<"dt_"<<name<<"_iters = "<<count<<'\n';
++        std::cerr<<out.str();
++    }
++};
++DesignPhaseTrace design_trace;
++struct DesignPhaseScope {
++    std::string name; double begin;
++    explicit DesignPhaseScope(std::string label): name(std::move(label)),begin(elapsed_sec()) {}
++    ~DesignPhaseScope() { design_trace.note(name,begin); }
++};
++
++// ==== Design absolute deadlines ====
++// Common weights for both compilers, measured on 200 cases each. Finite work
++// (matching, one perforation pass, V, initial order and helper tables) keeps its
++// full algorithm and is charged before the next absolute search deadline.
++struct DesignTimePlan {
++    struct Boundary { const char* name; double fraction; };
++    static constexpr Boundary boundaries[] = {
++        {"map_setup", 0.006486952735604},
++        {"map_search", 0.325702407202039},
++        {"map_reset", 0.326091533216696},
++        {"gopt", 0.405753816717463},
++        {"map_return", 0.405975297932037},
++        {"initialize", 0.410554504480503},
++        {"anneal_s0", 0.524782483658500},
++        {"anneal_s1", 0.614665595009840},
++        {"c0_anneal_s2", 0.634866176984049},
++        {"c0_anneal_s3", 0.654735013533546},
++        {"c0_filler", 0.664785938927138},
++        {"c0_match", 0.672408153140585},
++        {"c0_print", 0.672503243767823},
++        {"c0_perforation", 0.677944370260776},
++        {"c0_late_match", 0.682126559477792},
++        {"c0_value", 0.684760931325855},
++        {"c1_anneal_s2", 0.704751538292755},
++        {"c1_anneal_s3", 0.724869262110572},
++        {"c1_filler", 0.735088941330269},
++        {"c1_match", 0.742705077083916},
++        {"c1_print", 0.742737946956208},
++        {"c1_perforation", 0.748147957969033},
++        {"c1_late_match", 0.752271157440017},
++        {"c1_value", 0.754782323713880},
++        {"c2_anneal_s2", 0.774927909066294},
++        {"c2_anneal_s3", 0.795033107090400},
++        {"c2_filler", 0.805106210539231},
++        {"c2_match", 0.812675715069308},
++        {"c2_print", 0.812708862667900},
++        {"c2_perforation", 0.818231397736403},
++        {"c2_late_match", 0.822413338979038},
++        {"c2_value", 0.824970258612352},
++        {"c3_anneal_s2", 0.845435656054511},
++        {"c3_anneal_s3", 0.865757337549182},
++        {"c3_filler", 0.876114158117073},
++        {"c3_match", 0.883990824944072},
++        {"c3_print", 0.884024877225255},
++        {"c3_perforation", 0.889671923351392},
++        {"c3_late_match", 0.893952933351408},
++        {"c3_value", 0.896533909980541},
++        {"c4_filler", 0.902116418205063},
++        {"c4_match", 0.906062307243704},
++        {"c4_print", 0.906093100677565},
++        {"c4_perforation", 0.911591343507174},
++        {"c4_late_match", 0.916065292619676},
++        {"c4_value", 0.918678064399514},
++        {"c5_print", 0.918706983077198},
++        {"c5_perforation", 0.924133406508445},
++        {"c5_late_match", 0.928950934723587},
++        {"c5_value", 0.931546609550782},
++        {"c6_filler", 0.937132821035822},
++        {"c6_match", 0.941079707717765},
++        {"c6_print", 0.941110027780667},
++        {"c6_perforation", 0.946638474323818},
++        {"c6_late_match", 0.951118304346297},
++        {"c6_value", 0.953725715769244},
++        {"c7_print", 0.953755286477455},
++        {"c7_perforation", 0.959188063784334},
++        {"c7_late_match", 0.964076776692138},
++        {"c7_value", 0.966689955158543},
++        {"c8_print", 0.966720313329775},
++        {"c8_perforation", 0.972135491560325},
++        {"c8_late_match", 0.977035160568034},
++        {"c8_value", 0.979656341709635},
++        {"initial_order", 0.980256035633794},
++        {"helpers", 1.000000000000000},
++    };
++    static constexpr double kDefaultSeconds = 1.22;
++    // Coarse polling keeps clock reads below 0.1% of the measured phase cost.
++    static constexpr int kMapPoll = 512, kGoptPoll = 512;
++    static constexpr int kAnnealPoll = 2048, kFillerPoll = 2048;
++    bool active=false;
++    double start=0,seconds=kDefaultSeconds;
++    long long reads=0;
++    void begin(double origin) {
++        start=origin;seconds=kDefaultSeconds;active=true;reads=0;
++#ifdef LOCAL_BENCH
++        if(const char* s=std::getenv("DESIGN_SECONDS")) seconds=std::max(0.01,std::atof(s));
++        if(const char* s=std::getenv("DESIGN_FIXED_ITERS")) active=std::atoi(s)==0;
++#endif
++    }
++    double now() { ++reads;return elapsed_sec(); }
++    double deadline(const std::string& phase) const {
++        const auto name=design_trace.name(phase);
++        for(const auto& b:boundaries)if(name==b.name)return start+seconds*b.fraction;
++        std::cerr<<"unknown design deadline "<<name<<'\n';std::abort();
++    }
++    void report() const {
++        std::cerr<<"design_time_enabled = "<<active<<"\ndesign_time_budget_sec = "<<seconds
++                 <<"\ndesign_time_start_sec = "<<start<<"\ndesign_time_end_sec = "<<start+seconds
++                 <<"\ndesign_clock_reads = "<<reads<<'\n';
++    }
++};
++DesignTimePlan design_time;
+ 
+ // ==== Request profiling (COLFAST_PROFILE): inclusive and exclusive times ====
+ #ifndef F3_PROFILE
+@@ -1371,6 +1507,7 @@
+ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::pair<int, int>>& edges,
+                            std::vector<int>& polarity, std::vector<int>& permutation, double seconds, int fixed_iters,
+                            int climb_steps, double climb_seconds) {
++    const double dt_map_begin=elapsed_sec();
+     constexpr int kCutoff = 26;
+     constexpr int kRejectLoss = 3, kMemoSize = 1 << 18;
+     constexpr double kWindowRate = 0.6;
+@@ -2474,16 +2611,26 @@
+ #if DESIGN_PROFILE
+     unsigned long long dp_loop_start = __builtin_ia32_rdtsc();
+ #endif
++    design_trace.note("map_setup",dt_map_begin);
++    const double dt_search_begin=elapsed_sec();
++    const bool timed=design_time.active;
++    const double search_end=timed?design_time.deadline("map_search"):0;
++    const double gopt_end=timed?design_time.deadline("gopt"):0;
++    const int clock_mask=timed?DesignTimePlan::kMapPoll-1:15;
+     for (int it = 0;; it++) {
+-        if ((it & 15) == 0) {
+-            elapsed = scaled_since(start);
+-            if (elapsed >= seconds || (fixed_iters > 0 && it >= fixed_iters)) break;
++        if ((it & clock_mask) == 0) {
++            if(timed) { elapsed=design_time.now();if(elapsed>=search_end)break; }
++            else {
++                elapsed = scaled_since(start);
++                if (elapsed >= seconds || (fixed_iters > 0 && it >= fixed_iters)) break;
++            }
+         }
+         stats.iterations++;
++        const double progress = timed ? std::clamp((elapsed-dt_search_begin)/std::max(1e-9,search_end-dt_search_begin),0.,1.)
++                                      : fixed_iters ? double(it) / fixed_iters : elapsed / seconds;
+ #if AS_PROFILE
+-        as_phase = fixed_iters ? std::min(3, 4 * it / fixed_iters) : 0;
++        as_phase = timed ? std::min(3,int(4*progress)) : fixed_iters ? std::min(3,4*it/fixed_iters) : 0;
+ #endif
+-        double progress = fixed_iters ? double(it) / fixed_iters : elapsed / seconds;
+         double candidate;
+         if (!propose_candidate(it, kMapStall, candidate)) continue;
+         auto temp = [&] { return 0.05 * std::pow(0.00125 / 0.05, progress); };
+@@ -2495,6 +2642,9 @@
+             undo_move(mv);
+         }
+     }
++    design_trace.note("map_search",dt_search_begin);
++    design_trace.count("map_search",stats.iterations);
++    const double dt_reset_begin=elapsed_sec();
+     // Search from the annealing best for the original final time interval. Normally descend;
+     // at stagnation take the least-cost observed neighbor, and retain the best visited state.
+ #if DESIGN_PROFILE
+@@ -2540,10 +2690,13 @@
+ #if AS_PROFILE
+     as_phase = 4;
+ #endif
+-    if (climb_steps > 0 || climb_seconds > 0) {
++    design_trace.note("map_reset",dt_reset_begin);
++    const double dt_gopt_begin=elapsed_sec();
++    if (timed || climb_steps > 0 || climb_seconds > 0) {
+         const auto climb_start = Clock::now();
+         for (int it = 0;; it++) {
+-            if (climb_steps > 0 ? it >= climb_steps : (it & 15) == 0 && scaled_since(climb_start) >= climb_seconds)
++            if (timed ? (it & (DesignTimePlan::kGoptPoll-1))==0 && design_time.now()>=gopt_end
++                      : climb_steps > 0 ? it >= climb_steps : (it & 15) == 0 && scaled_since(climb_start) >= climb_seconds)
+                 break;
+             stats.climb_steps = it + 1;
+             double candidate;
+@@ -2557,6 +2710,9 @@
+             }
+         }
+     }
++    design_trace.note("gopt",dt_gopt_begin);
++    design_trace.count("gopt",stats.climb_steps);
++    const double dt_map_return=elapsed_sec();
+     // The returned assignment is the best visited state, not the last uphill escape. Pair
+     // caches need not be rebuilt here: the remaining code only uses mask, pol, and order.
+     mask = best_mask;
+@@ -2616,6 +2772,7 @@
+     dp_calls[dp_aw_total]++;
+     dp_report();
+ #endif
++    design_trace.note("map_return",dt_map_return);
+     return stats;
+ }
+ 
+@@ -2912,21 +3069,25 @@
+ 
+     // Anneal product pairing, column membership, and handle order. Each of kAnnealSegments
+     // schedule segments starts from the previous best and refreshes the column reset demand.
+-    // Use fixedIterations when positive, otherwise the time budget; retain the 256-step checkpoints.
++    // The active design schedule supplies an absolute deadline for each segment.
++    // Fixed-iteration experiments keep the old 256-step temperature checkpoints.
+     static constexpr int kAnnealSegments = 4;
+     void anneal(double seconds, int fixedIterations = 0, int firstSegment = 0, int endSegment = 4) {
+         const auto t0 = Clock::now();
+         int total = 0;
+         for (int s = firstSegment; s < endSegment; s++) {
++            DesignPhaseScope dt("anneal_s"+std::to_string(s));
+             refresh_reset();
+             const double used = scaled_since(t0);
+             const double sec = fixedIterations ? 1e9 : std::max(0.0, seconds * (s + 1) / kAnnealSegments - used);
+-            const int fi = fixedIterations ? fixedIterations / kAnnealSegments : 0;
++            const int fi = design_time.active ? 0 : fixedIterations ? fixedIterations / kAnnealSegments : 0;
++            const double deadline=design_time.active?design_time.deadline("anneal_s"+std::to_string(s)):-1.;
+             const double p0 = double(s) / kAnnealSegments, p1 = double(s + 1) / kAnnealSegments;
+             if (H <= 32)
+-                Annealer<4>(*this).run(sec, fi, p0, p1);
++                Annealer<4>(*this).run(sec, fi, p0, p1, deadline);
+             else
+-                Annealer<5>(*this).run(sec, fi, p0, p1);
++                Annealer<5>(*this).run(sec, fi, p0, p1, deadline);
++            design_trace.count("anneal_s"+std::to_string(s),anneal_iters);
+             total += anneal_iters;
+         }
+         anneal_iters = total;
+@@ -3395,7 +3556,7 @@
+         // ==== Design annealing: move proposals ====
+ 
+         // p0, p1: the slice of the whole schedule (progress) that this run covers
+-        ANNEAL_TARGET void run(double seconds, int fixedIterations, double p0 = 0, double p1 = 1) {
++        ANNEAL_TARGET void run(double seconds, int fixedIterations, double p0 = 0, double p1 = 1, double deadline=-1) {
+             AF_SCOPE(anneal, 1);
+             const auto start = Clock::now();
+             double progress = 0;
+@@ -3413,12 +3574,21 @@
+             std::vector<Unit> best = unit;
+             std::vector<int> bestHandle = D.handle;
+             double bestCost = cur;
++            const bool timed=deadline>=0;
++            const double phase_begin=timed?elapsed_sec():0;
++            const int clock_mask=timed?DesignTimePlan::kAnnealPoll-1:255;
+             for (int it = 0;; it++) {
+                 D.anneal_iters = it;
+-                if ((it & 255) == 0) {
+-                    const double elapsed = scaled_since(start);
+-                    progress = fixedIterations > 0 ? double(it) / fixedIterations : elapsed / seconds;
+-                    if (progress >= 1 || elapsed >= seconds) break;
++                if ((it & clock_mask) == 0) {
++                    if(timed) {
++                        const double now=design_time.now();
++                        if(now>=deadline)break;
++                        progress=std::clamp((now-phase_begin)/std::max(1e-9,deadline-phase_begin),0.,1.);
++                    } else {
++                        const double elapsed = scaled_since(start);
++                        progress = fixedIterations > 0 ? double(it) / fixedIterations : elapsed / seconds;
++                        if (progress >= 1 || elapsed >= seconds) break;
++                    }
+                     temp = 2.0 * std::pow(0.015 / 2.0, p0 + (p1 - p0) * progress);
+                     temp*=std::pow(D.anneal_reheat,(1-p0-(p1-p0)*progress)/(1-D.reheat_start));
+ 
+@@ -3656,8 +3826,12 @@
+         for (int c = 0; c < H; c++) proxy += column_value(c);
+         proxy_before = proxy;
+         std::vector<double> old_utility(U);
++        const bool timed=design_time.active;
++        const double deadline=timed?design_time.deadline("filler"):-1.;
++        if(timed)climb_iters=0;
+         for (int it = 0;; it++) {
+-            if (fixedIterations > 0 ? it >= fixedIterations : ((it & 63) == 0 && scaled_since(start) >= seconds)) break;
++            if (timed ? (it & (DesignTimePlan::kFillerPoll-1))==0 && design_time.now()>=deadline
++                      : fixedIterations > 0 ? it >= fixedIterations : ((it & 63) == 0 && scaled_since(start) >= seconds)) break;
+             climb_iters = it + 1;
+             int x = rng.below(U), y = rng.below(U), a = unit[x].c, b = unit[y].c;
+             if (a == b || (unit[x].b >= 0) != (unit[y].b >= 0)) continue;
+@@ -10642,7 +10816,8 @@
+ 
+ // Design budgets: window annealing, its matching climb, product/column annealing, filler climb,
+ // and head-aware reassignments. Perforation makes one pass; helper tables are completed.
+-// ITER_SCALE scales the four iteration budgets below; stage environment overrides take precedence.
++// Legacy fixed-iteration experiments: LOCAL_BENCH DESIGN_FIXED_ITERS=1.
++// The default design schedule below supersedes these counts with absolute deadlines.
+ #ifndef ITER_SCALE
+ #define ITER_SCALE 1.0
+ #endif
+@@ -10654,6 +10829,8 @@
+ // and their perforation; its statistics go to stderr). `emergency` if no feasible design was found.
+ DesignState design_papers(const std::vector<u64>& originalA) {
+     // ==== design_papers: window assignment and the initial design ====
++    const double dt_design_begin=elapsed_sec();
++    design_time.begin(dt_design_begin);
+ 
+     deval_salt=std::max(0,env_int("DEVAL_SALT"));
+     const u64 first_salt=deval_salt;
+@@ -10690,6 +10867,7 @@
+                 std::cerr << "gobj_before = " << ws.gobj_before << "\ngobj_after = " << ws.gobj_after
+                           << "\ngopt_steps = " << ws.climb_steps << '\n';
+         }
++        const double dt_initialize_begin=elapsed_sec();
+         comp.rebuild();
+         des = std::make_unique<Design>(A, M, G);
+         // gcost: the exact mean number of moves of the generic layer from a uniform order, averaged over
+@@ -10701,8 +10879,9 @@
+             return PosetSums::get().both_of(r) / 1440.0;
+         };
+ 
+-        if (des->initialize([&](u64 a, u64 b) { return comp.compatible(a, b); }, estimate, []() { return false; }))
+-            break;
++        const bool initialized=des->initialize([&](u64 a, u64 b) { return comp.compatible(a, b); }, estimate, []() { return false; });
++        design_trace.note("initialize",dt_initialize_begin);
++        if(initialized) break;
+         if (attempt >= 2) {
+             state.emergency = true;
+             return state;
+@@ -10717,16 +10896,21 @@
+         DesignState state;
+         auto A=des->A;
+     if(!raw && extra!=2) {
+-    if (climb_iters > 0) des->filler_climb(1e300, extra?25000:climb_iters);
++    { DesignPhaseScope dt("filler");
++      if (climb_iters > 0) des->filler_climb(1e300, extra?25000:climb_iters);
++      design_trace.count("filler",des->climb_iters); }
+     std::cerr << "climb_iters = " << des->climb_iters << "\nclimb_accepted = " << des->climb_accepted
+               << "\nclimb_evaluated = " << des->climb_evaluated << "\nclimb_cached = " << des->climb_cached
+               << "\nproxy_before = " << des->proxy_before / P << "\nproxy_after = " << des->proxy_after / P
+               << "\nclimb_end_sec = " << elapsed_sec() << '\n';
++    const double dt_match_begin=elapsed_sec();
+     const auto match = rematch_probability(*des, extra?1:2, 1.0, 2.0);
++    design_trace.note("match",dt_match_begin);
+     std::cerr << "match_iterations = " << match.iterations << "\nmatch_cycles = " << match.accepted_cycles
+               << "\nmatch_changed = " << match.changed << "\nmatch_decrease = " << match.decrease
+               << "\nmatch_sec = " << match.seconds << "\nmatch_end_sec = " << elapsed_sec() << '\n';
+     }
++    const double dt_print_begin=elapsed_sec();
+     // Restore the cap bit only for the physical papers and online targets.
+     // Assignment never moves index 63, and all design calculations used 63 bits.
+     for (int u = 0; u < P; ++u) A[u] |= originalA[u] & kCapBit;
+@@ -10813,6 +10997,7 @@
+     }
+     // Sacrifice a few printed handles when that makes a common donor
+     // repair several other products more efficiently. Its own handle stays.
++    design_trace.note("print",dt_print_begin);
+     const double perforation_start = elapsed_sec();
+     // Only the H live entries are read. Specialize the common 25-handle layout;
+     // the full capacity also supports the retry designs and experimental maps.
+@@ -10836,6 +11021,7 @@
+     };
+     if (solver.H <= 25) perforate.template operator()<25>();
+     else perforate.template operator()<64>();
++    design_trace.note("perforation",perforation_start);
+ 
+     // ==== design_papers: perforation-aware reassignment ====
+ 
+@@ -10883,6 +11069,7 @@
+                   << "\nd2_extra_remaining = " << remaining
+                   << "\nd2_rematch_sec = " << elapsed_sec() - late_start
+                   << "\nd2_rematch_end_sec = " << elapsed_sec() << '\n';
++        design_trace.note("late_match",late_start);
+     }
+     return state;
+     };
+@@ -10899,6 +11086,7 @@
+     const auto prefix=std::make_unique<Design>(*des);
+     std::unique_ptr<Design> best_assignment;
+     auto complete=[&](int id,int extra) {
++        design_trace.candidate=id;
+         std::ostringstream log;auto* old=std::cerr.rdbuf(log.rdbuf());
+         Design::kClimbProxyWeight=.5;
+         std::cerr<<"colswap_tried = "<<des->colswap_tried<<"\ncolswap_accepted = "<<des->colswap_accepted
+@@ -10907,6 +11095,7 @@
+         finish_sec+=elapsed_sec()-begin;std::cerr.rdbuf(old);
+         if(candidate.emergency)return 1e100;
+         begin=elapsed_sec();const double v=value.from_design(candidate);eval_sec+=elapsed_sec()-begin;
++        design_trace.note("value",begin);
+         if(env_int("DEVAL_DUMP_FEATURES"))std::cerr<<"@deval_final "<<id<<' '<<v<<'\n';
+         if(!finished)first=v;
+         ++finished;
+@@ -10914,6 +11103,7 @@
+         return v;
+     };
+     for(int i=0;i<candidates;++i) {
++        design_trace.candidate=i;
+         deval_salt=first_salt+i;
+         des=std::make_unique<Design>(*prefix);
+         if(i)des->rng.x^=u64(i)*0x9E3779B97F4A7C15ULL;
+@@ -10935,13 +11125,17 @@
+         complete(id,warm?2:1);
+     }
+     if(!finished)state.emergency=true;
+-    if(finished)improve_initial_columns(state);
++    design_trace.candidate=-1;
++    { DesignPhaseScope dt("initial_order"); if(finished)improve_initial_columns(state); }
++    design_trace.note("design_total",dt_design_begin);
+     std::cerr << chosen_log;
+     std::cerr << "anneal_iters = " << total_iters << "\nanneal_end_sec = " << elapsed_sec()
+               << "\ndv_candidates = " << finished << "\ndv_chosen = " << chosen
+               << "\ndv_first = " << first << "\ndv_best = " << best
+               << "\ndv_anneal_sec = " << anneal_sec << "\ndv_finish_sec = " << finish_sec
+               << "\ndv_eval_sec = " << eval_sec << '\n';
++    design_trace.report();design_time.report();
++    design_trace.rows.clear();design_trace.counts.clear();
+     return state;
+ }
+ 
+@@ -11218,6 +11412,7 @@
+ #endif
+         return emergency_design(originalA, R);
+     }
++    const double dt_helpers_begin=elapsed_sec();
+     Solver solver = make_solver(state);
+     const int M = state.M, G = state.G;
+ 
+@@ -11236,6 +11431,8 @@
+                                 solver.hmask, helper_limit);
+         { AF_SCOPE(lookahead, 1); solver.init_lookahead(); }
+     }
++    design_trace.note("helpers",dt_helpers_begin);
++    design_trace.report();
+ #ifdef LOCAL_BENCH
+     store.design_end(state, solver.interleave && solver.interleave->ready);
+ #endif
