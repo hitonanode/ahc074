@@ -1,0 +1,5 @@
+改良元: solutions/dcomp-hole4
+
+matching_costのradix sortのレコードを64bitから32bitへする。費用17bitとペア番号15bitは32bitに収まり、同点順は元の安定sortと同じ。greedyでだけペア番号から2 targetを16bit表で読む。2回のscatterとkey構築の転送量を半減させる代わりに、greedyで表読み1回が増える。
+
+費用・選択順・乱数・固定予算と要求処理は不変。ログ・profiler・実験スイッチ・DesignStoreを維持、時間fallbackなし。

@@ -1,0 +1,5 @@
+改良元: solutions/dcomp-screen-replay
+
+注文ごとのpost_contextの区間表には、最初の色の代わりに「要求と違う最初の色」のmaskを保存する。正しい不透明maskなら、区間の結合演算は同じで、試行の表示検査は新しく見えるwrong bitの有無だけを調べればよい。表示全体の再構成と毎回のXORを省く。まだ覆われない窓の要求bitも最後に確認する。blackがopaque外に出る実験状態は元の表と検査を使う。
+
+BAD_FILTER_CHECKは紙を全部たどった表示と試行ごとに一致を検査する。探索と浮動小数点の採否は不変。予算、ログ、実験スイッチ、DesignStoreを維持し、時間fallbackなし。

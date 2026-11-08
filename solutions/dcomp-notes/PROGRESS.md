@@ -102,3 +102,100 @@
 - 最終p99: ten−fix = −18.54ms（paired bootstrap95% [-59.98,−2.25]ms）、ten−nine = +1.29ms（[-33.64,+20.01]ms）。平均judge 1.07402×argon、helper_end −20.70±1.08msで10候補を払った上でもnineより短い。end_sec平均1.544045s、p99 1.711994s、最大1.852230s、1.8/1.9/2s超2/0/0件。
 - REPORT9.md、再現スクリプト、source audit、同一性JSON、from-dcomp-nine.patchを完成。GCC既定500/native200、Clang native200の出力同一、先頭9候補1800件の完全一致、旧ten-lateと500件同一、提出形式GCC/Clangビルドを確認。
 - 凍結SHA、旧nine/ten-late/legal-tie-fastのSHA、最終run全件完了・record=true、保存設計replay実列500/500一致を再確認。M1統合は別担当へ渡す。任意の新選別実験は行わず、最終確認完了で早期終了する。
+
+# Task 10
+
+## 11-08 13:04 — 開始・コンパイラの条件を分離
+
+- 目標: combo-m1-nineから通常2000件で0.03%以上、GCCのjudge平均≤1.10×argon、p99はcomboと同等以下、Clang nativeもcomboより遅くしない。
+- CLAUDE.md、STATE.md、committed legal-notes/PROGRESS.mdを確認。M1既試行のcache拡大・部分canonicalize・取り出し無効判定は再試行しない。
+- dcomp-combo-ten: Task 9のsparsebitsはGCCだけ、Clangでは旧窓探索。10候補目はten-fastの追加差分そのもの。注文処理はcomboのまま。以前の解法は変更しない。
+- task10_run.pyは標準runnerのprepare/compileだけを拡張し、arm別コンパイラを正しくmetaに保存する。コンパイルはflock+nice、バイナリはruns内。評価・24並列・記録は標準runnerのまま。
+- 次: comboのGCC native/Clang native500件同時比較、要求処理800出力の同一性、ten-fastとの設計一致。それと並行してpost_optimizeの実装を調べ、プロフィールで大きい試行評価に絞って高速化する。
+
+## 13:20 — 基準と最初の出力同一高速化
+
+- コンパイラの同時500件 `20261108-130056`: 同じcomboソースのClang nativeはGCC native比でhelper_end −74.43±1.69ms、req −21.50±1.28ms、end −95.87±2.31ms。Clangの平均はhelper1.016932s、req0.455420s、end1.487669s。既存の親自体が両コンパイラで199/500出力異なり、seed1は設計も異なる。コンパイラごとの親との同一性を基準とするか、ユーザーに確認中。新変更の検証は継続。
+- `dcomp-combo-ten`: GCC通常500件 `20261108-130114` はcombo比helper_end −31.25ms、得点 −0.00356±0.00335%（未確定）。ten-fastの設計と500/500一致。固定設計200×4 `130439` はcomboと800/800 stdout一致。Clang native通常200 `130540` は旧窓経路でhelper_end +11.71±3.18ms、end +13.80±4.35ms。10候補の支払いをClang側でも回収する必要がある。
+- `dcomp-screen-links` (`130508`, 固定200×4): 表示screenで作ったGのリンクを1回のspliceで再利用。800/800 byte一致、req −11.37±0.99ms。検証版も800/800一致（最終リンクと表示の検査不一致なし）。Clang検証を投入。
+- 現在のprofile (`130508`): post_optimize423.7ms incl、evaluate280.2ms incl、filter71.7ms、replay64.0ms、next_cost63.8ms、canonicalize25.6ms。計測によるreq増分97.7msがあるので絶対値を通常版の時間とは混同しない。screen準備31,971回/ケース、表示で518,474試行を省く。
+- 失敗は深追いしない: canonicalizeのgen_seen→cur=-1は800同一だがreq +0.33±0.99ms、2つのmemchrをAVX2で一括探索は800同一だが+2.65±0.94ms（`130711/130712`）。不採用。
+- Clangのsparsebitsを分解 (`130904`, 診断100件): SIMD本体は450→397 Mcyclesと速いが、疎なlookupが95→267、valid列挙97→173で遅い。追加した間接indexループだけvectorize/interleave/unrollを止めて検証する。
+- 次: screenの可換性を使った合法性再生の共有、候補sortで大きなStateを移動しない案、Clang間接ループの確認。採用できる短縮を合成した後に予算を配り直す。
+
+## 13:53 — 約27msの注文短縮を両コンパイラで確認、追加資金を探索
+
+- `dcomp-screen-replay`の確定ソース（未準備rankを参照しないガード付き）: GCC500×4 `133217` は2000/2000 stdout一致、req −27.48±0.55ms。Clang200×4 `132834` は800/800一致、req −27.07±0.96ms。Clangの元リンク版だけは−14.62±0.96ms。完全な旧再生で合法性・操作列・ラベルを検査する版も800/800一致。
+- 失敗した出力同一案: neutral候補をindexでsort −1.73±1.00ms（`131225`、2SE未満）、gen_seen除去 +0.33ms、二IDのAVX検索 +2.65ms。除算のNewton＋FMA残差補正は0..256の全16,974,593組でGCC/Clangともbit一致、solverもGCC500/Clang200出力一致だがhelper_end +10.86±2.68/+9.84±3.62ms（`132826`,`133019`）で不採用。
+- 窓の追加: Clangの疎な間接ループのvectorize等を止めても+76.17±4.67ms (`131908`)。費用/valid走査の統合はClang +54.90/+52.75ms (`132343`)、GCC +51.56/+7.15ms (`132508`)。いずれも出力一致だが採らない。Clangは元の窓経路を維持。
+- ejectの上位2層を、常に3層目以下の未操作紙を除いた列で計算する案 (`133748`): 完全再生の検証を含め800/800出力一致、しかしreq −0.17±0.88msで効果なし。終状態memoを旧filler優先順の完全keyで呼出し間共有する案 (`134406`): 800一致、hitは24,358→27,883回に増えたがreq +1.38±0.83ms。両案とも深追いしない。
+- 再投資A (`133211`, 訓練500×4、screen-replay比): alternate gap .25 / eject2は−0.01077±0.00085%、+27.97±0.59ms。gap .75 / eject2は−0.02817±0.00149%、+64.67±0.60ms。eject4にしても−0.02822%、+64.81msで実益なし。REPEAT_MIN=0は−0.00681±0.00094%、+22.63±0.64ms。最大の得は目標に近いが、特にClang側の資金が不足。
+- 次: 幅6・追加候補8・rwf・短いgapでのshortlist解除・alternate gap .5を単独測定中。next_costのkeyについて、除外紙をすべて通過した後のsuffixをそのままコピーする出力同一案も確認する。まだ最終設定・最終2000件は凍結していない。
+
+## 14:28 — 取り出し修復の共有とrematchの整数SIMD
+
+- 再投資B (`134801`, 訓練500×4、screen-replay比): NW6 −0.002735±0.000489%、req +5.90±0.58ms; EXP8 −0.001268±0.000359%、+2.66±0.58ms; RWF −0.002800±0.000537%、+13.69±0.60ms; shortlistをgap .25に置換すると+0.009910±0.000833%、−11.55msで不採用。alternate gap .5は−0.019665±0.001217%、+46.21±0.57ms。
+- 失敗した追加案: next keyの除外完了後memcpy (`135015`) +0.37±0.93ms、全16枚block直コピー付き−1.35±0.95msで未確定。表示Blockをwrong-color maskにする案 (`135426`) +1.63±0.93ms。どれも800/800 stdout一致だが採らない。
+- 窓restrict (`140033`, Clang200) −2.25±2.61msで効果なし。64要素paddingは初回Clang−6.37±2.54msだが、500件再測定`140410`に外部負荷1.11 coreの警告があり時間の採否には使わない。GCC500 `140538` は500/500一致、−2.67±2.55msで未確定。
+- canonical recordsを可換G＋1挿入のsuffix最小値/bitsetから作る案 (`140540`) は800/800一致、元canonicalizeとの検証も一致。しかしreq +4.43±0.94msで不採用。準備の費用を回収できない。
+- `dcomp-eject-screen` (`141014` GCC200×4): 取り出しのanchor群でも共有再生を使う。800一致、req −3.01±0.86ms。さらに取り出しが既に構成したGと表示を直す区間を再利用する `dcomp-eject-known` はClang200×4 `141414`で800一致、req **−9.44±0.88ms**（screen-replay比）。完全再生によるリンク・表示・合法性・操作/ラベルの検証版も800一致。GCC500×4も評価済み、集計待ち。
+- `dcomp-donor4` (`141438`, GCC500): rematch donorの修復可能handle集合だけを4 targetずつSIMD計算。確率多項式・加算順は同じ。500/500 stdout一致、helper_end **−16.32±2.71ms**。target側への拡張とClang同時比較を投入。
+- next_costの再profile (`140829`, 100×4): key11.1ms、列内scan28.4ms、holes12.0ms、MDP11.3ms（計測版の値）。元のdouble途中和と整数状態を64/128枚prefixで保存する正確なcacheを検証中。
+- 追加で検証中: ejectの区間が空な候補では残りのorderを構成しない、窓費用の無効要素を初期化せずlive一覧コピーを受理時に延期、Hungarianのway更新の4分岐をmask storeにする案。再投資はalternateの手数filter/上位1候補/1対1修復を訓練500×4で比較。まだ最終設定は凍結していない。
+
+## 14:46 — exact短縮の合成を開始
+
+- donorの4target整数SIMDを再確認: GCC500 `143356` −14.14±2.63ms、Clang native500 `142404` −8.43±1.60ms（helper_end、各500/500 stdout同一）。target側まで広げるhead4はGCCでdonorより約2.5ms遅く、Clangの差も小さいのでdonorのみを合成する。
+- `dcomp-eject-known` GCC500×4 `142007`: screen-replay比req −10.32±0.57ms、2000/2000同一。空の修復区間では尾部を作らないgeometry (`142027`) はさらに−3.70±1.07ms、800/800同一。独立完全区間検証も一致。Clang版を実行中。
+- next_costの正確な64/128 prefix (`141638` GCC200×4): req −5.76±0.86ms、800/800同一。全cache外れを旧関数で再計算したdouble bit検証も一致。Clang、64/160 checkpoint、cache容量と単一checkpointを比較中。
+- Clangのvalid-only窓 (`142228`、500): loose +51.39±2.67ms、費用とbitsetを統合したunified +0.71±2.11ms、各500同一。Clangで採る根拠なし。GCCは追加試験。
+- alternateの予算を絞る試験 (`141843`, 訓練500×4): gap .75全候補 −0.02817±0.00149%、+65.77±0.59ms。手数で絞るshort −0.01715±0.00106%、+44.88ms、上位1候補top1 −0.01873±0.00118%、+38.91ms、1対1修復one −0.00232±0.00205%、+58.86ms。oneは不採用、主軸は全候補。
+- `dcomp-stack-nine`は窓GCC専用＋screen replay＋eject known/geometry＋next prefix＋donor4を合成し、候補数9で純粋な出力同一性を測る。`dcomp-stack-ten`は同じ短縮と10候補目を保存。`dcomp-stack-alt75`は9候補の時間をALT .75/eject2、NW6、EXP8に再配分。まず訓練500通常GCC/Clang同時比較で合成時の時間を確認する。最終設定はまだ凍結していない。
+
+## 15:08 — 合成の通常500件、追加資金とALT frontier
+
+- `dcomp-stack-nine` GCC通常500 `144454`: comboと500/500 stdout一致。helper_end −49.98±2.27ms、req −44.38±1.47ms、end −94.10±2.93ms。ALT .75＋NW6＋EXP8の同時比較は−0.03341%（訓練500）、helper −47.36ms、req +11.03ms、end −35.79ms。GCCでは余裕があるがClangが制約。
+- Clang通常500 `145325` は全件完了・meta status ok・正のscore500件を確認。stack-nineのスコアは全件同点、ALT版は約−0.029%。単純な平均実時間ではexact版−44ms、ALT版+4ms。対応差とbyte一致は集計中。worker終了時のInterrupted tracebackがあるが、result.jsonのケース欠落・WAはない。
+- Hungarian (`144645` Clang native500): mask版helper_end −7.79±1.64ms、blend版−8.73±1.67ms、各500/500 stdout一致。GCCはmaskが−13.60±2.48ms (`142734`)。合成の最終版ではGCCにmask、Clangにblendを使う候補を考える。
+- prefix (`143415` Clang200×4): 64/128は−10.28±0.94ms、64/160は−8.17±0.89ms。各800同一、元の関数とのbit検証も一致。prefixのway増加/64checkpoint除去 (`144302`) はGCC−0.08/−0.86msで未確定。列MDP cache 64/128 (`144409`) も+0.18/−0.83msで未確定。どちらも追加追試なし。
+- 窓valid-only unifiedのGCC500 `144740`: helper_end +0.06±2.36ms、500同一。Clangも改善なしなので不採用。元のGCC sparsebitsのみ残す。
+- ALT gap1.0は訓練500×4 (`143744`) −0.03403±0.00162%、eject-known版比req +63.66±0.61ms。PLAN_LIMIT=3は2000出力同一、NS4は−0.000145±0.000095%、効果が薄い。slack.5は−0.002835±0.000500%、+8.54ms。gap1/1.25/1.5とgap1＋NW6/EXP8を、合成高速化版で再測定中 (`144941/144942`)。
+- 残りの明確なprofile targetを2案だけ確認: VのDPはdp[lo]が増える位置だけを試す（元の全DPのbit/選択照合付き）。next_costの穴費用は各項が整数/1024で正確なので4項をSIMD計算し、一般の途中和には元の順で加える（元のnext_costとのbit照合付き）。Clangの数ms不足を埋める目的。新しい予算設定はまだ凍結していない。
+
+## 15:31 — 採用範囲の得点、Clangの資金を窓sortで確保
+
+- 最終予算の訓練500×4 `151147`: ALT gap1、width5は−0.03403±0.00162%、width6は−0.03695±0.00170%、width6＋EXP8は−0.03720±0.00170%。width6からEXP8への上積みは約0.00025%だけで2.8msかかり、採る価値が薄い。gap1.25/1.5は−0.03668/−0.03857%、req +73.5/+82.5ms (`144941/144942`) と高価。
+- GCC通常500 `151716`: pure `dcomp-hole4` はcomboと500/500 byte同一、helper −61.52±2.12ms、req −51.05±1.32ms、end −112.83±2.62ms。ALT1/width5は−0.03625±0.00297%、end −51.59ms。ALT1/width6は−0.04099±0.00311%、end −46.24ms。
+- Clang通常500 `152049`: pureは500/500同一、helper −4.14±1.36ms、req −51.49±1.30ms、end −55.90±2.11ms。しかしALT1/width5はend +6.50±2.00ms、width6は+11.55±1.94ms。GCCだけの余裕では採用しない。
+- 穴費用の整数/1024 SIMDはGCC200×4 `150503` req−4.31±0.91ms、Clang200×4 `151125` −1.20±0.86ms（未確定）、各800 byte同一、旧関数とのdouble bit検証一致。V DPのstrict-rise省略 `150150` は全200出力・全DP検証一致だがdv_eval +1.20±0.21msなので棄却、深追いしない。
+- **Clang窓sortの新しい資金** (`151728/151729`, 500): 安定radixの8+9bitを6+11へするとhelper −23.10±1.57ms、map −20.43±1.26ms、500/500同一。7+10はhelper−20.04±1.60ms、9+8は−3.72±1.54ms（map差は−0.58±1.15ms）。GCCでも確認中。6bit＋ALT1/width6の合成をClang500で再確認する。
+- ソートレコードを費用17bit＋pair番号15bitのuint32へ圧縮する独立案 (`152702`, Clang500): helper −18.39±1.34ms、500/500同一。greedyでのみ16bitのu/v表を1回読む。radix6との効果の重なりを測る（6bit版を対照に32bit recordの6/7bitと、64bit recordの5bitを試す）。正確なsortだから設定によらず得点は同じ。最終2000件はまだ始めず、seed500以上は未使用。
+
+### Task 10 / 15:52: 最終版の固定
+
+- GCC sortの再測定 `20261108-154335`: radix7はhelper −1.620±2.526msで明瞭な改善なし、32bit/radix7は+42.231±2.837ms。GCCは既存の64bit/8+9を採用。Clangは32bit/7+10を採用（153241、64bit/6+11からさらに−4.443±1.379ms、500/500出力一致）。
+- 拡大予算での旧実装対照checker: `153706` Clang、`153946` GCC。両方200×4=800/800 stdout一致、内部のリンク・合法性・double bit照合も不一致0。要求側tenのClang固定replay `151652` も800/800一致。
+- `dcomp-combo-fast` は9候補・元の要求予算の完全高速化対照、`dcomp-combo-alt1` はそれにNS_ALTERNATE=1/GAP=1.0、alternate eject最大2回、NEUTRAL_WIDTH=6を加える。POST_CANDIDATES=6を維持。設定選別は0–499のみ。
+- 最終sourceを15:50:48に固定。alt1 SHA256 `8fae7ff4cbfa331797ef8f3f6835cf6ad912f04fa5a94f3fa084e11a563f97c6`。ソートはコンパイラ別だが並び順・設計予算・要求予算は共通。残りはGCC nativeの同一性、Clang native500件、通常2000件、未見注文列の確認。
+
+### Task 10 / 15:55: 最終 native 比較を通過
+
+- 凍結版 `dcomp-combo-fast`: GCC native200 `155138` で200/200 stdout一致、helper −60.880±4.202ms、req −54.827±2.159ms、end −116.830±5.059ms。Clang native500 `155242` で500/500一致、helper −23.849±1.459ms、req −53.461±1.345ms、end −77.493±2.144ms。
+- 同じClang500比較の `dcomp-combo-alt1`: score −0.034880±0.003278%、331/20/149。helper −24.303±1.384ms、req +11.316±1.404ms、end **−12.576±2.157ms**。Clang側でも再投資後に親より速い。
+- LOCAL_BENCHなしの提出形式でGCC native / Clang native / Clang plainのC++23 -O2ビルド成功。バイナリは/tmp、直接実行なし。
+- `task10_final_run.py` により凍結ソースの通常2000件4者比較（記録・設計保存あり）を開始。その設計の2000件一致を確認してから、同じcombo9設計の2000×4 replayを実行する。新規列1–3を別集計する。最終検証で設定は変更しない。
+
+### Task 10 / 16:06: 通常2000件の最終比較
+
+- `20261108-155517_{argon-des-perf-latew105,legal-tie-fix,combo-m1-nine,dcomp-combo-alt1}`、全arm2000件、WA0、記録あり。最終alt1はcombo比 **−0.035241±0.001661%**、1331/110/559。0–999は−0.035957±0.002253%、1000–1999は−0.034525±0.002442%、選別に使わなかった500–1999は−0.033323±0.001955%。legal-tie-fix比−0.070650±0.003305%。
+- judge平均argon1.623486s、fix1.776826s、combo1.779743s、alt1 **1.742437s / argon比1.073269**。p99はfix1.958409、combo1.975643、alt1 1.979913s。comboとの差+4.269ms、paired bootstrap95%区間[−38.557,+31.836]ms（4000回）で、差は測定のばらつきの範囲。
+- alt1のcombo対応差: helper **−57.837±1.145ms**、req +16.618±0.716ms、end −40.809±1.429ms、judge−37.306±1.629ms。end平均1.530021、p99 1.729219、max1.917520s、1.8/1.9/2.0超8/1/0件。外部負荷mean0.135/max0.464core。
+- 親と最終版の設計は **2000/2000 byte一致**。通常run末尾のworker終了処理にInterrupted tracebackが出たが、親プロセスは正常完了し、全meta status ok・全result正の2000件・pahcer記録済みを確認。欠損したrunとして扱わず、根拠と確認を残す。
+- `20261108-160428_{combo-m1-nine,dcomp-combo-alt1}`で上記comboの9候補設計を共用する2000×4 replayを実行中。新規列1–3はこれまで設定選別に用いず、実列0の再現も確認する。最終採用条件の通常比較とClang時間は通過。追加replayの記録・報告を終えて停止する。
+
+### Task 10 / 16:12: 最終replay・停止
+
+- 凍結後replay `20261108-160428_{combo-m1-nine,dcomp-combo-alt1}`、2000×4、全件完了・正のscore。全4列 **−0.035391±0.000833%**、新規列1–3 **−0.035441±0.000945%**（−0.0035527±0.0000948 moves/order）。未選別seed500–1999の新規列は **−0.035793±0.001077%**。新規列の改善も0.03%を超えた。
+- DesignStoreの実列0再現: combo、alt1とも通常runと **2000/2000 stdout byte一致**。最終normal/replay/Clangすべてのstatus、件数、source hashを`t10-final-audit.json`に保存。最終ソースhashは凍結時のまま。
+- `REPORT10.md`を確定。通常2000件の−0.03524%、judge平均argon比1.07327、p99差+4.27ms（95%区間は0を含む）、Clang native end−12.58±2.16msにより採用条件を満たす。以後の探索・予算変更はしない。最終候補は`dcomp-combo-alt1`、完全同一の高速化部品は`dcomp-combo-fast`。指定の10候補部品は`dcomp-combo-ten`に保存。
+- 単独の小さいオプションとしてREPEAT_MIN=0、RWF、slack.5を報告したが、ALT版との組合せは未測定なので推奨版には足さない。コードサイズは指示どおり無視。no fallback、固定予算、共有ファイル編集・commitなし。

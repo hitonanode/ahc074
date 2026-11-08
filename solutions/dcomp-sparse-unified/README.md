@@ -1,0 +1,5 @@
+改良元: solutions/dcomp-screen-replay
+
+疎な窓評価を両コンパイラで再検討。費用配列のうち読むのはvalid/liveに載った場所だけなので、無効な場所の0初期化を省く。新しいlive一覧も試行ごとにコピーせず、受理時だけvalidから更新する。旧validの費用コピーとbitset更新、新しい閉包費用とbitset更新をそれぞれ統合する。 AS_PROFILEの新規validカウントもliveで判定し、従来どおり。
+
+初期化とclimbへの移行では全費用を再構築。matching列挙順・乱数・費用演算は不変。探索予算・ログ・実験スイッチを保持、時間fallbackなし。

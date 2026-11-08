@@ -1,0 +1,3 @@
+改良元: solutions/dcomp-eject-known
+
+取り出し修復のgap区間が空かどうかを上位2層のprefixだけで判定する。prefixより深い修復紙の順位は、すべての参照する先頭紙より下なので仮にKとして同じ区間を計算できる。区間が残った場合にだけ残りのorderをmaterializeする。元の候補と演算は不変。検証版は毎回完全orderで区間を再計算して照合。予算・ログ・DesignStore・実験スイッチを維持。

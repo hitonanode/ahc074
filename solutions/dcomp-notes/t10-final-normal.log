@@ -1,0 +1,53 @@
+[pahcer_run] run-id: 20261108-155517_argon-des-perf-latew105
+[pahcer_run] run-id: 20261108-155517_legal-tie-fix
+[pahcer_run] run-id: 20261108-155517_combo-m1-nine
+[pahcer_run] run-id: 20261108-155517_dcomp-combo-alt1
+[dcomp] reused 20261108-123924_argon-des-perf-latew105
+[dcomp] reused 20261108-123924_legal-tie-fix
+[dcomp] reused 20261108-151716_combo-m1-nine
+[pahcer_run] 4 個の解法を比べます (seed 0〜1999、24 並列、seed ごとに続けて実行)
+[pahcer_run] 200/2000 seed 完了 (経過 0.8 分、残り約 7.6 分)
+[pahcer_run] 400/2000 seed 完了 (経過 1.6 分、残り約 6.4 分)
+[pahcer_run] 600/2000 seed 完了 (経過 2.4 分、残り約 5.6 分)
+[pahcer_run] 800/2000 seed 完了 (経過 3.2 分、残り約 4.8 分)
+[pahcer_run] 1000/2000 seed 完了 (経過 4.0 分、残り約 4.0 分)
+[pahcer_run] 1200/2000 seed 完了 (経過 4.8 分、残り約 3.2 分)
+[pahcer_run] 1400/2000 seed 完了 (経過 5.5 分、残り約 2.4 分)
+[pahcer_run] 1600/2000 seed 完了 (経過 6.3 分、残り約 1.6 分)
+[pahcer_run] 1800/2000 seed 完了 (経過 7.1 分、残り約 0.8 分)
+[pahcer_run] 2000/2000 seed 完了 (経過 7.9 分、残り約 0.0 分)
+Process ForkPoolWorker-8:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 337, in _exit_function
+    _run_finalizers(0)
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 271, in _run_finalizers
+    def _run_finalizers(minpriority=None):
+    
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+dcomp_pahcer.Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261108-155517_argon-des-perf-latew105        2000   0     10318.20    0.000   10318.2   +0.000%  0.000%     0/2000/   0    1.330s
+    実行時間: 99% 点 1.474 s、99.9% 点 1.621 s、最大 1.723 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.857 s、1.8 s 超え 1・1.9 s 超え 0・2.0 s 超え 0 ケース (2000 ケース中)
+  20261108-155517_legal-tie-fix                  2000   0     10269.83    0.000   10269.8   -0.470%  0.017%  1476/  4/ 520    1.455s
+    実行時間: 99% 点 1.619 s、99.9% 点 1.723 s、最大 1.727 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.874 s、1.8 s 超え 9・1.9 s 超え 0・2.0 s 超え 0 ケース (2000 ケース中)
+  20261108-155517_combo-m1-nine                  2000   0     10266.19    0.000   10266.2   -0.505%  0.017%  1500/  5/ 495    1.456s
+    実行時間: 99% 点 1.619 s、99.9% 点 1.724 s、最大 1.784 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.924 s、1.8 s 超え 7・1.9 s 超え 2・2.0 s 超え 0 ケース (2000 ケース中)
+  20261108-155517_dcomp-combo-alt1               2000   0     10262.57    0.000   10262.6   -0.540%  0.017%  1534/  6/ 460    1.419s
+    実行時間: 99% 点 1.619 s、99.9% 点 1.722 s、最大 1.787 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.918 s、1.8 s 超え 8・1.9 s 超え 1・2.0 s 超え 0 ケース (2000 ケース中)
+  設計の保存       : 20261108-155517_argon-des-perf-latew105/design/ に 2000 ケース (--design-from で読み込める)
+  設計の保存       : 20261108-155517_legal-tie-fix/design/ に 2000 ケース (--design-from で読み込める)
+  設計の保存       : 20261108-155517_combo-m1-nine/design/ に 2000 ケース (--design-from で読み込める)
+  設計の保存       : 20261108-155517_dcomp-combo-alt1/design/ に 2000 ケース (--design-from で読み込める)
+  pahcer/ への記録 : した
+  所要時間         : 7.9 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.14 コア、最大 0.46 コア (2 秒ごとに 474.2 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html
