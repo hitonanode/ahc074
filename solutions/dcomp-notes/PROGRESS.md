@@ -418,3 +418,35 @@
 - 推奨は**dcomp-time-target、設計配分1.22秒**。正常時の要求を0.60–0.63秒と見積もり、今回のClang最終値ではjudge終了約1.814秒、事前の遅い校正では約1.844秒。今回はスコア改善の実証ではなく、指定の時間管理への変換。要求pacerは含めず、統合後の最終確認は別agentの担当部分と合わせて行う。
 - 成果物: `solutions/dcomp-time-{same,target}/main.cpp`、各READMEと`design.patch`。target patchはdual30にdry-run適用可、dual25への3-way portもcleanで要求コード同一。提出用GCC/Clang/native libc++ zero-initビルド成功。binaryは/tmpのみ。
 - `REPORT13.md`に全段の配分、両比較、終了時刻の分布、0反復件数、校正と推奨、統合手順を記録。全段表は`SHARES13.md`。STATEを再読したがTask13より新しい指示はなかった。以後の設定探索なし、commit・共有ファイル変更なし。
+
+# Task 14 — verified source trimming (11-09 00:21開始)
+
+- ユーザー指定の順序（字下げtabs→productionで死ぬ分岐→コメント）で515000bytesを目安に止まるtoolを作る。既存solverは編集しない。新規出力・検証scriptはdcomp-trim-testだけ、tool本体はdcomp-notes/trim_tool.py。
+- unifdefは未導入。文字列・raw string・line spliceを認識するlexerと、未知条件を残す保守的な条件分岐処理を実装する。CLOCK_SCALEのguardは残す。両ソースはtabsだけで閾値に入る見込みだが、段2/3も全段出力を作って検証する。
+- productionのGCC/Clang native+zero-init（Clangはlibc++）、-Wallで元ソースと各段を照合。正規化はliteral内を変更しないpreprocessed token streamを使う。smokeは段2のproduction出力を用い、元ソースもLOCAL_BENCHなしで同時比較する。
+
+## 11-09 00:51 — Task14 toolの全段を検証
+
+- tool `trim_tool.py` SHA256 `1d72df6b2b5dd21fbef14c1d6800edbaa692a79a19ec424519e14c6c44a3de96`。defaultは515000bytesに入った段で停止する。入力と同じ出力先は禁止、既存出力は明示的な--forceが必要。全段でも不足なら出力と診断を残しexit 2、追加の変形はしない。
+- サイズ（bytes、各段を累積適用。後段は検証のため明示的に実行）:
+  - dcomp-time-target: **589464 → tabs 500292 → production 483124 → comments 385287**。
+  - jflags-pace-dual30: **589275 → tabs 500544 → production 482955 → comments 381976**。
+  - どちらも通常CLIはtabsで停止。元source hashはそれぞれ`e9139be58b7e187d06bf86080b47c5d4845447b64e3b9eb21bd9baef54bcf4d1` / `03bd36aecf4c9992ce8dc25296482f197b10e444eb5530d0c87cbe125df2eb2e`。00:51時点の元ファイルとも一致。
+- `solutions/dcomp-trim-test/verify.py`、common lock/nice下。GCC13.3、Clang18.1.3、それぞれ`-std=gnu++23 -O2 -march=native -ftrivial-auto-var-init=zero`、Clangはさらに`-stdlib=libc++`。LOCAL_BENCH/CLOCK_SCALE定義なし。元版と全3段をそれぞれproduction buildした。
+- 各compilerの`-E -P`出力を、literal内を一切正規化せず、通常の空白だけ正規化し、pragma等の行末も区別して比較。**両ソース×全3段×両compilerで完全一致、__LINE__除外も0件**。同じlogical filename(`<stdin>`)とSOURCE_DATE_EPOCHでファイル名・ビルド日時の差を作らず、同じcompiler/optionsへ同じproduction token列が入ることを確認した。
+- `-DCLOCK_SCALE=1.1`を加えた元版とproduction版のpreprocessed列も両compilerで一致。#ifndef CLOCK_SCALE/#define CLOCK_SCALE 1.0を保持している。
+- 全16buildに-Wall。警告は元版と同じで新規0件。GCCはused_second/prepare_positionsの2件、ClangはそれらとkMatchIterationsの3件。警告メッセージと件数を比較（位置表示だけ無視）。データは`dcomp-trim-test/verification.json`、各*.warnings.txt。
+- raw string内の字下げ・偽の終端（backslash+改行で見かけ上つながる文字）、通常文字列の行継続、数値の桁区切り、文字列化、macro内の複数行コメント、未知分岐、#elifndefをGCC/Clangで検証。literalの直接比較、LOCAL_BENCHの再定義時に保守的に保持、壊れたnestingの拒否、短すぎるtarget時のexit 2もunit_check.pyで確認した。
+- コメントは単に削除せず空白に置換する。削除により新しいbackslash+改行が生まれる特殊な箇所だけ最小の空コメントを障壁として残す。未知の算術・展開macroを含む条件はそのまま（__COUNTER__などの副作用を消さない）。ヘッダがLOCAL_BENCHを再定義しないproduction契約を明記した。
+- smokeは`20261109-004906_{time-original,time-production}`、200件、--no-record。default outputはtabsで停止するが、段2の条件処理も実行時に検証するためproductionまでの出力を採用。両者に-ULOCAL_BENCH/-DCLOCK_SCALE=1.1、GCC native zero-initを指定。実行はpahcer_run.pyのcompareのみ。
+
+## 11-09 00:58 — Task14完了
+
+- production smoke `20261109-004906_time-original` / `20261109-004906_time-production`、seed 0–199、24並列、--no-record。両方200件status ok、WA0/E0。全件9候補、design_time_budget_sec=1.22。保存したsource hashと出力段の一致、compile_commandの-ULOCAL_BENCH/-DCLOCK_SCALE=1.1/GCC native zero-initを監査した。
+- 対応差（trim−original、ms ± SE）: **helper +0.096±0.684、req +2.259±3.142、end +1.957±3.390**。有意な時間差なし。元→trimのhelper平均1.210035→1.210130、p99 1.227036→1.230496s。end平均1.760352→1.762309、p99 1.832647→1.845130、max1.889190→1.861080s。実時間2秒超0件。
+- スコア差−0.008±0.074%、104/1/95。設計が時間依存のためstdout一致を主張する試験ではない。変更がない根拠はproductionのpreprocessed列一致で、smokeは正当性と時間の補足確認。
+- 外部負荷mean0.143/max0.279core、警告なし。集計は`dcomp-trim-test/smoke-result.json`、再集計scriptはsmoke_stats.py。smokeのmeta.compiler文字列はprefixのflockになるが、実際のcompiler/flagsはcompile_commandに記録されたg++。production verificationのversion記録は直接g++/clang++を呼んだ値。
+- デフォルトCLI出力は両ソースともtabsだけ（500292 / 500544bytes）。段2/3も全て同じproductionコードと検証したうえで、runtime smokeは段2の出力を用いた。CLOCK_SCALE guardは全段維持。input上書きなし。現時点の2元ソースもsnapshot hashと一致。
+- 現在の統合先名を使う適用例（元を変更しない）:
+  `flock -x /home/sato/ahc074/runs/.lock nice -n 10 python3 -B solutions/dcomp-notes/trim_tool.py solutions/final-time-pace/main.cpp -o /tmp/ahc074-submit.cpp --report /tmp/ahc074-trim-report.json --force`
+- tool・全段生成物・fixtures・compilerログ・検証JSON・smoke結果を保存。binaryは/tmp/ahc074-trim14とpahcerのruns内のみ、solutions内に生成binaryなし。既存solver/CLAUDE/scripts/trial_log/final-*を編集せず、commitなし。必要な検証を完了し、追加の縮小方式へ進まない。

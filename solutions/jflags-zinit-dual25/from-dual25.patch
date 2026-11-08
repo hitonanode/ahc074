@@ -1,0 +1,345 @@
+diff --git a/main.cpp b/main.cpp
+index fb9531b6df9f964a1e2a9f8fb031c3fb4d074584..77da00f099e92c087e4f209a5bf4aab0cc6c1ba1 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -15,6 +15,7 @@
+ //
+ // Contents (section markers below):
+ //   Common: constants, clock, random numbers
++//   Common: locals left uninitialized under -ftrivial-auto-var-init (NOINIT)
+ //   Request profiling (COLFAST_PROFILE): inclusive and exclusive times
+ //   Analysis output (LOCAL_BENCH): move labels
+ //   Generic layer: the comparator of the six sheets
+@@ -134,6 +135,27 @@ const auto kStartTime = Clock::now();
+ #endif
+ double elapsed_sec() { return scaled_since(kStartTime); }
+ 
++// ==== Common: locals left uninitialized under -ftrivial-auto-var-init (NOINIT) ====
++
++// The judge compiles with -ftrivial-auto-var-init=zero, which zero-fills every automatic variable
++// without an initializer at each entry. NOINIT marks hot scratch arrays that the code writes before it
++// reads them (buffers with a count, or explicitly filled ranges), so they keep their speed there.
++// Builds without that flag are unchanged.
++#if defined(__clang__)
++#define NOINIT [[clang::uninitialized]]
++#elif defined(__GNUC__) && __GNUC__ >= 12
++#define NOINIT __attribute__((uninitialized))
++#else
++#define NOINIT
++#endif
++// NOINIT_CLANG: the same on Clang only. GCC was measured slower with the window-assignment scratch
++// marked (its zero fill there costs nothing measurable and the code without it ran about 17 ms slower).
++#if defined(__clang__)
++#define NOINIT_CLANG [[clang::uninitialized]]
++#else
++#define NOINIT_CLANG
++#endif
++
+ // ==== Request profiling (COLFAST_PROFILE): inclusive and exclusive times ====
+ #ifndef F3_PROFILE
+ #define F3_PROFILE 0
+@@ -1151,7 +1173,7 @@ AVX2_TARGET int evaluate_move(WindowPairs& P, const WindowRelations& relations,
+         return t;
+     }();
+     // At most 256*255/2 pairs, hence at most 510 words. Only P.words entries are touched.
+-    u64 af[512], ar[512], bf[512], br[512];
++    NOINIT_CLANG u64 af[512], ar[512], bf[512], br[512];
+ #if DESIGN_PROFILE >= 3
+     unsigned long long t0 = __builtin_ia32_rdtsc();
+ #endif
+@@ -1824,15 +1846,15 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
+             uint32_t forward, reverse;
+             int color;
+         };
+-        std::array<Saved, 128> saved;
++        NOINIT std::array<Saved, 128> saved;
+         int size = 0;
+         const u64 rest = mask[ea] & ~(1ULL << a);
+         const uint32_t keep = ~(fwd[ea] | rev[ea]);
+         // the selected pairs that differ at a (in their order, without a branch), their new
+         // relations, and their closures four at a time; then the same sequential pass as before
+-        std::array<int, 132> differing;
++        NOINIT std::array<int, 132> differing;
+         std::array<uint32_t, 132> rs{};
+-        alignas(32) std::array<u64, 132> closed;
++        NOINIT alignas(32) std::array<u64, 132> closed;
+         int nd = 0;
+         for (int p : selected) {
+             differing[nd] = p;
+@@ -1957,7 +1979,7 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
+         const uint32_t keep = ~uint32_t(fwd[ea] | rev[ea]);
+         // the relations of the selected pairs first, their closures four at a time
+         const int ns = int(selected.size());
+-        alignas(32) std::array<u64, 132> closed;
++        NOINIT alignas(32) std::array<u64, 132> closed;
+         std::array<uint32_t, 132> rs{};
+         for (int i = 0; i < ns; i++) {
+             const int p = selected[i];
+@@ -2219,7 +2241,7 @@ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::p
+         }
+         const auto& target = path_target;
+         const u64 sources = kActiveWindows & ~hm & ~target.generic;
+-        std::array<std::array<int, 3>, 64 * 64> choices;
++        NOINIT std::array<std::array<int, 3>, 64 * 64> choices;
+         int count = 0;
+         for (u64 from = sources; from; from &= from - 1) {
+             const int a = __builtin_ctzll(from), ea = which[a];
+@@ -3345,7 +3367,8 @@ struct Design {
+         // Replace units xs[0..k) by nu[0..k), summing column and hole deltas before acceptance.
+         ANNEAL_TARGET void multi_move(int k, const int* xs, const Unit* nu) {
+             AF_SCOPE(multi_move, 1024);
+-            int cols[6], dnc[6], dnt[6], dn1[6], dp1[6], ncols = 0;
++            NOINIT int cols[6], dnc[6], dnt[6], dn1[6], dp1[6];
++            int ncols = 0;
+             __m256 d0[NR], d1[NR];
+             _Pragma("GCC unroll 5") for (int r = 0; r < NR; r++) d0[r] = d1[r] = _mm256_setzero_ps();
+             _Pragma("GCC unroll 3") for (int i = 0; i < k; i++)
+@@ -3915,8 +3938,8 @@ struct ProbabilityHead {
+                     int lo = wrong ? 64 - __builtin_clzll(wrong) : 0;
+                     if (lo >= c) continue;
+                     u64 covered = range & low_bits(c) & ~low_bits(lo);
+-                    std::array<int, 64> indices;
+-                    std::array<double, 64> chance;
++                    NOINIT std::array<int, 64> indices;
++                    NOINIT std::array<double, 64> chance;
+                     int n = 0;
+                     for (u64 z = covered; z; z &= z - 1) {
+                         int j = __builtin_ctzll(z);
+@@ -3927,7 +3950,7 @@ struct ProbabilityHead {
+                     if (n < 2) continue;
+                     // left[i] / right[i]: the probabilities of 0 and 1 errors among the first i /
+                     // the last n - i covered holes
+-                    std::array<std::array<double, 2>, 65> left, right;
++                    NOINIT std::array<std::array<double, 2>, 65> left, right;
+                     left[0] = {1, 0};
+                     right[n] = {1, 0};
+                     for (int i = 0; i < n; i++) {
+@@ -4950,7 +4973,7 @@ struct Solver {
+         std::array<bool, K> extra{};  // the lifted paper and the fillers (out of their columns)
+         if (top_d >= 0) extra[top_d] = true;
+         for (auto f : fillers) extra[f.paper] = true;
+-        std::array<uint8_t, 3 * K + 8> key;
++        NOINIT std::array<uint8_t, 3 * K + 8> key;
+         int key_size = 0;
+         // Pack the same key in lane order; unusual role maps use the scalar path.
+         static const auto shuffle=[] {
+@@ -4994,7 +5017,7 @@ struct Solver {
+         }
+         cf_value_misses++;
+         std::array<int, 64> rank{};
+-        std::array<int, 128> first;
++        NOINIT std::array<int, 128> first;
+         std::array<bool, 128> available{};
+         if (top_d >= 0 && column_color[top_d] >= 0) available[column_color[top_d]] = true;
+         for (const auto& f : fillers) if (column_color[f.paper] >= 0) available[column_color[f.paper]] = true;
+@@ -5002,7 +5025,7 @@ struct Solver {
+         // With every column covered, encode its in-place type sequence during the
+         // same scan. A leading 1 distinguishes lengths; each type uses exactly two bits.
+         const bool mdp_scan = colmdp_next && colmdp_columns == H;
+-        std::array<uint32_t, 64> mdp_code;
++        NOINIT std::array<uint32_t, 64> mdp_code;
+         if (mdp_scan) std::fill(mdp_code.begin(), mdp_code.begin() + H, 1);
+         double cost = 0;
+         // The key already contains this exact subsequence, in stack order.
+@@ -5055,7 +5078,7 @@ struct Solver {
+         std::array<bool, K> extra{};  // the lifted paper and the fillers (out of their columns)
+         if (top_d >= 0) extra[top_d] = true;
+         for (auto f : fillers) extra[f.paper] = true;
+-        std::array<uint8_t, 3 * K + 8> key;
++        NOINIT std::array<uint8_t, 3 * K + 8> key;
+         int key_size = 0;
+         // Pack the same key in lane order; unusual role maps use the scalar path.
+         static const auto shuffle=[] {
+@@ -5101,16 +5124,16 @@ struct Solver {
+             return cached.value;
+         }
+         cf_value_misses++;
+-        std::array<int, 64> rank;
+-        std::array<int, 128> first;
+-        std::array<bool, 128> available;
++        NOINIT std::array<int, 64> rank;
++        NOINIT std::array<int, 128> first;
++        NOINIT std::array<bool, 128> available;
+         std::fill_n(available.begin(),2*H,false);
+         if (top_d >= 0 && column_color[top_d] >= 0) available[column_color[top_d]] = true;
+         for (const auto& f : fillers) if (column_color[f.paper] >= 0) available[column_color[f.paper]] = true;
+         // With every column covered, encode its in-place type sequence during the
+         // same scan. A leading 1 distinguishes lengths; each type uses exactly two bits.
+         const bool mdp_scan = colmdp_next && colmdp_columns == H;
+-        std::array<uint32_t, 64> mdp_code;
++        NOINIT std::array<uint32_t, 64> mdp_code;
+         double cost = 0;
+         int start=0;
+         if(in_place>128) {
+@@ -5180,7 +5203,7 @@ struct Solver {
+         }
+         // covered[c][color]: the largest share of the requests whose hole at h_c a filler below the
+         // generic layer shows in that color (stay_table)
+-        std::array<std::array<double,2>,64> covered;
++        NOINIT std::array<std::array<double,2>,64> covered;
+         std::fill_n(covered.begin(),H,std::array<double,2>{0.,0.});
+         for (auto f : fillers)
+             if (split.below(f.paper)) {
+@@ -5253,7 +5276,7 @@ struct Solver {
+     void adaptive_insert(int x, int u, int barrier = -1, int mode = 2, bool barrier_stays = false) {
+         CF_SCOPE(insert);
+         const int c = col_of[x], cx = paper[x].black >> handle[c] & 1;
+-        std::array<int, K> v, vpos;  // the other papers in place in the column, top first, and their positions
++        NOINIT std::array<int, K> v, vpos;  // the other papers in place in the column, top first, and their positions
+         int n = 0, xpos = -1;        // (the positions kept for the move below)
+         for (int i = 0; i < K; i++) {
+             const int k = order[i];
+@@ -5271,7 +5294,7 @@ struct Solver {
+             }
+             lo = int(it - v.begin()) + 1;
+         }
+-        std::array<double, K + 1> suffix;  // suffix[i]: the weights of v[i..n)
++        NOINIT std::array<double, K + 1> suffix;  // suffix[i]: the weights of v[i..n)
+         suffix[n] = 0;
+         std::array<int, 2> first = {n, n};
+         for (int i = n - 1; i >= 0; i--) {
+@@ -5286,7 +5309,7 @@ struct Solver {
+         // insertion in colmdp_cases (x out of its column: a return; else a dig)
+         const bool mdp = colmdp_insert && colmdp[c].ok &&
+                          (colmdp_cases & (x == top_d || is_filler(x) ? (barrier < 0 ? 1 : 8) : (barrier_stays ? 4 : 2)));
+-        std::array<float, K + 1> mdp_value;
++        NOINIT std::array<float, K + 1> mdp_value;
+         if (mdp && colmdp_ctrl <= 0)
+             colmdp_gap_values(x, v.data(), n, lo, barrier_stays, need && barrier < 0 && colmdp_need_fix ? desired : -1,
+                               mdp_value);
+@@ -5897,7 +5920,7 @@ struct Solver {
+     std::vector<FillerPick> choose_fillers_dp(int u, int d, u64 hh) const {
+         auto fix = fix_costs(u, hh);
+         auto& cand = fresh_candidates();
+-        ColumnTops tops;
++        NOINIT ColumnTops tops;
+         std::array<int, 64> ntop;
+         all_column_tops(tops, ntop);
+         for (int c = 0; c < H; c++) {
+@@ -6107,7 +6130,7 @@ struct Solver {
+         };
+         for (int i = 0; i < (int)olds.size(); i++) add_old(olds[i].paper, i, olds[i].lvl, false);
+         if (x0 >= 0) add_old(x0, -1, -1, true);
+-        ColumnTops tops;
++        NOINIT ColumnTops tops;
+         std::array<int, 64> ntop;
+         all_column_tops(tops, ntop);
+         for (int c = 0; c < H; c++) {
+@@ -6365,7 +6388,7 @@ struct Solver {
+         for (auto& f : fillers) covered |= shown_by(f);
+         auto fix = fix_costs(u, hh);
+         auto& cand = fresh_candidates();
+-        ColumnTops tops;
++        NOINIT ColumnTops tops;
+         std::array<int, 64> ntop;
+         all_column_tops(tops, ntop);
+         const u64 hh_i = handle_bits(hh), au_i = handle_bits(A[u]);
+@@ -6518,7 +6541,7 @@ struct Solver {
+         const u64 hh_i = handle_bits(hh), au_i = handle_bits(A[u]);
+         u64 covered = 0;
+         for (const auto& f : fillers) covered |= shown_by(f);
+-        std::array<PC, 64 * (kChainDepth + 1)> pool;
++        NOINIT std::array<PC, 64 * (kChainDepth + 1)> pool;
+         int pool_size = 0;
+         for (int c = 0; c < H; c++) {
+             if (c == l || (covered >> handle[c] & 1)) continue;
+@@ -6685,7 +6708,7 @@ struct Solver {
+     void canonicalize() {
+         CF_SCOPE(canonicalize);
+         std::array<char, 64> nonempty{};
+-        std::array<Filler, K> nf;
++        NOINIT std::array<Filler, K> nf;
+         int cur = H, ntop = -1, nf_count = 0;
+         bool gen_seen = false;
+         // Collect only the out-of-column papers during the original bottom-up scan.
+@@ -6711,7 +6734,7 @@ struct Solver {
+             canonical_stamp[nf[i].paper]=epoch;
+         }
+         // the old fillers first, in their order, then the others in the order of the stack
+-        std::array<Filler, 2 * K> res;
++        NOINIT std::array<Filler, 2 * K> res;
+         int res_count = 0;
+         for(auto& f:fillers)if((canonical_stamp[f.paper]&~1U)==epoch) {
+             res[res_count++]=nf[nf_index[f.paper]];
+@@ -7280,8 +7303,8 @@ struct Solver {
+         }
+         // The replay of evaluate (a byte array instead of vectors): the order and the prefix
+         // covers cover[j] (the windows of the papers ord[0..j)), valid for j <= cover_valid.
+-        ByteOrder ord;
+-        std::array<u64, K + 1> cover;
++        NOINIT ByteOrder ord;
++        NOINIT std::array<u64, K + 1> cover;
+         // Keeps the trial if valid and better (best_ops / best_state / best_score). No-op edits are
+         // dropped. The final order is first determined without checking intermediate visibility: the
+         // linked list makes this necessary-condition filter on the display cheap. Surviving
+@@ -7912,7 +7935,7 @@ struct Solver {
+                     for (const auto& e : edits) repeats += e.paper == k;
+                     if (repeats < 2) continue;
+                 }
+-                const auto anchors = anchor_candidates(i);
++                NOINIT const auto anchors = anchor_candidates(i);
+                 bool anchor_improved=false;
+                 bool screened = false;
+                 for (int a : anchors) {
+@@ -7933,7 +7956,7 @@ struct Solver {
+             for (int i = int(edits.size()) - 1; !delete_only && i >= 0; i--) {
+                 const int k = edits[i].paper;
+                 if (!initial_extra[k]) continue;
+-                const auto anchors = anchor_candidates(i);
++                NOINIT const auto anchors = anchor_candidates(i);
+                 bool anchor_improved=false;
+                 for (int j = 0; j < int(edits.size()); j++)
+                     if (j != i) {
+@@ -8027,14 +8050,14 @@ struct Solver {
+         auto& next = eject_next;
+         auto& anchors = eject_anchors;
+         // ord / ord_position: the final order of the trial and the position of every paper in it.
+-        std::array<int, K> ord, ord_position;
++        NOINIT std::array<int, K> ord, ord_position;
+         std::array<int, K> owner_stamp{};
+         int trial_stamp = 0;
+-        std::array<u64, K> owned;
+-        std::array<int, 64> first, second, column_first, column_second;
++        NOINIT std::array<u64, K> owned;
++        NOINIT std::array<int, 64> first, second, column_first, column_second;
+         // The replay of the trial for the visibility of a candidate (as evaluate: order, prefix covers).
+-        ByteOrder replay_order;
+-        std::array<u64, K + 1> replay_cover;
++        NOINIT ByteOrder replay_order;
++        NOINIT std::array<u64, K + 1> replay_cover;
+         const int n = base_edits.size();
+         for (int j = n - 1; j >= (removed == 1 ? 0 : 1); j--)
+             for (int i = removed == 1 ? -1 : j - 1; i >= (removed == 1 ? -1 : 0); i--) {
+@@ -8301,7 +8324,7 @@ struct Solver {
+                          int removed = 2, const State* reference = nullptr, const std::array<bool, K>* initial_extra = nullptr) {
+         CF_SCOPE(neutral);
+         const auto& cfg = search_config();
+-        std::array<u64, K> wrong_color;
++        NOINIT std::array<u64, K> wrong_color;
+         for (int k = 0; k < K; k++) wrong_color[k] = (paper[k].black ^ A[u]) & paper[k].opaque;
+         std::array<bool, K> edited{}, end_visible{};
+         for (const auto& e : base) edited[e.paper] = true;
+@@ -8334,7 +8357,7 @@ struct Solver {
+                 trial.erase(trial.begin() + x);
+                 if (z >= 0) trial.erase(trial.begin() + z);
+                 ByteOrder ord = initial_bytes;
+-                std::array<u64, K + 1> cover;
++                NOINIT std::array<u64, K + 1> cover;
+                 cover[0] = 0;
+                 int cover_valid = 0;
+                 bool legal = true;
+@@ -8357,12 +8380,12 @@ struct Solver {
+                 if (cfg.joint_limit && legal_trials == cfg.joint_limit) return;
+                 legal_trials++;
+                 triple_trials++;
+-                std::array<int, N> first, second, third;
++                NOINIT std::array<int, N> first, second, third;
+                 first.fill(K);
+                 second.fill(K);
+                 third.fill(K);
+                 std::array<u64, K> owned{}, owned2{};
+-                std::array<int, K> position, pool, pool_index;
++                NOINIT std::array<int, K> position, pool, pool_index;
+                 pool_index.fill(-1);
+                 int pool_count = 0;
+                 u64 seen = 0, twice = 0, thrice = 0, view = 0, black2 = 0, black3 = 0;
