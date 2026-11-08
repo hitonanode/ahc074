@@ -1,0 +1,61 @@
+[pahcer_run] run-id: 20261108-084114_deval-helper-wide
+[pahcer_run] run-id: 20261108-084114_lns-star-study
+[pahcer_run] run-id: 20261108-084114_lns-joint-study
+[pahcer_run] run-id: 20261108-084114_lns-warm-study
+[pahcer_run] run-id: 20261108-084114_lns-full-study
+[deval] reused build: 20261108-084030_deval-helper-wide
+[deval] reused build: 20261108-080317_lns-star-study
+[deval] reused build: 20261108-080318_lns-joint-study
+[deval] reused build: 20261108-080318_lns-warm-study
+[deval] reused build: 20261108-080318_lns-full-study
+[pahcer_run] 実行中の評価の終了を待っています: 20261108-084113_deval-helper-wide ほか 0 個の比較 (pid 14998, 2026-11-08T08:41:14+09:00 から) (scripts/pahcer_run.py --status で状況を見られる)
+[pahcer_run] 5 個の解法を比べます (seed 500〜999、24 並列、seed ごとに続けて実行)
+[pahcer_run] 50/500 seed 完了 (経過 1.6 分、残り約 14.6 分)
+[pahcer_run] 100/500 seed 完了 (経過 2.7 分、残り約 10.9 分)
+[pahcer_run] 150/500 seed 完了 (経過 3.8 分、残り約 8.9 分)
+[pahcer_run] 200/500 seed 完了 (経過 4.9 分、残り約 7.4 分)
+[pahcer_run] 250/500 seed 完了 (経過 6.1 分、残り約 6.1 分)
+[pahcer_run] 300/500 seed 完了 (経過 7.2 分、残り約 4.8 分)
+[pahcer_run] 350/500 seed 完了 (経過 8.3 分、残り約 3.5 分)
+[pahcer_run] 400/500 seed 完了 (経過 9.4 分、残り約 2.3 分)
+[pahcer_run] 450/500 seed 完了 (経過 10.5 分、残り約 1.2 分)
+[pahcer_run] 500/500 seed 完了 (経過 11.7 分、残り約 0.0 分)
+Exception ignored in atexit callback <function _exit_function at 0x791bd208c2c0>:
+Traceback (most recent call last):
+  File "/home/sato/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/lib/python3.13/multiprocessing/util.py", line 387, in _exit_function
+    def _exit_function(info=info, debug=debug, _run_finalizers=_run_finalizers,
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+deval_pahcer_run.Interrupted: 
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261108-084114_deval-helper-wide               500   0     10280.53    0.000   10280.5   +0.000%  0.000%     0/500/   0    1.445s
+    実行時間: 99% 点 1.917 s、99.9% 点 2.171 s、最大 2.171 s (2 s 超え 2 ケース)
+    2 s 超えの seed (遅い順): 954 (2.171 s), 722 (2.022 s)
+    end_sec (ジャッジでの時間の見積り): 最大 2.333 s、1.8 s 超え 22・1.9 s 超え 13・2.0 s 超え 7 ケース (500 ケース中)
+  20261108-084114_lns-star-study                  500   0     10255.88    0.000   10255.9   -0.240%  0.033%   220/170/ 110    7.785s
+    実行時間: 99% 点 8.532 s、99.9% 点 8.681 s、最大 8.681 s (2 s 超え 500 ケース)
+    2 s 超えの seed (遅い順): 954 (8.681 s), 929 (8.680 s), 735 (8.679 s), 958 (8.535 s), 928 (8.535 s), 720 (8.532 s), 944 (8.483 s), 727 (8.441 s), 709 (8.431 s), 731 (8.333 s) ほか 490 ケース
+    end_sec (ジャッジでの時間の見積り): 最大 9.540 s、1.8 s 超え 500・1.9 s 超え 500・2.0 s 超え 500 ケース (500 ケース中)
+  20261108-084114_lns-joint-study                 500   0     10256.18    0.000   10256.2   -0.237%  0.033%   222/173/ 105    7.932s
+    実行時間: 99% 点 8.539 s、99.9% 点 8.938 s、最大 8.938 s (2 s 超え 500 ケース)
+    2 s 超えの seed (遅い順): 929 (8.938 s), 960 (8.879 s), 926 (8.741 s), 723 (8.631 s), 724 (8.586 s), 928 (8.539 s), 816 (8.527 s), 953 (8.487 s), 950 (8.440 s), 945 (8.436 s) ほか 490 ケース
+    end_sec (ジャッジでの時間の見積り): 最大 9.802 s、1.8 s 超え 500・1.9 s 超え 500・2.0 s 超え 500 ケース (500 ケース中)
+  20261108-084114_lns-warm-study                  500   0     10231.69    0.000   10231.7   -0.476%  0.034%   343/ 40/ 117    7.985s
+    実行時間: 99% 点 8.729 s、99.9% 点 9.078 s、最大 9.078 s (2 s 超え 500 ケース)
+    2 s 超えの seed (遅い順): 972 (9.078 s), 956 (8.835 s), 719 (8.739 s), 934 (8.735 s), 914 (8.732 s), 976 (8.729 s), 571 (8.585 s), 726 (8.545 s), 935 (8.540 s), 909 (8.539 s) ほか 490 ケース
+    end_sec (ジャッジでの時間の見積り): 最大 9.962 s、1.8 s 超え 500・1.9 s 超え 500・2.0 s 超え 500 ケース (500 ケース中)
+  20261108-084114_lns-full-study                  500   0     10224.02    0.000   10224.0   -0.550%  0.045%   308/ 78/ 114    8.057s
+    実行時間: 99% 点 8.792 s、99.9% 点 8.985 s、最大 8.985 s (2 s 超え 500 ケース)
+    2 s 超えの seed (遅い順): 972 (8.985 s), 730 (8.944 s), 828 (8.931 s), 899 (8.889 s), 926 (8.830 s), 716 (8.792 s), 939 (8.786 s), 878 (8.690 s), 734 (8.689 s), 728 (8.688 s) ほか 490 ケース
+    end_sec (ジャッジでの時間の見積り): 最大 9.849 s、1.8 s 超え 500・1.9 s 超え 500・2.0 s 超え 500 ケース (500 ケース中)
+  設計の保存       : 20261108-084114_deval-helper-wide/design/ に 500 ケース (--design-from で読み込める)
+  設計の保存       : 20261108-084114_lns-star-study/design/ に 500 ケース (--design-from で読み込める)
+  設計の保存       : 20261108-084114_lns-joint-study/design/ に 500 ケース (--design-from で読み込める)
+  設計の保存       : 20261108-084114_lns-warm-study/design/ に 500 ケース (--design-from で読み込める)
+  設計の保存       : 20261108-084114_lns-full-study/design/ に 500 ケース (--design-from で読み込める)
+  pahcer/ への記録 : しない (--no-record)
+  所要時間         : 11.7 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.30 コア、最大 1.21 コア (2 秒ごとに 699.7 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html

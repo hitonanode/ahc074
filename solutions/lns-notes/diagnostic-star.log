@@ -1,0 +1,29 @@
+cases 100 records 900
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-001 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-002 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-003 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-1000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-2000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-2001 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-2002 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star-grouped/candidate-2003 100
+Identical baseline artifacts: 5 x 100
+candidate-2000 20261108-071513_deval-helper-wide
+candidate-2001 20261108-072711_deval-helper-wide
+candidate-2002 20261108-073004_deval-helper-wide
+candidate-2003 20261108-073329_deval-helper-wide
+Traceback (most recent call last):
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/star_diagnostics.py", line 38, in <module>
+    subprocess.run(['flock','-x',str(r/'.lock'),'nice','-n','10',sys.executable,
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    str(h/'diagnostic_metrics.py'),str(h/'diagnostic-star.json'),
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    '--output',str(h/'diagnostic-star-metrics.json')],
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                   stdout=f,stderr=subprocess.STDOUT,check=True)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sato/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/lib/python3.13/subprocess.py", line 577, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['flock', '-x', '/home/sato/ahc074/runs/.lock', 'nice', '-n', '10', '/home/sato/ahc074/.venv/bin/python', '/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/diagnostic_metrics.py', '/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/diagnostic-star.json', '--output', '/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/diagnostic-star-metrics.json']' returned non-zero exit status 1.
