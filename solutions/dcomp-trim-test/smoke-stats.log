@@ -1,0 +1,132 @@
+{
+  "runs": [
+    "20261109-004906_time-original",
+    "20261109-004906_time-production"
+  ],
+  "times": {
+    "20261109-004906_time-original": {
+      "helper_end_sec": {
+        "mean": 1.2100346499999999,
+        "se": 0.0005267049696106573,
+        "p99": 1.2270363,
+        "max": 1.23092
+      },
+      "req_sec": {
+        "mean": 0.532359145,
+        "se": 0.002275416686047987,
+        "p99": 0.5973932699999999,
+        "max": 0.652083
+      },
+      "end_sec": {
+        "mean": 1.76035215,
+        "se": 0.002375256412371104,
+        "p99": 1.8326471,
+        "max": 1.88919
+      }
+    },
+    "20261109-004906_time-production": {
+      "helper_end_sec": {
+        "mean": 1.21013025,
+        "se": 0.0005245394411424848,
+        "p99": 1.2304955000000002,
+        "max": 1.23465
+      },
+      "req_sec": {
+        "mean": 0.53461785,
+        "se": 0.0024495883633452956,
+        "p99": 0.61957902,
+        "max": 0.635034
+      },
+      "end_sec": {
+        "mean": 1.7623094000000001,
+        "se": 0.0025191346480637703,
+        "p99": 1.84513,
+        "max": 1.86108
+      }
+    }
+  },
+  "paired": {
+    "helper_end_sec": {
+      "mean": 9.560000000000457e-05,
+      "se": 0.000683739825478028,
+      "p99": 0.023379099999999955,
+      "max": 0.03055999999999992
+    },
+    "req_sec": {
+      "mean": 0.002258704999999999,
+      "se": 0.003141748023618289,
+      "p99": 0.10593567999999996,
+      "max": 0.14005299999999998
+    },
+    "end_sec": {
+      "mean": 0.001957250000000007,
+      "se": 0.003390267429111155,
+      "p99": 0.1114929,
+      "max": 0.14185999999999988
+    }
+  },
+  "validation": {
+    "20261109-004906_time-original": {
+      "status": "ok",
+      "record": false,
+      "cases": 200,
+      "WA": 0,
+      "E": 0,
+      "compile_command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "nice",
+        "-n",
+        "10",
+        "g++",
+        "-std=gnu++23",
+        "-O2",
+        "-march=native",
+        "-ftrivial-auto-var-init=zero",
+        "-DCLOCK_SCALE=1.1",
+        "-ULOCAL_BENCH",
+        "-o",
+        "/home/sato/ahc074/runs/20261109-004906_time-original/a.out",
+        "/home/sato/ahc074/runs/20261109-004906_time-original/src/time-original.cpp"
+      ],
+      "outside_load": {
+        "mean_cores": 0.143,
+        "max_cores": 0.279,
+        "interval_sec": 2.0,
+        "seconds": 29.2
+      }
+    },
+    "20261109-004906_time-production": {
+      "status": "ok",
+      "record": false,
+      "cases": 200,
+      "WA": 0,
+      "E": 0,
+      "compile_command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "nice",
+        "-n",
+        "10",
+        "g++",
+        "-std=gnu++23",
+        "-O2",
+        "-march=native",
+        "-ftrivial-auto-var-init=zero",
+        "-DCLOCK_SCALE=1.1",
+        "-ULOCAL_BENCH",
+        "-o",
+        "/home/sato/ahc074/runs/20261109-004906_time-production/a.out",
+        "/home/sato/ahc074/runs/20261109-004906_time-production/src/time-production.cpp"
+      ],
+      "outside_load": {
+        "mean_cores": 0.143,
+        "max_cores": 0.279,
+        "interval_sec": 2.0,
+        "seconds": 29.2
+      }
+    }
+  }
+}

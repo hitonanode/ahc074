@@ -1,0 +1,16 @@
+solutions/review-astra1/basis_constexpr.cpp:27:16: error: constexpr function never produces a constant expression [-Winvalid-constexpr]
+   27 | constexpr auto probe_flattening() {
+      |                ^~~~~~~~~~~~~~~~
+solutions/review-astra1/basis_constexpr.cpp:29:12: note: cannot refer to element 26 of array of 25 elements in a constant expression
+   29 |     return basis[26]; // samples_for(25), i=1, j=1, b=0
+      |            ^
+solutions/review-astra1/basis_constexpr.cpp:31:16: error: constexpr variable 'result' must be initialized by a constant expression
+   31 | constexpr auto result = probe_flattening();
+      |                ^        ~~~~~~~~~~~~~~~~~~
+solutions/review-astra1/basis_constexpr.cpp:29:12: note: cannot refer to element 26 of array of 25 elements in a constant expression
+   29 |     return basis[26]; // samples_for(25), i=1, j=1, b=0
+      |            ^
+solutions/review-astra1/basis_constexpr.cpp:31:25: note: in call to 'probe_flattening()'
+   31 | constexpr auto result = probe_flattening();
+      |                         ^~~~~~~~~~~~~~~~~~
+2 errors generated.

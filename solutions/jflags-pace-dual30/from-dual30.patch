@@ -1,0 +1,309 @@
+diff --git a/main.cpp b/main.cpp
+index 8b5217e0d941d2e689691d487a7bd9c77c907d33..fd82302d1d7fe89a9bdaf806eb26891a4095e25d 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -68,6 +68,7 @@
+ //   design_papers: printing the papers
+ //   design_papers: handle perforation
+ //   design_papers: perforation-aware reassignment
++//   Request pacing (Pacer)
+ //   Saving and loading the design state (LOCAL_BENCH: DesignStore)
+ //   Analysis output (LOCAL_BENCH): paper attributes
+ //   main: input
+@@ -132,7 +133,19 @@ auto kStartTime = Clock::now();
+ #else
+ const auto kStartTime = Clock::now();
+ #endif
++#ifdef PACE_SIM
++// Test builds only (Request pacing): the request phase as if PACE_SIM times slower (the judge takes
++// about 1.25-1.35 times the local scaled request time). Readings after pace_sim_start (the start of
++// the requests) are stretched, and shifted by pace_sim_shift (PACE_SIM_START: the requests start at
++// that time if the design ended earlier, as after a design that runs to its deadline).
++double pace_sim_start = 1e300, pace_sim_shift = 0;
++double elapsed_sec() {
++    const double t = scaled_since(kStartTime);
++    return t <= pace_sim_start ? t : pace_sim_start + pace_sim_shift + PACE_SIM * (t - pace_sim_start);
++}
++#else
+ double elapsed_sec() { return scaled_since(kStartTime); }
++#endif
+ 
+ // ==== Request profiling (COLFAST_PROFILE): inclusive and exclusive times ====
+ #ifndef F3_PROFILE
+@@ -8856,6 +8869,9 @@ struct Solver {
+         restore(incumbent);
+         return false;
+     }
++    // The effort of the next request (main's Pacer sets it): 0 the full search; each level drops more
++    // of the expensive extras (the list in Request pacing); kLightEffort is the light plan.
++    int effort = 0;
+     Moves process(int u) {
+         CF_SCOPE(process);
+         if(post_memo_table && ++post_memo_table->epoch==0) {
+@@ -8867,7 +8883,7 @@ struct Solver {
+             const char* s = search_env("NEUTRAL");
+             return s ? std::atoi(s) != 0 : true;
+         }();
+-        const bool neutral_enabled=neutral_config;
++        const bool neutral_enabled=neutral_config && effort < 4;
+         OP_TAG(if (neutral_enabled) ++request_counter;)
+         init_adaptive();
+         adaptive_request = u;
+@@ -8939,7 +8955,7 @@ struct Solver {
+             // Keep separate ordinary and expanded collectors, in the same insertion order.
+             if (neutral_enabled && search_config().post_candidates > 2)
+                 collect_future(expanded_candidates, search_config().post_candidates, cost);
+-            collect_future(future_candidates, kPostCandidates, cost);
++            collect_future(future_candidates, effort >= 3 ? 2 : kPostCandidates, cost);
+             restore(raw_state);ops=raw_ops;OP_TAG(op_tags=raw_tags;)
+         };
+         auto find_cached_plan = [&](const FutureCandidate& c) -> const CachedPlan* {
+@@ -8986,6 +9002,14 @@ struct Solver {
+                     repeated_plans.push_back({o, save(), ops OP_TAG(, op_tags, op_tag), invalid, placement_chains});
+             }
+             if (invalid || ops.size() > 2 * K || display() != A[u] || !fillers_reachable()) continue;
++            if (effort >= 5) {
++                // the light plan (Request pacing, last resort): the first legal plan of the options
++                tail_cache_on = false;
++                check_vis = false;
++                tie_pooling = false;
++                canonicalize();
++                return ops;
++            }
+             double cost = plan_cost(ops.size());
+             if (o.value_fillers) {
+                 if (cache_plans && !o.complete_value) {
+@@ -9086,7 +9110,7 @@ struct Solver {
+             post_alternate += changed;
+         }
+         const auto ordinary_eject_start = neutral_enabled && search_config().alternate ? order : std::array<uint8_t, K>{};
+-        chosen_path = polish_ejects(st0, std::move(chosen_path), u OP_TAG(, best_tags), 2, true);
++        chosen_path = polish_ejects(st0, std::move(chosen_path), u OP_TAG(, best_tags), effort >= 3 ? 1 : 2, true);
+         note(chosen_path OP_TAG(, best_tags), plan_cost(chosen_path.size()));
+         neutral_seeds.push_back({plan_cost(chosen_path.size()),save(),chosen_path OP_TAG(,best_tags)});
+         if (cache_plans && chosen_cache >= 0) {
+@@ -9113,7 +9137,7 @@ struct Solver {
+             })
+             [[maybe_unused]] int winning_operator = 0, winning_round = 0;
+             [[maybe_unused]] bool winning_escape = false;
+-            if (cfg.alternate) {
++            if (cfg.alternate && effort < 2) {
+                 // The ordinary edit pass already paid for this alternative. It can lose before
+                 // ejection yet win afterwards; reuse its edited state rather than planning again.
+                 auto incumbent = save();
+@@ -9139,7 +9163,7 @@ struct Solver {
+                 restore(incumbent);
+             }
+             F3_DIAG(f3_stage = 3; f3_round = 0;)
+-            if (!expanded_candidates.empty()) {
++            if (!expanded_candidates.empty() && effort < 2) {
+                 auto incumbent = save();
+                 double incumbent_value = plan_cost(chosen_path.size());
+                 if (cfg.plan_screen) {
+@@ -9250,7 +9274,8 @@ struct Solver {
+                 }
+                 restore(incumbent);
+             }
+-            for (int round = 1; round <= cfg.rounds; round++) {
++            const int pace_rounds = effort == 0 ? cfg.rounds : std::min(cfg.rounds, effort == 1 ? 2 : 1);
++            for (int round = 1; round <= pace_rounds; round++) {
+                 F3_DIAG(f3_stage = 4; f3_round = round;)
+                 ns_rounds++;
+                 const auto parent_path = chosen_path;
+@@ -9272,7 +9297,7 @@ struct Solver {
+                     winning_escape = false;
+                 }
+                 bool used_second=false;
+-                if(round==1) {
++                if(round==1 && effort < 1) {
+                     int second_count=0;
+                     std::stable_sort(neutral_seeds.begin(),neutral_seeds.end(),by_cost);
+                     for(const auto& second:neutral_seeds) {
+@@ -9401,7 +9426,7 @@ struct Solver {
+             // The value-weighted joint plan can lose before ejection. Reuse its paid
+             // edit pass, but do not repeat a plan already ejected as the main winner.
+             // A whole neutral search here costs more than the extra improvements buy.
+-            if (weighted_ready) if (const auto* cached = find_cached_plan(weighted_raw);
++            if (weighted_ready && effort < 2) if (const auto* cached = find_cached_plan(weighted_raw);
+                 cached && !cached->complete && cached->edited.state.order != order) {
+                 const auto& c = cached->edited;
+                 const double value = plan_cost(chosen_path.size());
+@@ -10948,6 +10973,103 @@ DesignState design_papers(const std::vector<u64>& originalA) {
+ #if defined(__GNUC__) && !defined(__clang__)
+ #pragma GCC pop_options
+ #endif
++// ==== Request pacing (Pacer) ====
++
++// The effort of each request (Solver::effort): 0 the full search, 1 without the extra parent of the
++// neutral search and at most 2 neutral rounds, 2 one neutral round without the extra plans, the
++// alternates' ejection and the weighted plan, 3 also only 2 plans edited and 1 ejection round, 4 also
++// without the neutral search, kLightEffort the light plan (the first legal plan of the options). The
++// levels are ordered by the loss per ms saved, measured with every request at one level.
++// The clock is read once per request (after reading it); a cycle is the time between two reads
++// (planning, output and the round trip to the judge). full is the estimated cycle at effort 0: it
++// starts at the prior kPriorFull with the weight of kPriorWeight cycles, and every cycle at an
++// effort e < kLightEffort moves it towards its time / kEffortShare[e] by 1 / (cycles + weight), at
++// least kPaceAlpha (the mean while the cycles are few, then a moving average); a cycle above
++// kPaceClip x full counts as kPaceClip x full (a stall of the machine is not expected to repeat).
++// Before each request (from the first one on), effort e is allowed if
++//   pacing: now + kEffortShare[e] x (requests left) x full x discount <= kPaceEnd, the discount
++//     1 - kPaceMargin x kPaceCv / sqrt(cycles + weight) (at least 0.5) being the estimate's error, so
++//     that its noise does not make early requests lighter than needed (the bound tightens to kPaceEnd
++//     as the requests run out), and
++//   last resort: now + kEffortShare[e] x full + (requests left - 1) x the safe light cycle <= kHardEnd,
++//     the safe light cycle being the larger of kLightSafe (the prior light plan and 3 x the prior round
++//     trip) and kLightPlanShare x full + 3 x trip (the light plan at the measured speed and 3 x the
++//     measured round trip: trip estimates the cycle minus the planning, the output and the wait for
++//     the judge, like full from the prior kPriorTrip, a round trip above 20 x trip counting as 20 x
++//     trip), so that the light plan for the rest of the requests still ends by kHardEnd;
++// the least effort allowed is used, else the light plan. From kPaceEnd on, nothing is allowed.
++// The shares and the prior are measured locally with fixed designs, every request at one effort
++// (solutions/jflags-notes/PROGRESS.md), and the prior is scaled by kJudgeFactor for the judge.
++#ifndef PACE_END
++#define PACE_END 1.88
++#endif
++#ifndef PACE_HARD
++#define PACE_HARD 1.92
++#endif
++#ifndef PACE_ALPHA
++#define PACE_ALPHA (1.0 / 256)
++#endif
++#ifndef PACE_MARGIN
++#define PACE_MARGIN 1.0
++#endif
++constexpr double kPaceEnd = PACE_END, kHardEnd = PACE_HARD, kPaceAlpha = PACE_ALPHA, kPaceClip = 4.0;
++constexpr double kPaceMargin = PACE_MARGIN, kPaceCv = 0.71;  // kPaceCv: the variation of one cycle at effort 0
++// the prior (local scaled clock, fixed designs): planning at effort 0 490 us, the light plan 14 us and
++// the round trip 11 us per request
++constexpr double kJudgeFactor = 1.35, kPriorWeight = 8;
++constexpr double kPriorFull = (490e-6 + 11e-6) * kJudgeFactor, kPriorTrip = 11e-6 * kJudgeFactor;
++constexpr double kLightSafe = 14e-6 * kJudgeFactor + 3 * 11e-6, kLightPlanShare = 14.0 / 490;
++constexpr int kEfforts = 6, kLightEffort = kEfforts - 1;
++// the time of a request cycle at each effort over that at effort 0
++constexpr std::array<double, kEfforts> kEffortShare = {1.0, 0.960, 0.758, 0.659, 0.447, 0.049};
++struct Pacer {
++    double full = kPriorFull, last = -1;
++    double trip = kPriorTrip, last_plan = 0;  // the round trip estimate; the planning time of the last request
++    int trips = 0;
++    // statistics only: the longest cycle, and the cycles at effort 0 (sum, sum of squares, count; and
++    // their sum by eighths of the requests)
++    double max_cycle = 0, cycle0_sum = 0, cycle0_sq = 0;
++    std::array<double, 8> cycle0_part{};
++    std::array<int, 8> cycle0_part_n{};
++    int cycle0_n = 0, cycles = 0;
++    int samples = 0, last_effort = 0;
++    // the cycle that ended at now (the request read): its time at the effort it used
++    void record(double now) {
++        if (last >= 0) {
++            const double c = now - last;
++            const double rt = std::min(std::max(0.0, c - last_plan), 20 * trip);
++            trip += std::max(kPaceAlpha, 1.0 / (trips + kPriorWeight + 1)) * (rt - trip);
++            trips++;
++            max_cycle = std::max(max_cycle, c);
++            if (last_effort == 0) {
++                cycle0_sum += c, cycle0_sq += c * c, cycle0_n++;
++                cycle0_part[std::min(7, cycles / 128)] += c, cycle0_part_n[std::min(7, cycles / 128)]++;
++            }
++            cycles++;
++        }
++        if (last >= 0 && last_effort < kLightEffort) {
++            const double t = std::min((now - last) / kEffortShare[last_effort], kPaceClip * full);
++            full += std::max(kPaceAlpha, 1.0 / (samples + kPriorWeight + 1)) * (t - full);
++            samples++;
++        }
++        last = now;
++    }
++    int choose(int r, int R, double now) {
++        const int left = R - r;
++        const double weight = std::min(samples + kPriorWeight, 1 / kPaceAlpha);
++        const double cost = left * full * std::max(0.5, 1 - kPaceMargin * kPaceCv / std::sqrt(weight));
++        const double light_tail = (left - 1) * std::max(kLightSafe, kLightPlanShare * full + 3 * trip);
++        int e = kLightEffort;
++        for (int f = 0; f < kLightEffort; f++)
++            if (now + kEffortShare[f] * cost <= kPaceEnd && now + kEffortShare[f] * full + light_tail <= kHardEnd) {
++                e = f;
++                break;
++            }
++        last_effort = e;
++        return e;
++    }
++};
++
+ #ifdef LOCAL_BENCH
+ // ==== Saving and loading the design state (LOCAL_BENCH: DesignStore) ====
+ 
+@@ -11299,12 +11421,37 @@ int main() {
+ 
+     long long total = 0, generic = 0, wrong = 0;
+     double req_sec = 0;  // time spent planning the requests (without waiting for them)
++#ifdef PACE_SIM
++    pace_sim_start = elapsed_sec();
++#ifdef PACE_SIM_START
++    pace_sim_shift = std::max(0.0, PACE_SIM_START - pace_sim_start);
++#endif
++    std::cerr << "pace_sim_start_sec = " << pace_sim_start + pace_sim_shift << '\n';
++#endif
++    Pacer pacer;
++    std::array<int, kEfforts> effort_requests{};
+     for (int r = 0; r < R; r++) {
+         int u;
+         if (!(std::cin >> u) || u == -1) return 0;
+         const double t_req = elapsed_sec();
++        pacer.record(t_req);
++        int effort = pacer.choose(r, R, t_req);
++#if defined(LOCAL_BENCH) && !defined(PACE_SIM)
++        // Local evaluation only (CLAUDE.md, LOCAL_BENCH): always the full effort (PACE_FORCE: a fixed
++        // one, for measurements), so that the load of the machine does not change the moves; the time
++        // it takes shows in end_sec. (The PACE_SIM test builds keep the pacing.)
++#ifdef PACE_FORCE
++        effort = PACE_FORCE;
++#else
++        effort = 0;
++#endif
++        pacer.last_effort = effort;
++#endif
++        effort_requests[effort]++;
++        solver.effort = effort;
+         auto moves = solver.process(u);
+-        req_sec += elapsed_sec() - t_req;
++        pacer.last_plan = elapsed_sec() - t_req;
++        req_sec += pacer.last_plan;
+         wrong += solver.display() != state.A[u];
+         output = std::to_string(moves.size()) + '\n';
+         for (auto [x, d] : moves) {
+@@ -11322,6 +11469,22 @@ int main() {
+     }
+ 
+     // ==== main: statistics ====
++    std::cerr << "pace_effort0 = " << effort_requests[0] << "\npace_effort1 = " << effort_requests[1]
++              << "\npace_effort2 = " << effort_requests[2] << "\npace_effort3 = " << effort_requests[3]
++              << "\npace_effort4 = " << effort_requests[4] << "\npace_light = " << effort_requests[5]
++              << "\npace_full_ms = " << 1000 * pacer.full << "\npace_trip_us = " << 1e6 * pacer.trip
++              << "\npace_max_cycle_ms = " << 1000 * pacer.max_cycle
++              << '\n';
++    if (pacer.cycle0_n > 1) {
++        const double m = pacer.cycle0_sum / pacer.cycle0_n;
++        std::cerr << "pace_cycle0_ms = " << 1000 * m << "\npace_cycle0_cv = "
++                  << std::sqrt(std::max(0.0, pacer.cycle0_sq / pacer.cycle0_n - m * m)) / m << '\n';
++    }
++#ifdef LOCAL_BENCH
++    for (int b = 0; b < 8; b++)
++        if (pacer.cycle0_part_n[b])
++            std::cerr << "pace_cycle0_ms_part" << b << " = " << 1000 * pacer.cycle0_part[b] / pacer.cycle0_part_n[b] << '\n';
++#endif
+     std::cerr << "value_seed_trials = " << solver.value_seed_trials
+               << "\nvalue_seed_valid = " << solver.value_seed_valid
+               << "\nvalue_seed_accepts = " << solver.value_seed_accepts
+@@ -11383,5 +11546,12 @@ int main() {
+               << "\nchain_papers = " << solver.chain_papers << "\nunsafe_plans = " << solver.unsafe_plans
+               << "\nfiller_demand_spread = " << solver.filler_demand_spread << "\nreq_sec = " << req_sec
+               << "\nend_sec = " << elapsed_sec() << '\n';
++#ifdef FAST_EXIT
++    // The output is complete (flushed after every request): leave without running the destructors.
++    std::cout.flush();
++    std::cerr.flush();
++    std::fflush(nullptr);
++    std::_Exit(0);
++#endif
+     return 0;
+ }

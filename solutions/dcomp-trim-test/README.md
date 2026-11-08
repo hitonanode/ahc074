@@ -1,0 +1,7 @@
+改良元: solutions/dcomp-time-target / solutions/jflags-pace-dual30
+
+Task14のtrim_tool検証用。元ソースのsnapshot、各段の縮小結果、コンパイル／プリプロセスの検証記録を置く。提出用の通常CLIは515000bytes以下になった最初の段で止まる。後の段も検証するため、検証scriptは全3段を明示的に実行する。
+
+字下げを4空白ごとにタブへ変換し、productionで偽と証明できる条件分岐を除き、最後にコメントを空白へ置換する。raw string内の字下げと文字列内容は維持する。CLOCK_SCALEのガードは維持し、未知のマクロ条件は残す。
+
+smokeはLOCAL_BENCHなし、CLOCK_SCALE=1.1のproduction条件を同じcompareの両者に使用する。実行はscripts/pahcer_run.pyのみ。binaryは/tmpまたはpahcerのrun内だけに置く。

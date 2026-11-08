@@ -1,0 +1,13 @@
+solutions/final-time-pace/main.cpp:391:54: warning: Right operand is negative in left shift [core.BitwiseShift]
+  391 | u64 low_bits(int n) { return n == 64 ? ~0ULL : (1ULL << n) - 1; }  // bits 0..n-1
+      |                                                 ~~~~~^~~~
+solutions/final-time-pace/main.cpp:1551:53: warning: Null pointer passed to 1st parameter expecting 'nonnull' [core.NonNullParamChecker]
+ 1551 |     const double as_work = std::getenv("AS_WORK") ? std::atof(std::getenv("AS_WORK")) : 1.0;
+      |                                                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+solutions/final-time-pace/main.cpp:9531:25: warning: Value stored to 'used_second' is never read [deadcode.DeadStores]
+ 9531 |                         used_second=true;restore(incumbent);if(++second_count==1)break;
+      |                         ^           ~~~~
+solutions/final-time-pace/main.cpp:9878:46: warning: Right shift by '64' overflows the capacity of 'u64' [core.BitwiseShift]
+ 9878 |             const int price=8+5*(b!=int(color>>c&1));
+      |                                         ~~~~~^~~
+4 warnings generated.

@@ -1,0 +1,13 @@
+<stdin>:9448:22: warning: variable 'used_second' set but not used [-Wunused-but-set-variable]
+ 9448 |                 bool used_second=false;
+      |                      ^
+<stdin>:8348:22: warning: unused variable 'prepare_positions' [-Wunused-variable]
+ 8348 |                 auto prepare_positions = [&] {
+      |                      ^~~~~~~~~~~~~~~~~
+<stdin>:8113:17: note: in instantiation of function template specialization '(anonymous namespace)::Solver::eject_repairs<(lambda at <stdin>:7602:25), (lambda at <stdin>:7966:31), (lambda at <stdin>:8016:31)>' requested here
+ 8113 |                 eject_repairs(initial, edits, u, initial_next, initial_prev, initial_bytes, evaluate, prepare_screen, screen_rejects);
+      |                 ^
+<stdin>:10826:54: warning: unused variable 'kMatchIterations' [-Wunused-const-variable]
+ 10826 | constexpr int kClimbIters = int(50000 * ITER_SCALE), kMatchIterations = 2;
+       |                                                      ^~~~~~~~~~~~~~~~
+3 warnings generated.

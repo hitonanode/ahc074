@@ -1,0 +1,33 @@
+main.cpp行	バッファ	読み出し範囲と初期化の根拠
+1325	af/ar/bf/br[512]	P.words <= 510。collectが全wordsを0にしてからORする。TwoEdges=falseではbf/brを読まない。
+1999	saved[128]	selectedは71組以下。saved[size++]に全フィールドを書き、後段はi<sizeだけ読む。
+2005	differing[132]	selectedを圧縮してndを作る。後段のi<ndは実際に書いた組。selected<=71で末尾の仮書込みも容量内。
+2007	closed[132]	rsは{}で0初期化。4要素単位の書込みをceil(nd/4)回行い、後段はi<ndだけ読む。最大72要素を格納。
+2132	closed[132]	rsは{}で0初期化。ns=selected.size()<=71を4要素単位で処理し、読むのはi<ns。
+2394	choices[4096][3]	sourcesとhandle候補の直積に共通genericの補正を足しても38*35+38以下。各採用時に3値を書き、count==0を除外してから選ぶ。
+3544	cols/dnc/dnt/dn1/dp1[6]	multi_moveは3 unit。旧新の合計6列まで。新しい列を登録する時に全差分を0にし、ncols以内だけ読む。
+4128-4129	indices/chance[64]	coveredのset bitごとに同じnへ書き込み。n<=H<=35。後段はn要素だけ。
+4140	left/right[65][2]	left[0]、right[n]を設定し、左から/右から漸化式で埋める。計算はleft[i]とright[i+1]、i<n。
+5163	参照版key[584]	NEXT_PREFIX_CHECK専用。SIMD圧縮の有効長だけを使い、8byte hashのpaddingを0にする。最大のkeyは3K未満。
+5207,5215	参照版first/mdp_code	NEXT_PREFIX_CHECK専用。firstの2H要素を-1、mdp_scan時のcodeのH要素を1にする。
+5268	key[584]	各圧縮storeの8byte余白を確保。有効prefix、区切り、below fillerを格納後、hashの8byte境界まで0で埋める。cache比較はkey_sizeのみ。
+5314-5323	rank/first/available/mdp_code	availableの2H要素を0。prefix cacheのhitでは保存済みH/2H要素をコピー、missではrank=0、first=-1、必要時code=1。prefix hashを使う長さはhash計算済み。
+5393	covered[64][2]	H行を{0,0}にする。SIMDの4double loadはhc+2<=Hの時だけ、残り1列はscalar。
+5466	v/vpos[192]	同じnに紙IDと位置を書き、後段はn要素だけ。nは紙数以下。
+5484	suffix[193]	suffix[n]=0から逆順にsuffix[0..n]を埋める。
+5499	mdp_value[193]	mdp && ctrl<=0の時に必要なlo..nをcolmdp_gap_valuesが書く。読む分岐は同じ条件でi=lo..n。
+6110,6320,6578	ColumnTops[64][5]	all_column_topsがcountsを全0にし、各列のprefixだけを書いてcountを増やす。全消費側はdepth<ntop[c]。
+6731	pool[64*(kChainDepth+1)]	各列の候補をmin(ntop[c],kChainDepth+1)まで格納。pool_size以下しか列挙せず、pathにはそのindexだけを保存。
+6898	nf[192]	orderを各紙1回走査して追加し、nf_countまでreverse/参照。各Fillerの3フィールドを同時に書く。
+6924	res[384]	nf中の旧fillerと残りをstampで列挙。追加ごとにFiller全体を書き、assignはres_countまで。
+7569	ord[192]	screen成功時はS.final_withoutを代入。通常はinitial_bytesまたは初期化済みprefix.orders[common]を代入。失敗は読む前にreturn。
+7570	cover[193]	通常replayでcover[0]=0、必要な位置pまで順に埋める。移動後はcover_validを最初に変わった位置まで戻す。
+8201,8222	anchors（戻り値）	anchor_candidatesがsizeとdata[0..size)を構成。候補は紙ID重複を除き最大192件。begin/endはsize範囲のみ。宣言に初期化子あり。
+8316	ord/ord_position[192]	先頭prefixを走査時に書く。末尾が必要な場合はprepare_order/prepare_positionsで残りを埋める。未走査紙を幾何だけで扱う経路では位置Kを使う。
+8319	owned[192]	そのtrialで書いたpaperにowner_stampを付ける。scalarとmasked gatherはstampが一致するpaperだけownedを読む。
+8320	first/second/column_first/column_second[64]	遅延prepareで必要なN/H要素をKに初期化してから所有窓/列を走査。各使用側で対応するprepareを呼ぶ。
+8322-8323	replay_order/replay_cover	候補の可視性を調べる経路でinitial_bytesを代入し、cover[0]=0から必要なprefixを構成する。
+8590	wrong_color[192]	関数入口で全K紙の値を書く。
+8623	cover[193]	cover[0]=0、cover_validまでだけ有効。紙を動かした位置から後ろを無効化し、次の参照前に再計算。
+8646	first/second/third[64]	全要素をKでfillし、先頭から実際の所有位置で置き換える。背景はKとして扱う。
+8651	position/pool/pool_index[192]	pool_index全体を-1、poolはpool_countまで。positionは全紙を書き、3層被覆で早期終了した場合も末尾位置だけは最後まで埋める。
