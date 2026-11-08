@@ -1,0 +1,92 @@
+{
+  "tag": "heldout",
+  "solvers": [
+    "lns-star-study",
+    "lns-joint-study",
+    "lns-warm-study",
+    "lns-full-study"
+  ],
+  "budgets": [
+    2,
+    4,
+    8
+  ],
+  "seeds": "500-1000",
+  "baseline": "20261108-065042_deval-helper-wide",
+  "control": "lns-full-study",
+  "reason": "Frozen after training seeds 0-99: star primary, joint release ablation, warm no-destroy ablation, independent full-pipeline control. Phase1 only.",
+  "sha256": {
+    "deval-helper-wide": "3a0a8af3569ea37dd9963e0c03da52a55692711a320e4bca440f21351ea7759b",
+    "lns-star-study": "e956f50a5284fa671b1b49c54ee9e98bcb266f37cedfc38d6e5d40fb6880a9e1",
+    "lns-joint-study": "0e51167b48ac3ecd41dd71836ad00188e89d2a2e6b953998994e8eac253876e8",
+    "lns-warm-study": "e01b0f0f51d257186371c9d1d1fb51ee90afeb1dfe6dab823e740789f1db44b6",
+    "lns-full-study": "c5ad4201e087d96ecfe3486f57a2d27b0527080c29856c5f1ea348bc82a45972"
+  },
+  "frozen_utc": "2026-11-07T21:53:55.644902+00:00",
+  "parameters": {
+    "lns-star-study": {
+      "name": "lns-star-study",
+      "mode": 1,
+      "steps": 5,
+      "map": 20000,
+      "anneal": 2000000,
+      "finishes": 2,
+      "groups": 5,
+      "handles": 4,
+      "temperature": 0.12,
+      "multiplier_default": 1,
+      "source_parent": "lns-star2"
+    },
+    "lns-joint-study": {
+      "name": "lns-joint-study",
+      "mode": 1,
+      "steps": 5,
+      "map": 20000,
+      "anneal": 2000000,
+      "finishes": 2,
+      "groups": 5,
+      "handles": 4,
+      "temperature": 0.12,
+      "kick": -1,
+      "first": 0,
+      "release_mode": 1,
+      "keep_columns": 1,
+      "base_map": 450000,
+      "base_anneal": 11175000
+    },
+    "lns-warm-study": {
+      "name": "lns-warm-study",
+      "mode": 1,
+      "steps": 5,
+      "map": 20000,
+      "anneal": 2000000,
+      "finishes": 2,
+      "groups": 5,
+      "handles": 4,
+      "temperature": 0.12,
+      "kick": 0,
+      "first": 0,
+      "release_mode": 0,
+      "keep_columns": 0,
+      "base_map": 450000,
+      "base_anneal": 11175000
+    },
+    "lns-full-study": {
+      "name": "lns-full-study",
+      "mode": 4,
+      "steps": 1,
+      "map": 20000,
+      "anneal": 2000000,
+      "finishes": 0,
+      "groups": 5,
+      "handles": 4,
+      "temperature": 0.12,
+      "kick": -1,
+      "first": 0,
+      "release_mode": 0,
+      "keep_columns": 0,
+      "base_map": 450000,
+      "base_anneal": 11175000
+    }
+  }
+}

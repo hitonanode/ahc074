@@ -32,7 +32,8 @@ def main():
     ds, total = tie_fit.load(run, range(a, b + 1))
     names = tie_fit.NAMES + ["lab_" + l for l in tie_fit.LABELS] + tie_fit.EXTRA
     gains, per_seed, changed = [], {}, 0
-    for seed, r, src, ln, val, T, F in ds:
+    gains_pol, per_seed_pol = [], {}
+    for seed, r, src, ln, val, T, F, chosen in ds:
         best, bs = 0, -args.margin
         for i in range(1, len(src)):
             g = val[i] - val[0]
@@ -47,12 +48,19 @@ def main():
         gains.append(gain)
         changed += best != 0
         per_seed.setdefault(seed, []).append(gain)
+        gp = T[chosen].mean() - T[best].mean()
+        gains_pol.append(gp)
+        per_seed_pol.setdefault(seed, []).append(gp)
     means = np.array([np.mean(v) for v in per_seed.values()])
+    mp = np.array([np.mean(v) for v in per_seed_pol.values()])
+    gpol = np.array(gains_pol)
     g = np.array(gains)
     per_dec = g.sum() / max(total, 1)
     se = means.std(ddof=1) / math.sqrt(len(means)) * len(g) / max(total, 1)
     print(f"{Path(args.weights).name} on {run.name} seeds {args.seeds}: decisions {total} (with alternatives {len(g)}), "
-          f"changed {changed}, gain per decision {per_dec:+.5f} +- {se:.5f} moves")
+          f"changed {changed}, gain per decision over the plan_cost choice {per_dec:+.5f} +- {se:.5f} moves, "
+          f"over the policy's choice {gpol.sum() / max(total, 1):+.5f} +- "
+          f"{mp.std(ddof=1) / math.sqrt(len(mp)) * len(gpol) / max(total, 1):.5f}")
 
 
 if __name__ == "__main__":

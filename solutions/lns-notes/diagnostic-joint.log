@@ -1,0 +1,45 @@
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-001 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-002 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-003 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-1000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-2000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-2001 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-2002 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-2003 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-3000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-3001 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-3002 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-3003 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-4000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-4001 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-4002 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-4003 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-5000 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-5001 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-5002 100
+/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/pilot8-dump/lns-joint-study/candidate-5003 100
+candidate-000 20261108-055121_deval-helper-wide
+candidate-001 20261108-055621_deval-helper-wide
+candidate-002 20261108-060010_deval-helper-wide
+candidate-003 20261108-061417_deval-helper-wide
+candidate-1000 20261108-061820_deval-helper-wide
+candidate-2000 20261108-063058_deval-helper-wide
+candidate-2001 20261108-063509_deval-helper-wide
+candidate-2002 20261108-064624_deval-helper-wide
+candidate-2003 20261108-065801_deval-helper-wide
+candidate-3000 20261108-070706_deval-helper-wide
+candidate-4000 20261108-071512_deval-helper-wide
+candidate-5000 20261108-072638_deval-helper-wide
+Traceback (most recent call last):
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/export_replays.py", line 18, in <module>
+    subprocess.run(['flock','-x','/home/sato/ahc074/runs/.lock','nice','-n','10',sys.executable,
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    str(H/'diagnostic_metrics.py'),str(H/(a.tag+'.json')),'--output',str(H/(a.tag+'-metrics.json'))],
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                   stdout=f,stderr=subprocess.STDOUT,check=True)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sato/.local/share/uv/python/cpython-3.13.7-linux-x86_64-gnu/lib/python3.13/subprocess.py", line 577, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['flock', '-x', '/home/sato/ahc074/runs/.lock', 'nice', '-n', '10', '/home/sato/ahc074/.venv/bin/python', '/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/diagnostic_metrics.py', '/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/diagnostic-joint.json', '--output', '/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/lns-notes/diagnostic-joint-metrics.json']' returned non-zero exit status 1.
