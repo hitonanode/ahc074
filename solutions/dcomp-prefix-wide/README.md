@@ -1,0 +1,3 @@
+改良元: solutions/dcomp-next-prefix
+
+同一の途中状態cacheのway数を32から128へ増やし衝突を減らす。keyの完全比較と元の浮動小数点加算順は維持。next_prefix64/128に再利用数を出す。固定予算、ログ、DesignStore、実験スイッチを維持しfallbackなし。

@@ -1,0 +1,3 @@
+改良元: solutions/dcomp-combo-ten
+
+ClangでTask 9のsparsebitsを有効にし、非連続indexを扱う短いループだけvectorize/interleave/unrollを抑える。Clangの計測ではSIMD本体は速く、追加の疎なlookupとvalid一覧作成で遅くなっているため、そのループのコード生成を分けて検証する。整数処理だけの変更。元の探索・採否・浮動小数点・ログを維持する。時間fallbackはない。

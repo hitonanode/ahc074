@@ -1,0 +1,815 @@
+--- a/main.cpp
++++ b/main.cpp
+@@ -978,6 +978,11 @@
+     std::vector<uint32_t> dir;  // first target, differences, packed relations (WindowRelations)
+     // 0 means incompatible, otherwise 1 + PosetSums::both_of(closure(dir)).
+     std::vector<int> rel;
++#if !defined(__clang__)
++    std::vector<int> live;  // sorted compatible pairs in the accepted state
++    std::vector<int> scratch_live;  // nonzero entries of the scratch nrel buffer
++#else
++#endif
+     // a cycle of dir (WindowRelations::witness; all bits for a compatible pair), size n8
+     std::vector<uint32_t> wit;
+     std::vector<int> u, v;
+@@ -1125,6 +1130,12 @@
+     const int* const prel = P.rel.data();
+     uint32_t* const pwit = P.wit.data();
+     const int n8 = P.n8;
++#if !defined(__clang__)
++    // Every other scratch entry is already zero. After an accepted move the
++    // two live lists swap along with their corresponding relation buffers.
++    for(int p:P.scratch_live)nrel[p]=0;
++#else
++#endif
+     static const std::array<std::array<int, 8>, 256> lanes = [] {
+         std::array<std::array<int, 8>, 256> t{};
+         for (int s = 0; s < 256; ++s)
+@@ -1203,8 +1214,11 @@
+                 _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_andnot_si256(rsame, _mm256_and_si256(noboth, still)))));
+ #endif
+             _mm256_storeu_si256((__m256i*)(ndir + p), r);
++#if !defined(__clang__)
++#else
+             const __m256i kept = _mm256_and_si256(rsame, _mm256_loadu_si256((const __m256i*)(prel + p)));
+             _mm256_storeu_si256((__m256i*)(nrel + p), kept);
++#endif
+             _mm256_storeu_si256(
+                 (__m256i*)(pending + npending),
+                 _mm256_add_epi32(_mm256_set1_epi32(p), _mm256_loadu_si256((const __m256i*)lanes[need].data())));
+@@ -1257,6 +1271,10 @@
+ #if DESIGN_PROFILE >= 3
+     unsigned long long tl = __builtin_ia32_rdtsc();
+ #endif
++#if !defined(__clang__)
++    for(int p:P.live)nrel[p]=prel[p]*int(ndir[p]==pdir[p]);
++#else
++#endif
+     for (int k = 0; k < nacyclic; ++k) nrel[pending[k]] = 1 + relations.sums.both_of(closures[k]);
+ #if DESIGN_PROFILE >= 3
+     dp_cycles[dp_ev_lookup] += __builtin_ia32_rdtsc() - tl;
+@@ -1266,6 +1284,18 @@
+     unsigned long long t3 = __builtin_ia32_rdtsc();
+     dp_cycles[dp_ev_pending] += t3 - t2;
+ #endif
++#if !defined(__clang__)
++    // Build a compact bitset, then enumerate in ascending pair order.
++    // No unpredictable branch is needed to merge old and newly valid pairs.
++    u64 live_bits[512];
++    std::fill(live_bits,live_bits+P.words,u64(0));
++    for(int p:P.live)live_bits[p>>6]|=u64(ndir[p]==pdir[p])<<(p&63);
++    for(int k=0;k<nacyclic;++k){const int p=pending[k];live_bits[p>>6]|=u64(1)<<(p&63);}
++    int nvalid=0;
++    for(int w=0;w<P.words;++w)for(u64 bits=live_bits[w];bits;bits&=bits-1)
++        valid[nvalid++]=64*w+__builtin_ctzll(bits);
++    P.scratch_live.assign(valid,valid+nvalid);
++#else
+     int nvalid = 0;
+     for (int p = 0; p < n8; p += 8) {
+         const __m256i rel4 = _mm256_loadu_si256((const __m256i*)(nrel + p));
+@@ -1275,6 +1305,7 @@
+             _mm256_add_epi32(_mm256_set1_epi32(p), _mm256_loadu_si256((const __m256i*)lanes[good].data())));
+         nvalid += __builtin_popcount(good);
+     }
++#endif
+ #if DESIGN_PROFILE >= 3
+     dp_cycles[dp_ev_valid] += __builtin_ia32_rdtsc() - t3;
+     dp_nvalid += nvalid;
+@@ -1443,6 +1474,88 @@
+     int nvalid = 0;
+     std::vector<int> full144(np);  // 144 differences of each pair
+     for (int p = 0; p < np; p++) full144[p] = 144 * __builtin_popcountll(pairs.diff[p]);
++    // Same stable cost/tie order, with the measured layout for each compiler.
++#if defined(__clang__)
++    // Only `valid[0..nvalid)` is traversed here. A nonzero rel stores the original rel + 1.
++    // a sort entry packs key << 32 | pair << 16 | u << 8 | v (pair_tail[p]: the low half), so
++    // the ascending order of the entries is stable by key (ties in the order
++    // of the pairs, as valid[] lists them) and the greedy reads the two targets from the entry.
++    // Seventeen cost bits and fifteen pair-index bits fit in one 32-bit word.
++    // Stable scatters retain the old tie order; fetch the two targets only in greedy.
++    static_assert(P*(P-1)/2 < (1<<15));
++    std::vector<uint16_t> pair_uv(np);
++    for(int p=0;p<np;++p)pair_uv[p]=(unsigned(pairs.u[p])<<8)|unsigned(pairs.v[p]);
++    std::vector<uint32_t> keyed(np), tmp(np), sorted(np);
++    std::vector<int> selected, candidate_selected;
++    long long screen_rejected = 0, screen_checks = 0, accepted = 0;
++    auto matching_cost = [&](const int* rel, u64 handle_mask) __attribute__((target("popcnt,avx2"))) {
++#if DESIGN_PROFILE >= 3
++        unsigned long long mt0 = __builtin_ia32_rdtsc();
++#endif
++        std::array<int, 128> low{};
++        std::array<int, 1024> high{};
++        int min_high = 1023, max_high = 0;
++        const int size = nvalid;
++        for (int i = 0; i < size; i++) {
++            const int p = valid[i];
++            const int key = 1800 * __builtin_popcountll(pairs.diff[p] & handle_mask) + 5 * int(rel[p] - 1) + full144[p];
++            // hd <= 26, full144 <= 144*26, rel <= 4380: the key fits 17 bits.
++            assert(key < (1 << 17));
++            keyed[i] = uint32_t(key) << 15 | unsigned(p);
++            low[key & 127]++;
++            high[key >> 7]++;
++            min_high = std::min(min_high, key >> 7);
++            max_high = std::max(max_high, key >> 7);
++        }
++#if DESIGN_PROFILE >= 3
++        unsigned long long mt1 = __builtin_ia32_rdtsc();
++        dp_cycles[dp_mc_keys] += mt1 - mt0;
++#endif
++        radix_prefix(low.data(),0,128);
++        radix_prefix(high.data(),min_high,max_high+1);
++        for (int i = 0; i < size; i++) tmp[low[(keyed[i] >> 15) & 127]++] = keyed[i];
++        for (int i = 0; i < size; i++) sorted[high[tmp[i] >> 22]++] = tmp[i];
++#if DESIGN_PROFILE >= 3
++        unsigned long long mt2 = __builtin_ia32_rdtsc();
++        dp_cycles[dp_mc_sort] += mt2 - mt1;
++        int dp_last = size;
++#endif
++        // The greedy without branches on the targets: an entry is taken (ok) when both its targets are
++        // free; out[matched] is overwritten until an entry is taken.
++        candidate_selected.resize(need);
++        int* const out = candidate_selected.data();
++        std::array<unsigned char, 256> used{};
++        int matched = 0;
++        long long total = 0;
++        for (int i = 0; i < size; i++) {
++            const uint32_t x=sorted[i];const unsigned p=x&32767;
++            const unsigned uv=pair_uv[p],u=uv>>8,v=uv&255;
++            const int ok = (used[u] | used[v]) ^ 1;
++            used[u] |= ok;
++            used[v] |= ok;
++            out[matched] = p;
++            total += ok ? (long long)(x >> 15) : 0LL;
++            matched += ok;
++            if (matched == need) {
++#if DESIGN_PROFILE >= 3
++                dp_last = i + 1;
++#endif
++                break;
++            }
++        }
++        candidate_selected.resize(matched);
++#if DESIGN_PROFILE >= 3
++        dp_cycles[dp_mc_greedy] += __builtin_ia32_rdtsc() - mt2;
++        dp_mc_size += size;
++        dp_mc_scanned += dp_last;
++        dp_mc_count++;
++#endif
++        return double(total) / (need * 3600) + (need - matched) * 10.0;
++    };
++    // ==== Window assignment: candidate screens and tables ====
++
++    // A move: its windows and sheet pairs; propose changes mask / pol and evaluates the move on all
++#else
+     // Only `valid[0..nvalid)` is traversed here. A nonzero rel stores the original rel + 1.
+     // a sort entry packs key << 32 | pair << 16 | u << 8 | v (pair_tail[p]: the low half), so
+     // the ascending order of the entries is stable by key (ties in the order
+@@ -1519,6 +1632,7 @@
+     // ==== Window assignment: candidate screens and tables ====
+ 
+     // A move: its windows and sheet pairs; propose changes mask / pol and evaluates the move on all
++#endif
+     // the pairs (ndir, nrel, valid); apply_move keeps it, undo_move restores mask / pol.
+     struct Move {
+         int ia, ib, a, b, kind, ea, eb, transfer;
+@@ -2206,6 +2320,10 @@
+         accepted++;
+         pairs.dir.swap(ndir);
+         pairs.rel.swap(nrel);
++#if !defined(__clang__)
++        pairs.live.swap(pairs.scratch_live);
++#else
++#endif
+         if (mv.swindow) {
+             which[mv.a] = -1;
+             which[mv.b] = mv.eb;
+@@ -2228,6 +2346,10 @@
+     };
+     for (int p = 0; p < np; ++p)
+         if (pairs.rel[p]) valid[nvalid++] = p;
++#if !defined(__clang__)
++    pairs.live.assign(valid.begin(),valid.begin()+nvalid);
++#else
++#endif
+     double cur = matching_cost(pairs.rel.data(), hm), best = cur;
+     record_elite(cur);
+     selected = candidate_selected;
+@@ -2394,6 +2516,10 @@
+     nvalid = 0;
+     for (int p = 0; p < np; ++p)
+         if (pairs.rel[p]) valid[nvalid++] = p;
++#if !defined(__clang__)
++    pairs.live.assign(valid.begin(),valid.begin()+nvalid);
++#else
++#endif
+     cur = matching_cost(pairs.rel.data(), hm);
+     selected = candidate_selected;
+     screen_dirty = true;
+@@ -3650,11 +3776,10 @@
+                 const __m256d improve=_mm256_and_pd(live,_mm256_cmp_pd(cur,old,_CMP_LT_OQ));
+                 const __m256d next=_mm256_blendv_pd(old,cur,improve);
+                 _mm256_storeu_pd(minv.data()+j,next);
+-                const int mask=_mm256_movemask_pd(improve);
+-                if(mask&1)way[j]=j0;
+-                if(mask&2)way[j+1]=j0;
+-                if(mask&4)way[j+2]=j0;
+-                if(mask&8)way[j+3]=j0;
++                const __m128i update=_mm_castps_si128(_mm_shuffle_ps(
++                    _mm256_castps256_ps128(_mm256_castpd_ps(improve)),
++                    _mm256_extractf128_ps(_mm256_castpd_ps(improve),1),_MM_SHUFFLE(2,0,2,0)));
++                _mm_maskstore_epi32(way.data()+j,update,_mm_set1_epi32(j0));
+                 const __m256d better=_mm256_and_pd(live,_mm256_cmp_pd(next,minima,_CMP_LT_OQ));
+                 minima=_mm256_blendv_pd(minima,next,better);
+                 indices=_mm256_blendv_epi8(indices,_mm256_setr_epi64x(j,j+1,j+2,j+3),_mm256_castpd_si256(better));
+@@ -3824,13 +3949,28 @@
+         return gradient;
+     }
+     // The filler value of the paper of unit u over all the targets.
+-    double donor(const Design::Unit& u,int slot=-1) const {
++    __attribute__((target("avx2"))) double donor(const Design::Unit& u,int slot=-1) const {
+         AF_SCOPE(head_donor,64);
+         double sum=0;
+         const u64 dy=(u.b>=0?d.hb[u.a]^d.hb[u.b]:0)|extra_holes(slot);
+         const u64 cover=low_bits(u.c+1)&~dy,bits=d.hb[u.a];
+-        for(int t=0;t<P;++t)if(target_column[t]!=u.c)
+-            sum+=range_gain(d.hb[t],bits,cover&target_holes[t],u.c,q[t].data());
++        const auto cv=_mm256_set1_epi64x(cover),bv=_mm256_set1_epi64x(bits),below=_mm256_set1_epi64x(low_bits(u.c));
++        for(int t=0;t<P;t+=4) {
++            const auto range=_mm256_and_si256(cv,_mm256_loadu_si256((const __m256i*)(target_holes.data()+t)));
++            auto wrong=_mm256_and_si256(range,_mm256_xor_si256(bv,_mm256_loadu_si256((const __m256i*)(d.hb.data()+t))));
++            // Set every bit below the highest mismatch. This is exactly low_bits(level),
++            // including the zero case, and removes all bits if level reaches this column.
++            wrong=_mm256_or_si256(wrong,_mm256_srli_epi64(wrong,1));
++            wrong=_mm256_or_si256(wrong,_mm256_srli_epi64(wrong,2));
++            wrong=_mm256_or_si256(wrong,_mm256_srli_epi64(wrong,4));
++            wrong=_mm256_or_si256(wrong,_mm256_srli_epi64(wrong,8));
++            wrong=_mm256_or_si256(wrong,_mm256_srli_epi64(wrong,16));
++            wrong=_mm256_or_si256(wrong,_mm256_srli_epi64(wrong,32));
++            alignas(32) u64 covered[4];
++            _mm256_store_si256((__m256i*)covered,_mm256_andnot_si256(wrong,_mm256_and_si256(range,below)));
++            for(int lane=0;lane<4;++lane)if(target_column[t+lane]!=u.c)
++                sum+=Design::covered_gain(covered[lane],[&](int j){return q[t+lane][j];});
++        }
+         return sum;
+     }
+     // The filler value that the heads give target t when its paper is that of unit u.
+@@ -4788,7 +4928,18 @@
+     };
+     mutable std::array<NextValueEntry, 256> next_value_cache;
+     mutable long long cf_value_hits = 0, cf_value_misses = 0;
+-    __attribute__((target("ssse3,sse4.1,popcnt"))) double adaptive_next_cost(const GenericSplit& split) const {
++    struct NextPrefix {
++        std::array<uint8_t,128> key;
++        std::array<int,64> rank;
++        std::array<int,128> first;
++        std::array<uint32_t,64> code;
++        double cost;
++        bool valid=false;
++    };
++    mutable std::array<std::array<NextPrefix,32>,2> next_prefix;
++    mutable long long next_prefix64=0,next_prefix128=0;
++#ifdef NEXT_PREFIX_CHECK
++    __attribute__((target("ssse3,sse4.1,popcnt"))) double adaptive_next_cost_reference(const GenericSplit& split) const {
+         CF_SCOPE(next_cost);
+         std::array<bool, K> extra{};  // the lifted paper and the fillers (out of their columns)
+         if (top_d >= 0) extra[top_d] = true;
+@@ -4831,7 +4982,7 @@
+             hash = (hash ^ word) * 0x100000001b3ULL;
+         }
+         NextValueEntry& cached = next_value_cache[(hash ^ (hash >> 32)) & (next_value_cache.size() - 1)];
+-        if (cached.size == key_size && std::memcmp(cached.key.data(), key.data(), key_size) == 0) {
++        if (false && cached.size == key_size && std::memcmp(cached.key.data(), key.data(), key_size) == 0) {
+             cf_value_hits++;
+             return cached.value;
+         }
+@@ -4889,6 +5040,158 @@
+             cost += colmdp_next_scanned(mdp_code, cost);
+         else if (colmdp_next)
+             cost += colmdp_next_term(extra, available, first, rank, covered);
++
++        return cost;
++    }
++#endif
++    __attribute__((target("avx2,popcnt"))) double adaptive_next_cost(const GenericSplit& split) const {
++        CF_SCOPE(next_cost);
++        std::array<bool, K> extra{};  // the lifted paper and the fillers (out of their columns)
++        if (top_d >= 0) extra[top_d] = true;
++        for (auto f : fillers) extra[f.paper] = true;
++        std::array<uint8_t, 3 * K + 8> key;
++        int key_size = 0;
++        // Pack the same key in lane order; unusual role maps use the scalar path.
++        static const auto shuffle=[] {
++            std::array<std::array<uint8_t,16>,256> t{};
++            for(int mask=0;mask<256;++mask){t[mask].fill(128);int at=0;
++                for(int j=0;j<8;++j)if(mask>>j&1)t[mask][at++]=j;}
++            return t;
++        }();
++        if(key_roles_ordinary) {
++            for(int i=0;i<K;i+=16) {
++                const __m128i v=_mm_loadu_si128((const __m128i*)(order.data()+i));
++                __m128i excluded=_mm_cmpeq_epi8(_mm_min_epu8(v,_mm_set1_epi8(kCapPaper)),v);
++                if(top_d>=0)excluded=_mm_or_si128(excluded,_mm_cmpeq_epi8(v,_mm_set1_epi8(top_d)));
++                for(const auto& f:fillers)excluded=_mm_or_si128(excluded,_mm_cmpeq_epi8(v,_mm_set1_epi8(f.paper)));
++                const unsigned mask=~_mm_movemask_epi8(excluded)&65535;
++                const unsigned lo=mask&255,hi=mask>>8;
++                _mm_storel_epi64((__m128i*)(key.data()+key_size),_mm_shuffle_epi8(v,_mm_loadu_si128((const __m128i*)shuffle[lo].data())));
++                key_size+=__builtin_popcount(lo);
++                _mm_storel_epi64((__m128i*)(key.data()+key_size),_mm_shuffle_epi8(_mm_srli_si128(v,8),_mm_loadu_si128((const __m128i*)shuffle[hi].data())));
++                key_size+=__builtin_popcount(hi);
++            }
++        } else for(int k:order)if(col_of[k]>=0 && !extra[k])key[key_size++]=k;
++        const int in_place = key_size;
++        key[key_size++] = 255;
++        for (const auto& f : fillers) if (split.below(f.paper)) {
++            key[key_size++] = f.paper;
++            key[key_size++] = f.lvl;
++        }
++        const int padded = (key_size + 7) & ~7;
++        std::fill(key.begin() + key_size, key.begin() + padded, 0);
++        u64 hash = 0xcbf29ce484222325ULL;
++        std::array<u64,2> prefix_hash;
++        for (int i = 0; i < padded; i += 8) {
++            u64 word;
++            std::memcpy(&word, key.data() + i, 8);
++            hash = (hash ^ word) * 0x100000001b3ULL;
++            if(i==56)prefix_hash[0]=hash;
++            if(i==120)prefix_hash[1]=hash;
++        }
++        NextValueEntry& cached = next_value_cache[(hash ^ (hash >> 32)) & (next_value_cache.size() - 1)];
++        if (cached.size == key_size && std::memcmp(cached.key.data(), key.data(), key_size) == 0) {
++            cf_value_hits++;
++            return cached.value;
++        }
++        cf_value_misses++;
++        std::array<int, 64> rank{};
++        std::array<int, 128> first;
++        std::array<bool, 128> available{};
++        if (top_d >= 0 && column_color[top_d] >= 0) available[column_color[top_d]] = true;
++        for (const auto& f : fillers) if (column_color[f.paper] >= 0) available[column_color[f.paper]] = true;
++        std::fill(first.begin(), first.begin() + 2 * H, -1);
++        // With every column covered, encode its in-place type sequence during the
++        // same scan. A leading 1 distinguishes lengths; each type uses exactly two bits.
++        const bool mdp_scan = colmdp_next && colmdp_columns == H;
++        std::array<uint32_t, 64> mdp_code;
++        if (mdp_scan) std::fill(mdp_code.begin(), mdp_code.begin() + H, 1);
++        double cost = 0;
++        int start=0;
++        if(in_place>128) {
++            for(int level=1;level>=0;--level) {
++                const int length=64*(level+1);
++                const u64 h=prefix_hash[level];
++                auto& memo=next_prefix[level][(h^(h>>32))&31];
++                if(memo.valid && std::memcmp(memo.key.data(),key.data(),length)==0) {
++                    std::copy_n(memo.rank.data(),H,rank.data());
++                    std::copy_n(memo.first.data(),2*H,first.data());
++                    if(mdp_scan)std::copy_n(memo.code.data(),H,mdp_code.data());
++                    cost=memo.cost;start=length;
++                    if(level)++next_prefix128;else ++next_prefix64;
++                    break;
++                }
++            }
++        }
++        // Checkpoints retain the exact running double after 64/128 terms, together
++        // with integer scan state. No addition is reassociated or omitted on a miss.
++        for(int phase=start/64;phase<3;++phase) {
++            const int end=phase<2?std::min(in_place,64*(phase+1)):in_place;
++            for(int i=start;i<end;) {
++                const int c=next_paper[key[i]].color>>1;
++                int depth=rank[c];uint32_t code=mdp_scan?mdp_code[c]:0;
++                do {
++                    const auto& np=next_paper[key[i]];
++                    if(first[np.color]<0)first[np.color]=depth;
++                    cost+=depth_terms[np.offset+depth];++depth;
++                    if(mdp_scan)code=(code<<2)|np.type;
++                    ++i;
++                } while(i<end && (next_paper[key[i]].color>>1)==c);
++                rank[c]=depth;if(mdp_scan)mdp_code[c]=code;
++            }
++            if(phase<2 && end==64*(phase+1)) {
++                const u64 h=prefix_hash[phase];auto& memo=next_prefix[phase][(h^(h>>32))&31];
++                std::memcpy(memo.key.data(),key.data(),end);
++                std::copy_n(rank.data(),H,memo.rank.data());std::copy_n(first.data(),2*H,memo.first.data());
++                if(mdp_scan)std::copy_n(mdp_code.data(),H,memo.code.data());
++                memo.cost=cost;memo.valid=true;
++            }
++            start=end;if(end==in_place)break;
++        }
++        // covered[c][color]: the largest share of the requests whose hole at h_c a filler below the
++        // generic layer shows in that color (stay_table)
++        std::array<std::array<double, 2>, 64> covered{};
++        for (auto f : fillers)
++            if (split.below(f.paper)) {
++                const auto& value = stay_table[f.paper][f.lvl];
++                for (int c = 0; c < H; c++) {
++                    int color = h_blk[f.paper] >> c & 1;
++                    covered[c][color] = std::max(covered[c][color], value.cover[c]);
++                }
++            }
++        // All hole rates and stay covers are integer multiples of 1/P. With
++        // kCoverStrength=.25 and integer depths, each term is exact on a 1/1024
++        // grid. Computing four terms separately cannot alter FMA rounding; the
++        // additions to the general running cost retain their original order.
++        int hc=0;
++        for(;hc+2<=H;hc+=2) {
++            auto fixes=_mm_loadu_si128((const __m128i*)(first.data()+2*hc));
++            const auto ranks=_mm_set_epi32(rank[hc+1],rank[hc+1],rank[hc],rank[hc]);
++            fixes=_mm_blendv_epi8(fixes,ranks,_mm_cmpgt_epi32(_mm_setzero_si128(),fixes));
++            uint32_t av;std::memcpy(&av,available.data()+2*hc,4);
++            const auto keep=_mm_cmpeq_epi32(_mm_cvtepu8_epi32(_mm_cvtsi32_si128(av)),_mm_setzero_si128());
++            fixes=_mm_and_si128(fixes,keep);
++            const auto rates=_mm256_sub_pd(_mm256_loadu_pd(adaptive_holes[hc].data()),
++                _mm256_mul_pd(_mm256_set1_pd(kCoverStrength),_mm256_loadu_pd(covered[hc].data())));
++            alignas(32) double terms[4];
++            _mm256_store_pd(terms,_mm256_mul_pd(rates,_mm256_cvtepi32_pd(fixes)));
++            for(int lane=0;lane<4;++lane)cost+=terms[lane];
++        }
++        for(;hc<H;++hc)for(int color=0;color<2;++color) {
++            int fixes=available[2*hc+color]?0:first[2*hc+color];
++            if(fixes<0)fixes=rank[hc];
++            cost+=(adaptive_holes[hc][color]-kCoverStrength*covered[hc][color])*fixes;
++        }
++        if (mdp_scan)
++            cost += colmdp_next_scanned(mdp_code, cost);
++        else if (colmdp_next)
++            cost += colmdp_next_term(extra, available, first, rank, covered);
++#ifdef NEXT_PREFIX_CHECK
++        const double reference=adaptive_next_cost_reference(split);
++        if(std::bit_cast<u64>(reference)!=std::bit_cast<u64>(cost)) {
++            std::cerr<<"NEXT_PREFIX_MISMATCH "<<std::hexfloat<<reference<<' '<<cost<<'\n';std::abort();
++        }
++#endif
+         cached.size = key_size;
+         std::memcpy(cached.key.data(), key.data(), key_size);
+         cached.value = cost;
+@@ -6549,12 +6852,14 @@
+         // F3_* is private to this solver; no fallback to shared environment names.
+         const std::string local = std::string("F3_") + name;
+         if(const char* value=std::getenv(local.c_str()))return value;
++        if(std::strcmp(name,"NS_ALTERNATE")==0)return "1";
++        if(std::strcmp(name,"NS_ALTERNATE_GAP")==0)return "1.0";
+         if(std::strcmp(name,"NS_ROUNDS")==0)return "3";
+         if(std::strcmp(name,"NEUTRAL_SLACK")==0)return ".35";
+         if(std::strcmp(name,"PLAN_LIMIT")==0)return "2";
+         if(std::strcmp(name,"REPEAT_MIN")==0)return ".05";
+         if(std::strcmp(name,"POST_CANDIDATES")==0)return "6";
+-        if(std::strcmp(name,"NEUTRAL_WIDTH")==0)return "5";
++        if(std::strcmp(name,"NEUTRAL_WIDTH")==0)return "6";
+         return nullptr;
+     }
+     struct SearchConfig {
+@@ -6733,7 +7038,17 @@
+     long long screen_prepared = 0, screen_skipped = 0, screen_checked = 0, screen_mismatch = 0;
+     // The display screen of post_optimize's anchor passes (prepare_screen there).
+     struct AnchorScreen {
+-        bool active = false;
++        struct ReplayStep { int paper, depth, cutoff; OP_TAG(uint8_t tag;) };
++        bool replay_ready=false, replay_ok=false, k_visible=false;
++        const std::vector<Edit>* edit_source=nullptr;
++        int old_prev=-1, minimum_rank=-2;
++        std::array<int,K+1> stable_rank, before_stable;
++        ByteOrder final_without;
++        Moves prefix_path;
++        OP_TAG(std::vector<uint8_t> prefix_tags;)
++        std::vector<ReplayStep> steps;
++        Links next, prev;  // final G before the commuting re-anchor
++        bool active = false, display_proven=false;
+         int k = -1, i = -1, j = -1;
+         unsigned epoch = 0;
+         std::array<unsigned, K + 1> blocked{}, visited{};  // == epoch: touched by a later edit / above full cover
+@@ -6870,18 +7185,83 @@
+             cov = a.cov | b.cov;
+             disp = a.disp | (b.disp & ~a.cov);
+         };
++        // Eligible anchors are never moved or used by later edits. Their order stays
++        // fixed. Remove k at edit i and replay G once: each later edit's depth gets
++        // +1 exactly when the chosen anchor precedes its anchor in that stable order.
++        // If all visible windows of a later moved paper belong to k, k must be below
++        // that paper. All such legality conditions reduce to one minimum stable rank.
++        auto prepare_screen_replay = [&]() {
++            auto& S=anchor_screen;
++            const auto& screen_edits=*S.edit_source;
++            if(S.replay_ready)return;
++            S.replay_ready=true;S.replay_ok=false;S.minimum_rank=-2;
++            S.prefix_path.clear();OP_TAG(S.prefix_tags.clear();) S.steps.clear();
++            ByteOrder o=initial_bytes;
++            std::array<u64,K+1> cov;cov[0]=0;int valid=0;
++            auto visible=[&](int k,int p) {
++                for(;valid<p;++valid)cov[valid+1]=cov[valid]|paper[o[valid]].opaque;
++                return paper[k].opaque&~cov[p];
++            };
++            for(int t=0;t<S.i;++t)if(t!=S.j) {
++                const auto& e=screen_edits[t];int p=find_paper(o,e.paper);
++                int d=e.anchor<0?0:find_paper(o,e.anchor)+1;d-=p<d;
++                if(p==d)continue;
++                if(!visible(e.paper,p))return;
++                shift_byte(o,p,d);valid=std::min(valid,std::min(p,d));
++                S.prefix_path.push_back({e.paper,d});OP_TAG(S.prefix_tags.push_back(e.tag);)
++            }
++            const int kp=find_paper(o,S.k);
++            S.k_visible=visible(S.k,kp)!=0;S.old_prev=kp?o[kp-1]:-1;
++            // Keep k at the unused last slot of this 191-paper replay.
++            shift_byte(o,kp,K-1);valid=0;
++            int last=-1;
++            for(int i=0;i<K-1;++i) {
++                const int x=o[i];S.stable_rank[x]=i;S.before_stable[x]=last;
++                if(S.blocked[x]!=S.epoch)last=i;
++            }
++            S.stable_rank[root]=-1;S.before_stable[root]=-2;
++            for(int t=S.i+1;t<int(screen_edits.size());++t)if(t!=S.j) {
++                const auto& e=screen_edits[t];const int x=e.paper,b=e.anchor;
++                const int p=find_paper(o,x);
++                int d=b<0?0:find_paper(o,b)+1;d-=p<d;
++                if(p==d)continue;
++                const u64 vis=visible(x,p);
++                if(!vis)return;
++                if(!(vis&~paper[S.k].opaque))S.minimum_rank=std::max(S.minimum_rank,S.before_stable[x]);
++                const int cutoff=b<0?-2:S.before_stable[b];
++                S.steps.push_back({x,d,cutoff OP_TAG(,e.tag)});
++                shift_byte(o,p,d);valid=std::min(valid,std::min(p,d));
++                S.before_stable[x]=b<0?-1:S.before_stable[b];
++            }
++            S.final_without=o;S.replay_ok=true;
++        };
++        // Only a successful, exact anchor screen may supply the final links.
++        // Consume this flag at entry so later deletion/ejection trials cannot reuse it.
++        bool screened_eval = false;
++        int screened_anchor = -1;
+         auto evaluate = [&](const std::vector<Edit>& trial) {
+             CF_SCOPE(evaluate);
+             F3_DIAG(fp_trials[fp_op]++;)
+             EndMemo* memo = nullptr;
+             bool memo_hit = false;
+             std::array<u64, 3> moved{}, breaks{};
+-            auto next = initial_next, prev = initial_prev;
++            const bool use_screen = screened_eval;
++            screened_eval = false;
++            auto next = use_screen ? anchor_screen.next : initial_next;
++            auto prev = use_screen ? anchor_screen.prev : initial_prev;
++            if (use_screen) splice_after(next, prev, anchor_screen.k, screened_anchor < 0 ? root : screened_anchor);
++#ifdef SCREEN_LINK_CHECK
++            if (use_screen) {
++                auto nx = initial_next, pv = initial_prev;
++                for (const auto& e : trial) splice_after(nx,pv,e.paper,e.anchor<0?root:e.anchor);
++                if (nx!=next || pv!=prev) std::abort();
++            }
++#endif
+             {
+                 CF_SCOPE(eval_filter);
+                 // Bit positions refer to the initial order. A run ends at a moved paper,
+                 // immediately above one, or at an anchor. Build all predecessors in three shifts.
+-                for (const Edit& e : trial) {
++                if (!use_screen) for (const Edit& e : trial) {
+                     const int k = e.paper, a = e.anchor < 0 ? root : e.anchor;
+                     if (a == k) return false;
+                     const int p = initial_position[k];
+@@ -6910,6 +7290,7 @@
+                 for (int k = next[root]; k != root && k != kCapPaper; k = next[k])
+                     if (k < M) return false;
+                 u64 seen = 0, view = 0;
++                if (!use_screen) {
+                 for (int k = next[root]; k != root;) {
+                     u64 cov, disp;
+                     const int i = initial_position[k];
+@@ -6929,6 +7310,7 @@
+                     if (seen == ~u64(0)) break;
+                 }
+                 if (view != A[u]) return false;
++                }
+                 if (cfg.memo) {
+                     // Only final-order properties are cached. The full successor array is the
+                     // collision check; every usable path still passes its own visibility replay.
+@@ -6957,6 +7339,45 @@
+             OP_TAG(path_tags.clear();)
+             {
+                 CF_SCOPE(eval_replay);
++                if(use_screen) {
++                    prepare_screen_replay();
++                    const auto& S=anchor_screen;
++                    const int a=screened_anchor,rank=a<0 || !S.replay_ok?-1:S.stable_rank[a];
++                    const bool legal=S.replay_ok && (S.k_visible || a==S.old_prev) && rank>S.minimum_rank;
++                    if(legal) {
++                        path=S.prefix_path;OP_TAG(path_tags=S.prefix_tags;)
++                        if(a!=S.old_prev) {
++                            path.push_back({S.k,rank+1});OP_TAG(path_tags.push_back((*S.edit_source)[S.i].tag);)
++                        }
++                        for(const auto& step:S.steps) {
++                            path.push_back({step.paper,step.depth+int(rank<=step.cutoff)});
++                            OP_TAG(path_tags.push_back(step.tag);)
++                        }
++                        ord=S.final_without;
++                        const int d=a<0?0:find_paper(ord,a)+1;
++                        shift_byte(ord,K-1,d);
++                    }
++#ifdef SCREEN_REPLAY_CHECK
++                    {
++                        ByteOrder ref=initial_bytes;Moves ref_path;
++                        OP_TAG(std::vector<uint8_t> ref_tags;)
++                        bool ok=true;
++                        for(const auto& e:trial) {
++                            const int p=find_paper(ref,e.paper);
++                            int d=e.anchor<0?0:find_paper(ref,e.anchor)+1;d-=p<d;
++                            if(p==d)continue;
++                            u64 cv=0;for(int t=0;t<p;++t)cv|=paper[ref[t]].opaque;
++                            if(!(paper[e.paper].opaque&~cv)){ok=false;break;}
++                            shift_byte(ref,p,d);ref_path.push_back({e.paper,d});OP_TAG(ref_tags.push_back(e.tag);)
++                        }
++                        if(ok!=legal || (ok && (ref!=ord || ref_path!=path OP_TAG(||ref_tags!=path_tags)))) {
++                            std::cerr<<"SCREEN_REPLAY_MISMATCH "<<S.i<<' '<<S.j<<' '<<a<<' '<<ok<<' '<<legal<<'\n';
++                            std::abort();
++                        }
++                    }
++#endif
++                    if(!legal)return false;
++                } else {
+                 int cover_valid = 0;
+                 cover[0] = 0;
+ 
+@@ -7007,6 +7428,7 @@
+                     }
+                 }
+                 remember(trial.size());
++                }
+                 // Preserve the invariant needed by contiguous generic planning
+                 // and the +1 offset of helper insertion. The cap itself is never
+                 // an edit, so this also prevents a generic edit crossing the cap.
+@@ -7132,12 +7554,15 @@
+         // so skipping it leaves every result unchanged. Otherwise (and if the screen does not apply)
+         // evaluate runs as before.
+         auto& screen = anchor_screen;
+-        auto prepare_screen = [&](int i, int j) {
++        auto prepare_screen = [&](int i, int j, const std::vector<Edit>* source=nullptr, const Links* known_next=nullptr, const Links* known_prev=nullptr) {
+             auto& S = screen;
+-            S.active = false;
++            S.edit_source=source?source:&edits;
++            const auto& screen_edits=*S.edit_source;
++            S.active = false; S.display_proven=known_next!=nullptr;
++            S.replay_ready = false;
+             if (!post_context.masks_exact) return;
+             screen_prepared++;
+-            const int n = edits.size(), k = edits[i].paper;
++            const int n = screen_edits.size(), k = screen_edits[i].paper;
+             S.k = k;
+             S.i = i;
+             S.j = j;
+@@ -7148,18 +7573,23 @@
+             }
+             for (int t = i + 1; t < n; t++) {
+                 if (t == j) continue;
+-                const int p = edits[t].paper, b = edits[t].anchor < 0 ? root : edits[t].anchor;
++                const int p = screen_edits[t].paper, b = screen_edits[t].anchor < 0 ? root : screen_edits[t].anchor;
+                 if (p == k || b == k) return;
+                 S.blocked[p] = S.epoch;
+                 S.blocked[b] = S.epoch;
+             }
++            // Eject already constructed this exact G and proved the insertion
++            // interval repairs its display. Reuse both, under the same commutation test.
++            if(known_next){S.next=*known_next;S.prev=*known_prev;S.active=true;return;}
+             auto nx = initial_next, pv = initial_prev;
+             for (int t = 0; t < n; t++) {
+                 if (t == i || t == j) continue;
+-                const int p = edits[t].paper, b = edits[t].anchor < 0 ? root : edits[t].anchor;
++                const int p = screen_edits[t].paper, b = screen_edits[t].anchor < 0 ? root : screen_edits[t].anchor;
+                 if (b == p) return;  // evaluate rejects every such trial at once
+                 splice_after(nx, pv, p, b);
+             }
++            S.next = nx;
++            S.prev = pv;
+             u64 cov = 0, disp = 0;
+             for (int x = nx[root]; x != root; x = nx[x]) {
+                 if (x != k) {
+@@ -7175,21 +7605,24 @@
+         };
+         // true: the trial with edit i's anchor a (-1: top) shows a display other than A_u (skip it)
+         auto screen_rejects = [&](int a) {
++            screened_eval = false;
+             const auto& S = screen;
+             const int b = a < 0 ? root : a;
+             if (!S.active || S.blocked[b] == S.epoch) return false;
+-            const u64 above = a < 0 ? 0 : S.visited[a] == S.epoch ? S.cover_through[a] : ~u64(0);
++            const u64 above = S.display_proven?0:a < 0 ? 0 : S.visited[a] == S.epoch ? S.cover_through[a] : ~u64(0);
+             const u64 vis = paper[S.k].opaque & ~above;
+-            const u64 shown = (S.disp & ~vis) | (paper[S.k].black & vis);
++            const u64 shown = S.display_proven?A[u]:(S.disp & ~vis) | (paper[S.k].black & vis);
+             const bool reject = shown != A[u];
++            screened_eval = !reject;
++            screened_anchor = a;
+             screen_skipped += reject;
+ #ifdef SCREEN_CHECK
+             {
+                 // the final display of the trial itself (the edits with edit i's anchor a, edit j dropped)
+                 auto nx = initial_next, pv = initial_prev;
+-                for (int t = 0; t < int(edits.size()); t++) {
++                for (int t = 0; t < int(S.edit_source->size()); t++) {
+                     if (t == S.j) continue;
+-                    const int p = edits[t].paper, an = t == S.i ? a : edits[t].anchor;
++                    const int p = (*S.edit_source)[t].paper, an = t == S.i ? a : (*S.edit_source)[t].anchor;
+                     splice_after(nx, pv, p, an < 0 ? root : an);
+                 }
+                 u64 cov = 0, disp = 0;
+@@ -7262,7 +7695,7 @@
+             F3_DIAG(fp_switch(3);)
+             const auto accepted_before = eject_accepts;
+             if (edits.size() >= 2 && (!neutral_collect || cfg.recheck))
+-                eject_repairs(initial, edits, u, initial_next, initial_prev, initial_bytes, evaluate);
++                eject_repairs(initial, edits, u, initial_next, initial_prev, initial_bytes, evaluate, prepare_screen, screen_rejects);
+             if (neutral_collect) {
+                 // Start the 2-to-2 enumeration from the best result of the 2-to-1 pass.
+                 // Freeze that edit list during enumeration, even when evaluate finds improvements.
+@@ -7279,7 +7712,7 @@
+                     const auto before_trials = eject_trials, before_accepts = eject_accepts;
+                     // One edit is exchanged for a repair at the earliest/latest visible time.
+                     // This can change a filler or comparator move excluded by the usual anchor pass.
+-                    eject_repairs(initial, edits, u, initial_next, initial_prev, initial_bytes, evaluate, 1);
++                    eject_repairs(initial, edits, u, initial_next, initial_prev, initial_bytes, evaluate, prepare_screen, screen_rejects, 1);
+                     ns_one_trials += eject_trials - before_trials;
+                     ns_one_accepts += eject_accepts - before_accepts;
+                     edits = anchorize(initial_bytes, best_ops OP_TAG(, best_tags));
+@@ -7397,9 +7830,9 @@
+     // column boundaries in it; the repair edit is inserted at the earliest and at the latest time
+     // when k is visible (not after the first illegal edit of the trial). evaluate keeps the better
+     // results.
+-    template <class Evaluate>
++    template <class Evaluate,class Prepare,class Screen>
+     __attribute__((target("avx2"))) void eject_repairs(const State& initial, const std::vector<Edit>& base_edits, int u, const Links& initial_next,
+-                       const Links& initial_prev, const ByteOrder& initial_bytes, Evaluate& evaluate, int removed = 2) {
++                       const Links& initial_prev, const ByteOrder& initial_bytes, Evaluate& evaluate, Prepare& prepare_screen, Screen& screen_rejects, int removed = 2) {
+         CF_SCOPE(eject);
+         const auto& cfg = search_config();
+         constexpr int root = kRoot;
+@@ -7452,8 +7885,8 @@
+                 int processed = K, tail = root;
+                 trial_stamp++;
+                 auto nx = initial_next;
++                auto pv = initial_prev;
+                 {
+-                    auto pv = initial_prev;
+                     for (const Edit& e : trial) {
+                         const int k = e.paper, a = e.anchor < 0 ? root : e.anchor;
+                         splice_after(nx, pv, k, a);
+@@ -7465,7 +7898,8 @@
+                         const u64 two = paper[k].opaque & covered & ~twice, one = paper[k].opaque & ~covered;
+                         second_black |= paper[k].black & two;
+                         owned[k] = one;
+-                        if (one) owner_stamp[k] = trial_stamp;
++                        // Stamp every materialized prefix paper; non-owners have owned=0.
++                        owner_stamp[k] = trial_stamp;
+                         shown |= paper[k].black & one;
+                         covered |= paper[k].opaque;
+                         twice |= two;
+@@ -7549,11 +7983,12 @@
+                     const int lane=__builtin_ctz(ready),ci=cb+lane;ready&=ready-1;
+                     const int k=candidates[ci];
+                     const u64 bad=bad_lanes[lane],wrong=candidate_wrong[ci];
+-                    prepare_order();
+                     prepare_positions();
+                     // without_pos(w): the position, in the order without k, of the top opaque paper
+                     // other than k at window w
+-                    const int pos = ord_position[k];
++                    // A paper beyond the top-two-layer prefix is below every relevant
++                    // first owner. K has the same effect on the geometry as its actual rank.
++                    int pos = owner_stamp[k]==trial_stamp?ord_position[k]:K;
+                     int lo = 0, hi = K - 1;
+                     auto without_pos = [&](int w) {
+                         int p = first[w] == pos ? second[w] : first[w];
+@@ -7562,7 +7997,18 @@
+                     for (u64 z = bad; z; z &= z - 1) hi = std::min(hi, without_pos(__builtin_ctzll(z)));
+                     for (u64 z = wrong; z && lo <= hi; z &= z - 1)
+                         lo = std::max(lo, without_pos(__builtin_ctzll(z)) + 1);
++#ifdef EJECT_GEOM_CHECK
++                    prepare_order();
++                    {
++                        const int rp=ord_position[k];int rl=0,rh=K-1;
++                        auto actual=[&](int w){const int p=first[w]==rp?second[w]:first[w];return p-int(p>rp);};
++                        for(u64 z=bad;z;z&=z-1)rh=std::min(rh,actual(__builtin_ctzll(z)));
++                        for(u64 z=wrong;z && rl<=rh;z&=z-1)rl=std::max(rl,actual(__builtin_ctzll(z))+1);
++                        if(rl!=lo || rh!=hi){std::cerr<<"EJECT_GEOMETRY_MISMATCH\n";std::abort();}
++                    }
++#endif
+                     if (lo > hi) continue;
++                    prepare_order();pos=ord_position[k];
+                     // the order without k: without(t) is its paper at position t
+                     auto without = [&](int t) { return ord[t < pos ? t : t + 1]; };
+                     anchors.clear();
+@@ -7631,10 +8077,13 @@
+                         // budget may inspect only those endpoints for 1->1; ordinary 2->1 is intact.
+                         const int count = removed == 1 && cfg.one_anchors
+                             ? std::min(int(anchors.size()), cfg.one_anchors) : int(anchors.size());
++                        bool prepared_screen=false;
+                         for (int ai = 0; ai < count; ai++) {
+                             next.assign(trial.begin(), trial.end());
+                             next.insert(next.begin() + t, {k, anchors[ai]});
+                             eject_trials++;
++                            if(!prepared_screen){prepare_screen(t,-1,&next,&nx,&pv);prepared_screen=true;}
++                            if(screen_rejects(anchors[ai]))continue;
+                             if (evaluate(next)) {
+                                 eject_accepts++;
+                                 eject_inside += t < length;
+@@ -8392,7 +8841,7 @@
+                     restore(c.state);
+                     auto path = c.path;
+                     OP_TAG(auto tags = c.tags;)
+-                    path = polish_ejects(st0, std::move(path), u OP_TAG(, tags), 4);
++                    path = polish_ejects(st0, std::move(path), u OP_TAG(, tags), 2);
+                     ns_plan_calls++;
+                     const double value = plan_cost(path.size());
+                     note(path OP_TAG(, tags), value);

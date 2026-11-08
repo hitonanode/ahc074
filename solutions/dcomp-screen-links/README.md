@@ -1,0 +1,5 @@
+改良元: solutions/dcomp-combo-ten
+
+付け替えの表示screenで既に作った最終リンクを、表示が正しいと証明できた試行のevaluateに渡す。後続の手と可換な場合だけ、Gのリンクから1回のspliceで試行の最終状態が得られる。元のcap不変条件、途中の可視性再生、canonicalizeと費用計算は保持する。消去・ejectなど他の試行に情報が漏れないようフラグはevaluateの入口で消費する。
+
+乱数、予算、探索順、採否の浮動小数点演算は不変。SCREEN_LINK_CHECKは元のリンク再生との完全一致をabortで検証する。SCREEN_CHECKは元の表示との一致を集計する。時間によるfallbackはない。
