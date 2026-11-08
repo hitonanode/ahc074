@@ -1,0 +1,613 @@
+--- dcomp-combo-alt1/main.cpp
++++ dcomp-combo-dual25/main.cpp
+@@ -4847,6 +4847,9 @@
+             for (int depth = 0; depth < stride; depth++)
+                 depth_terms[k * stride + depth] = adaptive_weights[k] * depth / P;
+             next_paper[k] = {uint16_t(k * stride), uint8_t(column_color[k]), uint8_t(colmdp_type[k])};
++#if defined(__clang__)
++            if(column_color[k]>=0)next_colors[column_color[k]>>1]|=uint8_t(1U<<(column_color[k]&1));
++#endif
+         }
+     }
+     // A filler left below the generic layer may serve the next request as it is. stay_table[k][level]:
+@@ -4915,6 +4918,9 @@
+     std::vector<int> column_color;
+     struct NextPaper { uint16_t offset; uint8_t color, type; };
+     std::array<NextPaper, K> next_paper;
++#if defined(__clang__)
++    std::array<uint8_t,64> next_colors{};
++#endif
+     std::vector<double> depth_terms;
+     bool key_roles_ordinary=false;
+     // A value depends on the ordered in-column subsequence and the below-generic
+@@ -5095,17 +5101,16 @@
+             return cached.value;
+         }
+         cf_value_misses++;
+-        std::array<int, 64> rank{};
++        std::array<int, 64> rank;
+         std::array<int, 128> first;
+-        std::array<bool, 128> available{};
++        std::array<bool, 128> available;
++        std::fill_n(available.begin(),2*H,false);
+         if (top_d >= 0 && column_color[top_d] >= 0) available[column_color[top_d]] = true;
+         for (const auto& f : fillers) if (column_color[f.paper] >= 0) available[column_color[f.paper]] = true;
+-        std::fill(first.begin(), first.begin() + 2 * H, -1);
+         // With every column covered, encode its in-place type sequence during the
+         // same scan. A leading 1 distinguishes lengths; each type uses exactly two bits.
+         const bool mdp_scan = colmdp_next && colmdp_columns == H;
+         std::array<uint32_t, 64> mdp_code;
+-        if (mdp_scan) std::fill(mdp_code.begin(), mdp_code.begin() + H, 1);
+         double cost = 0;
+         int start=0;
+         if(in_place>128) {
+@@ -5123,6 +5128,10 @@
+                 }
+             }
+         }
++        if(!start) {
++            std::fill_n(rank.begin(),H,0);std::fill_n(first.begin(),2*H,-1);
++            if(mdp_scan)std::fill_n(mdp_code.begin(),H,1);
++        }
+         // Checkpoints retain the exact running double after 64/128 terms, together
+         // with integer scan state. No addition is reassociated or omitted on a miss.
+         for(int phase=start/64;phase<3;++phase) {
+@@ -5130,6 +5139,26 @@
+             for(int i=start;i<end;) {
+                 const int c=next_paper[key[i]].color>>1;
+                 int depth=rank[c];uint32_t code=mdp_scan?mdp_code[c]:0;
++#if defined(__clang__)
++                int seen=int(first[2*c]>=0)+2*int(first[2*c+1]>=0);
++                // Once every color printed in this column has a first paper,
++                // no later paper can change first[]. The running double and
++                // MDP code still consume all papers in exactly the same order.
++                while((seen&next_colors[c])!=next_colors[c]) {
++                    const auto& np=next_paper[key[i]];
++                    if(first[np.color]<0){first[np.color]=depth;seen|=1<<(np.color&1);}
++                    cost+=depth_terms[np.offset+depth];++depth;
++                    if(mdp_scan)code=(code<<2)|np.type;
++                    ++i;
++                    if(i==end || (next_paper[key[i]].color>>1)!=c)break;
++                }
++                while(i<end && (next_paper[key[i]].color>>1)==c) {
++                    const auto& np=next_paper[key[i]];
++                    cost+=depth_terms[np.offset+depth];++depth;
++                    if(mdp_scan)code=(code<<2)|np.type;
++                    ++i;
++                }
++#else
+                 do {
+                     const auto& np=next_paper[key[i]];
+                     if(first[np.color]<0)first[np.color]=depth;
+@@ -5137,6 +5166,7 @@
+                     if(mdp_scan)code=(code<<2)|np.type;
+                     ++i;
+                 } while(i<end && (next_paper[key[i]].color>>1)==c);
++#endif
+                 rank[c]=depth;if(mdp_scan)mdp_code[c]=code;
+             }
+             if(phase<2 && end==64*(phase+1)) {
+@@ -5150,7 +5180,8 @@
+         }
+         // covered[c][color]: the largest share of the requests whose hole at h_c a filler below the
+         // generic layer shows in that color (stay_table)
+-        std::array<std::array<double, 2>, 64> covered{};
++        std::array<std::array<double,2>,64> covered;
++        std::fill_n(covered.begin(),H,std::array<double,2>{0.,0.});
+         for (auto f : fillers)
+             if (split.below(f.paper)) {
+                 const auto& value = stay_table[f.paper][f.lvl];
+@@ -5185,7 +5216,7 @@
+         if (mdp_scan)
+             cost += colmdp_next_scanned(mdp_code, cost);
+         else if (colmdp_next)
+-            cost += colmdp_next_term(extra, available, first, rank, covered);
++            cost += colmdp_next_partial(key.data(),in_place,extra,available,first,rank,covered);
+ #ifdef NEXT_PREFIX_CHECK
+         const double reference=adaptive_next_cost_reference(split);
+         if(std::bit_cast<u64>(reference)!=std::bit_cast<u64>(cost)) {
+@@ -5409,6 +5440,74 @@
+         }
+         return term;
+     }
++    // A partial-coverage case formerly rescanned and ranked every covered column
++    // on each next-cost miss. Cache each column's exact paper sequence instead.
++    // Paper IDs (not only MDP types) are needed for the original one-step weights.
++    struct PartialMdpEntry {
++        u64 lo=0,hi=0;
++        int length=-1;
++        double one=0;
++        float value=0;
++    };
++    mutable std::array<std::array<PartialMdpEntry,16>,64> partial_mdp_cache;
++    mutable long long partial_mdp_hits=0,partial_mdp_misses=0;
++    double colmdp_next_partial(const uint8_t* key,int count,
++                            const std::array<bool,K>& extra,
++                            const std::array<bool,128>& available,
++                            const std::array<int,128>& first,const std::array<int,64>& rank,
++                            const std::array<std::array<double,2>,64>& covered)const {
++        std::array<u64,64> low{},high{};
++        std::array<int,64> size{};
++        for(int i=0;i<count;) {
++            const int c=next_paper[key[i]].color>>1;
++            if(!colmdp[c].ok) {
++                do{++i;}while(i<count && (next_paper[key[i]].color>>1)==c);
++                continue;
++            }
++            int n=size[c];u64 lo=low[c],hi=high[c];
++            do {
++                if(n<8)lo|=u64(key[i])<<(8*n);else hi|=u64(key[i])<<(8*(n-8));
++                ++n;++i;
++            }while(i<count && (next_paper[key[i]].color>>1)==c);
++            size[c]=n;low[c]=lo;high[c]=hi;
++        }
++        double term=0;
++        for(int c=0;c<H;++c) {
++            if(!colmdp[c].ok)continue;
++            const int n=size[c];const u64 lo=low[c],hi=high[c];
++            const u64 h=(lo^(hi<<17|hi>>47)^u64(n))*0x9e3779b97f4a7c15ULL;
++            auto& memo=partial_mdp_cache[c][(h^(h>>32))&15];
++            if(memo.length!=n || memo.lo!=lo || memo.hi!=hi) {
++                ++partial_mdp_misses;
++                const auto& mdp=colmdp[c];
++                auto at=[&](int i){return int((i<8?lo>>(8*i):hi>>(8*(i-8)))&255);};
++                double one=0;
++                for(int depth=0;depth<n;++depth)
++                    one+=adaptive_weights[at(depth)]*depth/P;
++                int r=0,sequence_rank=0;
++                for(int i=n-1;i>=0;--i) {
++                    const int t=colmdp_type[at(i)];r+=mdp.radix[t];sequence_rank+=mdp.before[r][t];
++                }
++                memo={lo,hi,n,one,mdp.F[mdp.offset[r]+sequence_rank]};
++            } else ++partial_mdp_hits;
++            double one_step=memo.one;
++            for(int color=0;color<2;++color) {
++                int fixes=available[2*c+color]?0:first[2*c+color];
++                if(fixes<0)fixes=rank[c];
++                one_step+=(adaptive_holes[c][color]-kCoverStrength*covered[c][color])*fixes;
++            }
++            term+=colmdp_next_weight[c]*memo.value-colmdp_next_drop*one_step;
++        }
++#ifdef PARTIAL_MDP_CHECK
++        const double reference=colmdp_next_term(extra,available,first,rank,covered);
++        if(std::bit_cast<u64>(reference)!=std::bit_cast<u64>(term)) {
++            std::cerr<<"PARTIAL_MDP_MISMATCH "<<std::hexfloat<<reference<<' '<<term<<'\n';std::abort();
++        }
++#else
++        (void)extra;
++#endif
++        return term;
++    }
+     // The same when some column is not covered (its arrays passed): in every covered column,
+     // colmdp_next_drop of the column's terms of adaptive_next_cost (the weighted depths and the handle
+     // colors) removed and colmdp_next_weight times F of its papers in place added.
+@@ -5720,6 +5819,7 @@
+         bool use_filler = false;
+         bool value_fillers = false;  // joint DP also tries the marginal stack value
+         bool complete_value = false;
++        int interval_tie=0;
+     };
+     struct FillerPick {
+         int c = -1, depth = 0, lvl = 0;
+@@ -5741,6 +5841,7 @@
+     // the candidate lists of the interval DPs reuse their storage (cleared for each use; the
+     // DPs never overlap).
+     mutable std::vector<std::vector<Cand>> cand_scratch;
++    int interval_tie_mode=0;
+     std::vector<std::vector<Cand>>& fresh_candidates() const {
+         cand_scratch.resize(H);
+         for (auto& v : cand_scratch) v.clear();
+@@ -5749,12 +5850,17 @@
+     std::vector<Cand> best_intervals(const std::vector<std::vector<Cand>>& cand) const {
+         std::vector<double> best(H + 1, 0);
+         std::vector<int> pick(H + 1, -1);
++        std::array<int,65> secondary{};
++        auto tie_score=[](const Cand& cd){return cd.c-cd.lvl+1;};
+         for (int c = 0; c < H; c++) {
+-            best[c + 1] = best[c];
++            best[c + 1] = best[c];secondary[c+1]=secondary[c];
+             for (int i = 0; i < (int)cand[c].size(); i++)
+-                if (best[cand[c][i].lvl] + cand[c][i].gain > best[c + 1] + 1e-9) {
++                if (best[cand[c][i].lvl] + cand[c][i].gain > best[c + 1] + 1e-9 ||
++                    (interval_tie_mode && std::abs(best[cand[c][i].lvl]+cand[c][i].gain-best[c+1])<=1e-9 &&
++                     secondary[cand[c][i].lvl]+tie_score(cand[c][i])>=secondary[c+1])) {
+                     best[c + 1] = best[cand[c][i].lvl] + cand[c][i].gain;
+                     pick[c + 1] = i;
++                    secondary[c+1]=secondary[cand[c][i].lvl]+tie_score(cand[c][i]);
+                 }
+         }
+         std::vector<Cand> res;
+@@ -6110,7 +6216,9 @@
+     void run_plan(int u, const PlanOpt& opt) {
+         CF_SCOPE(run_plan);
+         if (opt.fret_mode == 5) {
+-            run_joint(u, opt);
++            const int previous=interval_tie_mode;interval_tie_mode=opt.interval_tie;
++            if(!opt.value_fillers)interval_tie_mode=1;
++            run_joint(u, opt);interval_tie_mode=previous;
+             return;
+         }
+         u64 pre_cov = 0;
+@@ -6855,7 +6963,7 @@
+         if(std::strcmp(name,"NS_ALTERNATE")==0)return "1";
+         if(std::strcmp(name,"NS_ALTERNATE_GAP")==0)return "1.0";
+         if(std::strcmp(name,"NS_ROUNDS")==0)return "3";
+-        if(std::strcmp(name,"NEUTRAL_SLACK")==0)return ".35";
++        if(std::strcmp(name,"NEUTRAL_SLACK")==0)return ".25";
+         if(std::strcmp(name,"PLAN_LIMIT")==0)return "2";
+         if(std::strcmp(name,"REPEAT_MIN")==0)return ".05";
+         if(std::strcmp(name,"POST_CANDIDATES")==0)return "6";
+@@ -6896,6 +7004,7 @@
+         bool plan_stop = get("PLAN_STOP", 0);
+         bool plan_trace = get("PLAN_TRACE", 0);
+         bool memo = get("MEMO", 1);
++        bool late_memo = get("LATE_MEMO", 1);
+         bool prefix = get("PREFIX", 1);
+         int joint_limit = std::max(0, get("JOINT_LIMIT", 0));
+         bool joint_stop = get("JOINT_STOP", 0);
+@@ -6964,6 +7073,7 @@
+         int hides = 0;  // moved parent display owners that this candidate leaves hidden
+     };
+     bool neutral_collect = false;
++    bool secondary_neutral=false;
+     std::vector<NeutralCandidate> neutral_candidates;
+     long long neutral_total = 0, neutral_accepted = 0, neutral_direct_saved = 0, neutral_escape_saved = 0;
+     OP_TAG(long long request_counter = 0;)
+@@ -7244,9 +7354,19 @@
+             F3_DIAG(fp_trials[fp_op]++;)
+             EndMemo* memo = nullptr;
+             bool memo_hit = false;
++#if defined(__clang__)
++            const bool use_screen=screened_eval;screened_eval=false;
++            if(!use_screen || (cfg.memo && !cfg.late_memo)
++#ifdef SCREEN_LINK_CHECK
++               || true
++#endif
++            ) {
++            std::array<u64,3> moved{},breaks{};
++#else
+             std::array<u64, 3> moved{}, breaks{};
+             const bool use_screen = screened_eval;
+             screened_eval = false;
++#endif
+             auto next = use_screen ? anchor_screen.next : initial_next;
+             auto prev = use_screen ? anchor_screen.prev : initial_prev;
+             if (use_screen) splice_after(next, prev, anchor_screen.k, screened_anchor < 0 ? root : screened_anchor);
+@@ -7311,16 +7431,19 @@
+                 }
+                 if (view != A[u]) return false;
+                 }
+-                if (cfg.memo) {
++                if (cfg.memo && !cfg.late_memo) {
+                     // Only final-order properties are cached. The full successor array is the
+                     // collision check; every usable path still passes its own visibility replay.
+-                    u64 hash = 0xcbf29ce484222325ULL;
+-                    for (int j = 0; j + 8 <= K; j += 8) {
+-                        u64 word;
+-                        std::memcpy(&word, next.data() + j, 8);
+-                        hash = (hash ^ word) * 0x100000001b3ULL;
++                    // Four independent chains remove the long multiply dependency.
++                    // This is only an index: the full successor array remains the collision check.
++                    u64 h0=0xcbf29ce484222325ULL,h1=h0,h2=h0,h3=h0;
++                    for(int j=0;j<K;j+=32) {
++                        u64 w[4];std::memcpy(w,next.data()+j,32);
++                        h0=(h0^w[0])*0x100000001b3ULL;h1=(h1^w[1])*0x100000001b3ULL;
++                        h2=(h2^w[2])*0x100000001b3ULL;h3=(h3^w[3])*0x100000001b3ULL;
+                     }
+-                    hash = (hash ^ next[root]) * 0x100000001b3ULL;
++                    u64 hash=(h0 ^ (h1<<13|h1>>51) ^ (h2<<27|h2>>37) ^ (h3<<43|h3>>21));
++                    hash=(hash^next[root])*0x9e3779b97f4a7c15ULL;
+                     memo = &end_memo[(hash ^ (hash >> 32)) & (end_memo.size() - 1)];
+                     memo_hit = memo->generation == generation && memo->next == next;
+                     if (memo_hit) {
+@@ -7333,6 +7456,9 @@
+                     }
+                 }
+             }
++#if defined(__clang__)
++            }
++#endif
+             auto& path = path_buffer;
+             path.clear();
+             OP_TAG(auto& path_tags = path_tag_buffer;)
+@@ -7436,6 +7562,29 @@
+                     if (ord[j] < M) return false;
+             }
+             CF_SCOPE(eval_value);
++            // Legality is path-dependent, but canonicalization and terminal cost
++            // depend only on the completed order and this call's fixed seed.
++            // Delay hashing until legality passed, so illegal trials neither pay
++            // for the hash nor evict a useful entry. Compare all K bytes on hits.
++            if(cfg.memo && cfg.late_memo) {
++                u64 h0=0xcbf29ce484222325ULL,h1=h0,h2=h0,h3=h0;
++                for(int j=0;j<K;j+=32) {
++                    u64 w[4];std::memcpy(w,ord.data()+j,32);
++                    h0=(h0^w[0])*0x100000001b3ULL;h1=(h1^w[1])*0x100000001b3ULL;
++                    h2=(h2^w[2])*0x100000001b3ULL;h3=(h3^w[3])*0x100000001b3ULL;
++                }
++                const u64 hash=h0^(h1<<13|h1>>51)^(h2<<27|h2>>37)^(h3<<43|h3>>21);
++                memo=&end_memo[(hash^(hash>>32))&(end_memo.size()-1)];
++                memo_hit=memo->generation==generation && std::memcmp(memo->next.data(),ord.data(),K)==0;
++                if(memo_hit) {
++                    f2_memo_hits++;
++                    if(!memo->reachable)return false;
++                } else {
++                    f2_memo_misses++;memo->generation=0;
++                    std::memcpy(memo->next.data(),ord.data(),K);
++                    memo->next[K]=0;
++                }
++            }
+             // as restore(seed) with the order replaced
+             order = ord;
+             double value;
+@@ -7463,6 +7612,16 @@
+                 }
+                 if (!reachable) return false;
+                 value = memo ? path.size() + memo->charge + memo->next_cost : plan_cost(path.size());
++            }
++            // Repair a repeated move before evaluating or discarding its legal plan.
++            // The repair preserves the exact end stack and all future-cost terms.
++            if(value < best_score+1e-8) {
++                const auto previous_size=path.size();
++                merge_double_moves(initial,path OP_TAG(,path_tags));
++                if(path.size()!=previous_size) {
++                    // Preserve the left-to-right arithmetic of the original value model.
++                    value=memo ? path.size()+memo->charge+memo->next_cost : plan_cost(path.size());
++                }
+             }
+             F3_DIAG(fp_legal[fp_op]++;)
+             if (neutral_collect && cfg.collect) {
+@@ -7528,7 +7687,7 @@
+                                   }
+                                   return a.value < b.value;
+                               });
+-                    if (neutral_candidates.size() > size_t(neutral_width)) neutral_candidates.pop_back();
++                    if (neutral_candidates.size() > size_t(secondary_neutral?1:neutral_width)) neutral_candidates.pop_back();
+                 }
+             }
+             if (value + 1e-8 >= best_score) return false;
+@@ -7665,7 +7824,13 @@
+                 if (p < dest) dest--;  // x goes just below a once taken out
+                 shift_byte(ord, p, dest);
+             }
+-            std::vector<int> anchors{-1};
++            struct Anchors {
++                std::array<int,K+1> data;int size=0;
++                void push_back(int a){data[size++]=a;}
++                const int* begin()const{return data.data();}
++                const int* end()const{return data.data()+size;}
++            } anchors;
++            anchors.push_back(-1);
+             std::array<bool, K + 1> listed{};  // listed[a + 1]: a is in anchors
+             listed[0] = true;
+             auto add = [&](int a) {
+@@ -7700,7 +7865,7 @@
+                 // Start the 2-to-2 enumeration from the best result of the 2-to-1 pass.
+                 // Freeze that edit list during enumeration, even when evaluate finds improvements.
+                 edits = anchorize(initial_bytes, best_ops OP_TAG(, best_tags));
+-                if (edits.size() >= 2 && cfg.two) {
++                if (edits.size() >= 2 && cfg.two && !secondary_neutral) {
+                     F3_DIAG(fp_switch(4);)
+                     trial_operator = 1;
+                     neutral_repairs(edits, u, initial_bytes, evaluate, 2, &best_state);
+@@ -7748,7 +7913,7 @@
+                     if (repeats < 2) continue;
+                 }
+                 const auto anchors = anchor_candidates(i);
+-                auto chosen = edits;
++                bool anchor_improved=false;
+                 bool screened = false;
+                 for (int a : anchors) {
+                     if (a == edits[i].anchor) continue;
+@@ -7756,9 +7921,9 @@
+                     if (screen_rejects(a)) continue;
+                     trial.assign(edits.begin(), edits.end());
+                     trial[i].anchor = a;
+-                    if (evaluate(trial)) chosen = anchorize(initial_bytes, best_ops OP_TAG(, best_tags));
++                    if (evaluate(trial)) anchor_improved=true;
+                 }
+-                edits = std::move(chosen);
++                if(anchor_improved)edits=anchorize(initial_bytes,best_ops OP_TAG(,best_tags));
+                 i = std::min(i, int(edits.size()));
+             }
+             F3_DIAG(fp_switch(2);)
+@@ -7769,7 +7934,7 @@
+                 const int k = edits[i].paper;
+                 if (!initial_extra[k]) continue;
+                 const auto anchors = anchor_candidates(i);
+-                auto chosen = edits;
++                bool anchor_improved=false;
+                 for (int j = 0; j < int(edits.size()); j++)
+                     if (j != i) {
+                         int removed = edits[j].paper;
+@@ -7788,13 +7953,13 @@
+                             trial[i].anchor = a;
+                             trial.erase(trial.begin() + j);
+                             if (evaluate(trial)) {
+-                                chosen = anchorize(initial_bytes, best_ops OP_TAG(, best_tags));
++                                anchor_improved=true;
+                                 rewrite_accepts++;
+                                 rewrite_same_column += col_of[k] == col_of[removed];
+                             }
+                         }
+                     }
+-                edits = std::move(chosen);
++                if(anchor_improved)edits=anchorize(initial_bytes,best_ops OP_TAG(,best_tags));
+                 i = std::min(i, int(edits.size()));
+             }
+             delete_singles();
+@@ -7983,6 +8148,7 @@
+                     const int lane=__builtin_ctz(ready),ci=cb+lane;ready&=ready-1;
+                     const int k=candidates[ci];
+                     const u64 bad=bad_lanes[lane],wrong=candidate_wrong[ci];
++#ifdef DIRECT_GEOMETRY_LEGACY
+                     prepare_positions();
+                     // without_pos(w): the position, in the order without k, of the top opaque paper
+                     // other than k at window w
+@@ -7997,14 +8163,41 @@
+                     for (u64 z = bad; z; z &= z - 1) hi = std::min(hi, without_pos(__builtin_ctzll(z)));
+                     for (u64 z = wrong; z && lo <= hi; z &= z - 1)
+                         lo = std::max(lo, without_pos(__builtin_ctzll(z)) + 1);
++#else
++                    // Only two extrema of the first-owner positions are needed.
++                    // In G without k, hi is the first paper touching any bad window;
++                    // lo is one past the last first owner of k's wrong-color windows.
++                    // G's top-two-layer prefix contains all such owners after one removal.
++                    int pos=owner_stamp[k]==trial_stamp?ord_position[k]:K;
++                    int lo=0,hi=K-1;bool found_bad=false;
++                    u64 remaining_wrong=wrong;
++                    for(int t=0;t<processed;++t) {
++                        const int x=ord[t];if(x==k)continue;
++                        const int p=t-int(t>pos);const u64 mask=paper[x].opaque;
++                        if(!found_bad && (mask&bad)){hi=p;found_bad=true;}
++                        if(mask&remaining_wrong){lo=p+1;remaining_wrong&=~mask;}
++                        if(found_bad && (lo>hi || !remaining_wrong))break;
++                    }
++                    if(remaining_wrong && lo<=hi)lo=K; // a missing owner makes every gap illegal
++#ifdef DIRECT_GEOMETRY_CHECK
++                    prepare_positions();
++                    int rl=0,rh=K-1;
++                    auto reference_pos=[&](int w){int p=first[w]==pos?second[w]:first[w];return p-int(p>pos);};
++                    for(u64 z=bad;z;z&=z-1)rh=std::min(rh,reference_pos(__builtin_ctzll(z)));
++                    for(u64 z=wrong;z && rl<=rh;z&=z-1)rl=std::max(rl,reference_pos(__builtin_ctzll(z))+1);
++                    if((lo<=hi)!=(rl<=rh) || (lo<=hi && (lo!=rl || hi!=rh))) {
++                        std::cerr<<"DIRECT_GEOMETRY_MISMATCH "<<lo<<' '<<hi<<' '<<rl<<' '<<rh<<'\n';std::abort();
++                    }
++#endif
++#endif
+ #ifdef EJECT_GEOM_CHECK
+-                    prepare_order();
++                    prepare_order();prepare_positions();
+                     {
+                         const int rp=ord_position[k];int rl=0,rh=K-1;
+                         auto actual=[&](int w){const int p=first[w]==rp?second[w]:first[w];return p-int(p>rp);};
+                         for(u64 z=bad;z;z&=z-1)rh=std::min(rh,actual(__builtin_ctzll(z)));
+                         for(u64 z=wrong;z && rl<=rh;z&=z-1)rl=std::max(rl,actual(__builtin_ctzll(z))+1);
+-                        if(rl!=lo || rh!=hi){std::cerr<<"EJECT_GEOMETRY_MISMATCH\n";std::abort();}
++                        if((rl<=rh)!=(lo<=hi) || (lo<=hi && (rl!=lo || rh!=hi))){std::cerr<<"EJECT_GEOMETRY_MISMATCH\n";std::abort();}
+                     }
+ #endif
+                     if (lo > hi) continue;
+@@ -8554,7 +8747,7 @@
+     // kPostCandidates, then polish by ejection and neutral rewrites (F3_NEUTRAL=0 disables neutral).
+     // If none is valid, try the plain plan; return no moves if even that plan is illegal.
+     long long unsafe_plans = 0;
+-    static constexpr int kPostCandidates = 4;
++    static constexpr int kPostCandidates = 6;
+     long long post_alternate = 0, post_candidate_calls = 0, post_secondary_saved = 0;
+     // Process-wide diagnostics keep Solver's hot-state layout unchanged.
+     inline static long long value_seed_trials = 0, value_seed_valid = 0, value_seed_accepts = 0, value_seed_saved = 0;
+@@ -8630,7 +8823,7 @@
+         };
+         FutureCandidate weighted_raw{};
+         bool weighted_ready = false;
+-        std::vector<FutureCandidate> future_candidates, expanded_candidates, edited_candidates;
++        std::vector<FutureCandidate> future_candidates, expanded_candidates, edited_candidates, neutral_seeds;
+         struct CachedPlan { FutureCandidate raw, edited; bool complete = false; };
+         std::vector<CachedPlan> plan_cache;
+         const bool cache_plans = neutral_enabled && search_config().post_candidates > 2 && search_config().plan_reuse;
+@@ -8657,10 +8850,17 @@
+             if (candidates.size() > width) candidates.pop_back();
+         };
+         auto record_future = [&](double cost) {
++            // Repair before different insertion depths are collapsed into one moved-paper family.
++            const auto raw_state=save();const auto raw_ops=ops;OP_TAG(const auto raw_tags=op_tags;)
++            auto screened=ops;OP_TAG(auto screened_tags=op_tags;)
++            merge_double_moves(st0,screened OP_TAG(,screened_tags));
++            ops=std::move(screened);OP_TAG(op_tags=std::move(screened_tags);)
++            cost=plan_cost(ops.size());
+             // Keep separate ordinary and expanded collectors, in the same insertion order.
+             if (neutral_enabled && search_config().post_candidates > 2)
+                 collect_future(expanded_candidates, search_config().post_candidates, cost);
+             collect_future(future_candidates, kPostCandidates, cost);
++            restore(raw_state);ops=raw_ops;OP_TAG(op_tags=raw_tags;)
+         };
+         auto find_cached_plan = [&](const FutureCandidate& c) -> const CachedPlan* {
+             for (const auto& old : plan_cache)
+@@ -8692,7 +8892,8 @@
+             if (kTopPenalty == 0 && o.ret_mode == 2)
+                 for (const auto& q : repeated_plans)
+                     if (q.opt.fret_mode == o.fret_mode && q.opt.use_filler == o.use_filler &&
+-                        q.opt.value_fillers == o.value_fillers && q.opt.complete_value == o.complete_value) { repeated = &q; break; }
++                        q.opt.value_fillers == o.value_fillers && q.opt.complete_value == o.complete_value &&
++                        q.opt.interval_tie == o.interval_tie) { repeated = &q; break; }
+             if (repeated) {
+                 restore(repeated->state);
+                 ops = repeated->path;
+@@ -8807,6 +9008,7 @@
+         const auto ordinary_eject_start = neutral_enabled && search_config().alternate ? order : std::array<uint8_t, K>{};
+         chosen_path = polish_ejects(st0, std::move(chosen_path), u OP_TAG(, best_tags), 2, true);
+         note(chosen_path OP_TAG(, best_tags), plan_cost(chosen_path.size()));
++        neutral_seeds.push_back({plan_cost(chosen_path.size()),save(),chosen_path OP_TAG(,best_tags)});
+         if (cache_plans && chosen_cache >= 0) {
+             plan_cache[chosen_cache].edited = {plan_cost(chosen_path.size()), save(), chosen_path OP_TAG(, best_tags)};
+             plan_cache[chosen_cache].complete = true;
+@@ -8842,6 +9044,7 @@
+                     auto path = c.path;
+                     OP_TAG(auto tags = c.tags;)
+                     path = polish_ejects(st0, std::move(path), u OP_TAG(, tags), 2);
++                    neutral_seeds.push_back({plan_cost(path.size()),save(),path OP_TAG(,tags)});
+                     ns_plan_calls++;
+                     const double value = plan_cost(path.size());
+                     note(path OP_TAG(, tags), value);
+@@ -8971,6 +9174,7 @@
+                 F3_DIAG(f3_stage = 4; f3_round = round;)
+                 ns_rounds++;
+                 const auto parent_path = chosen_path;
++                const auto parent_order=order;
+                 const double parent_value = plan_cost(chosen_path.size());
+                 const int neutral_before = chosen_path.size();
+                 neutral_candidates.clear();
+@@ -8986,6 +9190,44 @@
+                     winning_operator = last_post_operator;
+                     winning_round = round;
+                     winning_escape = false;
++                }
++                bool used_second=false;
++                if(round==1) {
++                    int second_count=0;
++                    std::stable_sort(neutral_seeds.begin(),neutral_seeds.end(),by_cost);
++                    for(const auto& second:neutral_seeds) {
++                        if(second.state.order==parent_order || second.cost>parent_value+0.3)continue;
++                        restore(second.state);auto second_path=second.path;OP_TAG(auto second_tags=second.tags;)
++                        auto primary_pool=std::move(neutral_candidates);neutral_candidates.clear();
++                        neutral_collect=true;secondary_neutral=true;
++                        second_path=post_optimize(st0,std::move(second_path),u OP_TAG(,second_tags),true);
++                        neutral_collect=false;secondary_neutral=false;
++                        auto secondary_pool=std::move(neutral_candidates);neutral_candidates=std::move(primary_pool);
++                        for(auto& nc:secondary_pool) {
++                            auto it=std::find_if(neutral_candidates.begin(),neutral_candidates.end(),
++                                [&](const auto& old){return old.signature==nc.signature;});
++                            if(it==neutral_candidates.end())neutral_candidates.push_back(std::move(nc));
++                            else if(nc.value<it->value)*it=std::move(nc);
++                        }
++                        std::sort(neutral_candidates.begin(),neutral_candidates.end(),[&](const auto& a,const auto& b){
++                            if(cfg.candidate_priority) {
++                                if(a.path.size()!=b.path.size())return a.path.size()<b.path.size();
++                                if(cfg.hidden_rank && a.hides!=b.hides)return a.hides>b.hides;
++                                if(a.repeats!=b.repeats)return a.repeats>b.repeats;
++                            }
++                            return a.value<b.value;
++                        });
++                        const char* width_setting=search_env("NEUTRAL_WIDTH");
++                        const int merged_width=width_setting?std::max(1,std::atoi(width_setting)):2;
++                        if(neutral_candidates.size()>size_t(merged_width))neutral_candidates.resize(merged_width);
++                        const double second_value=plan_cost(second_path.size());
++                        note(second_path OP_TAG(,second_tags),second_value);
++                        if(second_value<incumbent_value-1e-9) {
++                            incumbent_value=second_value;incumbent=save();chosen_path=std::move(second_path);
++                            OP_TAG(best_tags=std::move(second_tags);)
++                        }
++                        used_second=true;restore(incumbent);if(++second_count==1)break;
++                    }
+                 }
+                 auto proposals = std::move(neutral_candidates);
+                 neutral_candidates.clear();
+@@ -11013,6 +11255,7 @@
+               << "\nvalue_filler_plans = " << solver.value_filler_plans
+               << "\nvalue_filler_better = " << solver.value_filler_better
+               << "\nvalue_filler_gain = " << solver.value_filler_gain << '\n';
++    std::cerr<<"partial_mdp_hits = "<<solver.partial_mdp_hits<<"\npartial_mdp_misses = "<<solver.partial_mdp_misses<<'\n';
+     cf_report();
+     std::cerr << "cf_value_hits = " << solver.cf_value_hits << "\ncf_value_misses = " << solver.cf_value_misses << '\n';
+ 

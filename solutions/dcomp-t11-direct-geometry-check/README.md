@@ -1,0 +1,5 @@
+改良元: solutions/dcomp-combo-alt1
+
+eject修復の挿入区間を、128窓のfirst/second位置表を作らずに直接求める。紙kを抜いた順序を上から見て、bad窓に初めて触れる紙が上端、wrong色窓の全ての最初のownerが揃う最後の紙の次が下端となる。k一枚を除くだけなので、既に構築したtop-two-layer prefixで十分。端点が逆転した候補は元と同じく棄却する。検証版は全幾何候補で元のfirst/second表と完全な紙順序から再計算し、合法区間の有無と全ての採用可能端点を照合する。
+
+DIRECT_GEOMETRY_LEGACYで元の表方式も残す。整数の集合演算だけを変え、候補順・予算・浮動小数点計算を保持する。ログ・trace・profiler・実験スイッチ・目次と段・DesignStoreを保持し、時計分岐なし。

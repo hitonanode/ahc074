@@ -1,0 +1,71 @@
+[pahcer_run] run-id: 20261108-164055_dcomp-combo-alt1
+[pahcer_run] run-id: 20261108-164055_dcomp-t11-tie-eject
+[pahcer_run] run-id: 20261108-164055_dcomp-t11-tie-eject-value
+[pahcer_run] run-id: 20261108-164055_dcomp-t11-tie-edit-value
+[pahcer_run] run-id: 20261108-164055_dcomp-t11-tie-polish-value
+[pahcer_run] run-id: 20261108-164055_dcomp-t11-tiegap05
+[pahcer_run] run-id: 20261108-164055_dcomp-t11-tiegap10
+[dcomp] reused 20261108-163557_dcomp-combo-alt1
+[pahcer_run] 実行中の評価の終了を待っています: 20261108-163559_dcomp-combo-alt1 ほか 6 個の比較 (pid 4, 2026-11-08T16:46:48+09:00 から) (scripts/pahcer_run.py --status で状況を見られる)
+[pahcer_run] 7 個の解法を比べます (seed 0〜499、24 並列、seed ごとに続けて実行、20261108-155517_combo-m1-nine の設計を読み込む、注文の列 4 本)
+[pahcer_run] 50/500 seed 完了 (経過 0.7 分、残り約 6.5 分)
+[pahcer_run] 100/500 seed 完了 (経過 1.2 分、残り約 4.9 分)
+[pahcer_run] 150/500 seed 完了 (経過 1.7 分、残り約 4.0 分)
+[pahcer_run] 200/500 seed 完了 (経過 2.2 分、残り約 3.3 分)
+[pahcer_run] 250/500 seed 完了 (経過 2.7 分、残り約 2.7 分)
+[pahcer_run] 300/500 seed 完了 (経過 3.2 分、残り約 2.1 分)
+[pahcer_run] 350/500 seed 完了 (経過 3.7 分、残り約 1.6 分)
+[pahcer_run] 400/500 seed 完了 (経過 4.2 分、残り約 1.1 分)
+[pahcer_run] 450/500 seed 完了 (経過 4.7 分、残り約 0.5 分)
+[pahcer_run] 500/500 seed 完了 (経過 5.2 分、残り約 0.0 分)
+Process ForkPoolWorker-50:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/usr/lib/python3.12/multiprocessing/pool.py", line 120, in worker
+    util.debug('worker got sentinel -- exiting')
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 48, in debug
+    def debug(msg, *args):
+    
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+dcomp_pahcer.Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261108-164055_dcomp-combo-alt1                500   0     10260.41    0.000   10260.4   +0.000%  0.000%     0/500/   0    0.521s
+    実行時間: 99% 点 0.615 s、99.9% 点 0.617 s、最大 0.617 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.832 s、1.8 s 超え 1・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261108-164055_dcomp-t11-tie-eject             500   0     10260.98    0.000   10261.0   +0.007%  0.001%   169/  0/ 331    0.529s
+    実行時間: 99% 点 0.615 s、99.9% 点 0.621 s、最大 0.621 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.819 s、1.8 s 超え 1・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261108-164055_dcomp-t11-tie-eject-value       500   0     10260.28    0.000   10260.3   -0.001%  0.000%   164/242/  94    0.528s
+    実行時間: 99% 点 0.617 s、99.9% 点 0.667 s、最大 0.667 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.876 s、1.8 s 超え 1・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261108-164055_dcomp-t11-tie-edit-value        500   0     10260.26    0.000   10260.3   -0.001%  0.000%   199/184/ 117    0.534s
+    実行時間: 99% 点 0.628 s、99.9% 点 0.733 s、最大 0.733 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.830 s、1.8 s 超え 3・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261108-164055_dcomp-t11-tie-polish-value      500   0     10260.28    0.000   10260.3   -0.001%  0.000%   160/240/ 100    0.530s
+    実行時間: 99% 点 0.618 s、99.9% 点 0.674 s、最大 0.674 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.857 s、1.8 s 超え 1・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261108-164055_dcomp-t11-tiegap05              500   0     10261.03    0.000   10261.0   +0.004%  0.001%   204/  0/ 296    0.520s
+    実行時間: 99% 点 0.615 s、99.9% 点 0.619 s、最大 0.619 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.871 s、1.8 s 超え 1・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  20261108-164055_dcomp-t11-tiegap10              500   0     10261.07    0.000   10261.1   +0.004%  0.001%   206/  0/ 294    0.520s
+    実行時間: 99% 点 0.595 s、99.9% 点 0.620 s、最大 0.620 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.862 s、1.8 s 超え 1・1.9 s 超え 0・2.0 s 超え 0 ケース (500 ケース中)
+  設計             : 20261108-155517_combo-m1-nine が保存した設計を全部の解法が読み込んだ（注文処理だけの比較。本当のスコアではない）
+  注文の列         : seed ごとに 4 本（1 本目は tools/in、2 本目からは runs/.orders/ に生成）。差は seed ごとに 4 本の log スコア比を平均してから seed の間で取った。上の平均スコアは 1 本目
+    20261108-164055_dcomp-combo-alt1             全部の注文の列の平均スコア 10261.94
+    20261108-164055_dcomp-t11-tie-eject          全部の注文の列の平均スコア 10262.68
+    20261108-164055_dcomp-t11-tie-eject-value    全部の注文の列の平均スコア 10261.85
+    20261108-164055_dcomp-t11-tie-edit-value     全部の注文の列の平均スコア 10261.84
+    20261108-164055_dcomp-t11-tie-polish-value   全部の注文の列の平均スコア 10261.86
+    20261108-164055_dcomp-t11-tiegap05           全部の注文の列の平均スコア 10262.38
+    20261108-164055_dcomp-t11-tiegap10           全部の注文の列の平均スコア 10262.37
+  pahcer/ への記録 : しない (--design-from)
+  所要時間         : 5.2 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.17 コア、最大 0.52 コア (2 秒ごとに 312.4 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html
