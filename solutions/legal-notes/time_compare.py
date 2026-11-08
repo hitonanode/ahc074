@@ -29,7 +29,7 @@ def load(run):
                 v[k] = float(m[-1])
         if len(v) == 3:
             h, q, e = v['helper_end_sec'], v['req_sec'], v['end_sec']
-            out[int(os.path.basename(f)[:-4])] = (1.04 * h + 1.35 * q + (e - h - q), q, e)
+            out[int(os.path.basename(f)[:-4])] = (1.04 * h + 1.35 * q + (e - h - q), q, e, h)
     return out
 
 
@@ -54,10 +54,15 @@ def main():
             boots.append(np.quantile(m[idx], .99) - np.quantile(mr[idx], .99))
         lo, hi = np.quantile(boots, [.05, .95])
         dq = 1000 * (q - qr)
+        h = np.array([d[s][3] for s in seeds])
+        hr = np.array([rd[s][3] for s in seeds])
+        dh = 1000 * (h - hr)
+        se = lambda x: x.std(ddof=1) / len(x) ** .5
         print(f'{run}: seeds {len(seeds)}, model mean {m.mean():.4f} s ({m.mean() / first_mean:.3f} x {first}), '
               f'p99 {np.quantile(m, .99):.4f} s, p99 - ref {1000 * (np.quantile(m, .99) - np.quantile(mr, .99)):+.1f} ms '
               f'[90%: {1000 * lo:+.1f}, {1000 * hi:+.1f}], req {1000 * q.mean():.1f} ms '
-              f'(- ref {dq.mean():+.1f} +- {dq.std(ddof=1) / len(dq) ** .5:.1f}), end_sec > 1.8: {(e > 1.8).sum()}')
+              f'(- ref {dq.mean():+.1f} +- {se(dq):.1f}), helper_end {1000 * h.mean():.1f} ms (- ref {dh.mean():+.1f} +- {se(dh):.1f}), '
+              f'end_sec > 1.8 / 1.9 / 2.0: {(e > 1.8).sum()} / {(e > 1.9).sum()} / {(e > 2.0).sum()}, max {e.max():.3f}')
 
 
 if __name__ == '__main__':
