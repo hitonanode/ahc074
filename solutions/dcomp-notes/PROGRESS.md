@@ -60,3 +60,45 @@
 - 通常2000件の分割: 0–999 −0.0124641 ± 0.0036929%、1000–1999 −0.0164577 ± 0.0040937%。すべて凍結後の確認。結果を見た追加の設定選択なし。
 - 0.03%に届く候補は見つからなかった。成果は小改善候補dcomp-nineと、出力を変えず約17–20ms短縮するdcomp-climb-cache。tabu、予算分割、raw V選別、窓への再投資は初回の公平な試験で止め、候補追加は時間上限で止めた。
 - REPORT.mdと再現スクリプトを作成。GCC/Clang確認済み、dv_candidatesは2000件すべて9、保存・再生一致、source hash不変。共有ファイルの手動編集・commitなし。ここで終了する。
+
+# Task 9
+
+## 2026-11-08 12:03 — 開始
+
+- 基準dcomp-nineとTask8の全ソルバを凍結のまま保つ。追加・変更は新規dcomp-*、notesはTask9用の新規ファイルと本節だけ。注文側M1やcombo-m1-nineは読まず、注文処理はlegal-tie-fastのまま。
+- 目標: 出力同一でhelper_endを15–25ms以上短縮し、既存ten-lateの10候補目を払う。固定反復数・時計の倍率・ログ・実験スイッチを保持。build/重い解析は共有flock＋nice、実行は標準runner、通常runを記録。
+- Task8のprofileを再確認: column_move約260ms、内包するeval_holes約161ms。dirty groupを個別に分岐して省く案はTask3で遅かったので繰り返さない。差分配列の構築と評価を融合し、SIMDレジスタの寿命とstack往復を減らす案から測る。受理時だけ新countsを再計算する版も比較する。
+
+## 12:23 — 最初の出力同一案
+
+- `20261108-120548`、GCC既定・500件・24並列: fusedはhelper_end +7.65 ± 1.87ms、anneal +5.13 ± 0.83ms。deferredはhelper_end −1.50 ± 1.84ms、anneal −2.27 ± 0.82ms。両方スコア500/500同一だが、必要な短縮に届かないので延長しない。byte一致を別途集計中。
+- 窓の互換一覧差分更新(livepairs、120857)、費用配列の非ゼロだけ更新(sparserel、121546)を測定済み、lock内集計待ち。直接bit packing(packrel、121724)、single同士の交換で不変な列費用の省略(singlecost、121935)、方向bitのSIMD直接展開(arcflags)も独立に測定する。
+- 次は明瞭な短縮のある部品だけ組み合わせ、再比較で再現性を確かめる。最初のfused比較の外部負荷は平均0.23 core・最大1.18 core。既存ソースは変更なし。
+
+## 12:32 — 約38msの短縮、再検証へ
+
+- `20261108-122540` の500件: bitlive単体はhelper_end −7.87 ± 2.07ms、map −11.43 ± 1.81ms。疎な費用更新と組み合わせたsparsebitsはhelper_end **−37.76 ± 2.11ms**、map **−39.30 ± 1.81ms**。両方stdout 500/500 byte一致。外部負荷平均0.13 core、最大0.27 core。
+- 単純リスト併合のlivepairsは+52.41ms、sparserelでも+18.75msだった。bitsetからの順序付き列挙で、予測しにくい併合分岐をなくすと改善した。direct packing −0.77ms、singlecost +5.77ms、arcflags +12.15msはいずれも採用しない。
+- `dcomp-nine-fast`はsparsebitsと完全に同じソース。`dcomp-ten-fast`はその窓高速化と、凍結ten-lateの追加候補だけを組み合わせた。9→10変換を旧nineへ適用すると旧ten-lateと文字列単位で完全一致することをassert。窓以降のコードは、それぞれの親と完全一致（t9-source-audit.json）。
+- 次: default GCC500件で再測定、GCC native/Clang native各200件の同一性。速さが再現すれば、指定4解法・通常2000件を記録して最終確認する。新たな探索・注文ポリシーは変えない。
+
+## 12:39 — 凍結・最終比較開始
+
+- 同一性: GCC既定500、GCC native200、Clang native200すべて親nineとstdout byte一致。ten-fastは旧ten-late(112915)の500件ともbyte一致。
+- 123149再比較: nine-fastはhelper_end −25.46ms、ten-fastは−22.50ms（いずれもnine比）。GCC nativeではnine-fast −22.24ms。Clang nativeは出力同一だが+80.30msで、性能改善はGCC側に限定される。この差は報告に明記する。GCC/ClangともLOCAL_BENCHなしの提出形式でもビルド成功。
+- `20261108-123401`の診断200件: first 9の完成DesignState全値、raw unit割当、RNG、cur/Vのbit表現が1800/1800完全一致。全件で選択は最初のargmin V。10候補目を選ばない175件のstdoutも完全一致、選ぶ25件はVが厳密に改善。
+- 12:39:24にten-fastを凍結: SHA256 b30828b092bd40a0bd1164380046d6cf0b695a789874e37106a42b9c5ac10303、533860 bytes。指定4解法2000件 `20261108-123924` を--save-design付き、記録ありで開始。以後設定変更なし。
+- 最終比較の後、nineの既存未見replay115455に対してtenの500–999を8列再生し、平均注文リストでの増分も参考確認する。依存関係をtask9_finish.pyで順に実行、重い集計はlock＋nice。最終が通ればそこで終了し、選別段の新実験には入らない。
+
+## 12:50 — 最終2000件: 時間目標は達成、10候補目の得点増分は未確認
+
+- `20261108-123924`は4解法各2000件・WA0、記録ありで完了。nine vs fixはTask8と同じ −0.0144609 ± 0.0027563%、338/1434/228。ten-fast vs fixは−0.0147087 ± 0.0032786%、430/1247/323。ten vs nineは−0.0002478 ± 0.0017422%、128/1747/125で2SEに届かない。
+- judge平均: argon1.630006s、fix1.782543s、nine1.772792s、ten1.750662s。ten/argon=1.0740216。p99はfix1.960380s、nine1.940552s、ten1.941841s（nine比+1.29ms）。tenのhelper_end対応差はnine比−20.69596 ± 1.07578ms。10候補を払ってもnineより短いという時間目標は達成。
+- 未見500–999・8列のten replay `20261108-124817_legal-tie-fast`を実行中。比較基準はnineの115455。追加候補の得点が改善したと通常比較だけでは主張しない。時間部品としてのnine-fast（出力同一）も残しており、注文側への時間再配分に使える。
+
+## 12:52 — Task 9終了
+
+- 未見500–999・8列 `20261108-124817_legal-tie-fast` 対nineの115455: 新規1–7 -0.0032976 ± 0.0014459%、全8列 -0.0030900 ± 0.0014001%、実列 -0.0016361 ± 0.0037719%。新規列の小改善は2SEを超えた。一方、通常2000件でnine比−0.0002478±0.0017422%は未確定であり、区別して報告。
+- 最終p99: ten−fix = −18.54ms（paired bootstrap95% [-59.98,−2.25]ms）、ten−nine = +1.29ms（[-33.64,+20.01]ms）。平均judge 1.07402×argon、helper_end −20.70±1.08msで10候補を払った上でもnineより短い。end_sec平均1.544045s、p99 1.711994s、最大1.852230s、1.8/1.9/2s超2/0/0件。
+- REPORT9.md、再現スクリプト、source audit、同一性JSON、from-dcomp-nine.patchを完成。GCC既定500/native200、Clang native200の出力同一、先頭9候補1800件の完全一致、旧ten-lateと500件同一、提出形式GCC/Clangビルドを確認。
+- 凍結SHA、旧nine/ten-late/legal-tie-fastのSHA、最終run全件完了・record=true、保存設計replay実列500/500一致を再確認。M1統合は別担当へ渡す。任意の新選別実験は行わず、最終確認完了で早期終了する。
