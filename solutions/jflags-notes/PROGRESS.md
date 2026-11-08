@@ -223,3 +223,146 @@ dual30 に、注文ごとに手間を選ぶ Pacer を足した（説明は solut
   | GCC + zero-init | あり | 1.763 | 1.868 | 1.884 | 0 | 42/500（7.0 注文/ケース） |
 
   - スコアの差（あり − なし）は、Clang −0.026 ± 0.051%、GCC −0.013 ± 0.054%（設計のぶれの範囲）。
+
+## final-time-pace-fix1（11-09 04:00〜、レビューの 3 つの指摘の修正）
+
+- **修正（solutions/final-time-pace-fix1、改良元 final-time-pace sha 8d64d794）:**
+  1. shift_byte: p == dest なら先頭で返す。p == dest == 191 で `&o[192]` を取らない。
+  2. samples_for: kBasis を 2 つの添字で読む（`basis(row, j)`）。
+  3. 設計のやり直し（attempt ≥ 1）の assign_windows: その呼び出しの間だけ `design_time.active = false`。dual30 と同じ kMapRetryIters 回を探す。
+  - 試験用: 環境変数 `DESIGN_TEST_FAIL=n`（LOCAL_BENCH。最初の n 回の設計を失敗とみなす）と、マクロ `NOINIT_EMPTY`。
+- **a. 同一性（run 群 20261109-040344、環境変数 DESIGN_FIXED_ITERS=1、Pacer は LOCAL_BENCH の既定、seed 0〜199、--no-record）:**
+  - 次の 3 つのビルドのどれでも、dual30・final-time-pace・fix1 の stdout は 200/200 seed でバイト単位で同じ。WA 0。
+    - GCC 標準。
+    - Clang native + libc++ + zero-init。
+    - GCC native + zero-init。
+- **c. NOINIT の穴（同じ run 群）:** fix1 を `-DNOINIT_EMPTY -ftrivial-auto-var-init=pattern`（Clang libc++）でビルドしたものと、通常の NOINIT + zero-init のものとで、stdout は 200/200 seed で同じ。
+- **b. ライブラリの範囲検査（run 群 20261109-040853。本番の道 = LOCAL_BENCH なし、CLOCK_SCALE=1.1。seed 0〜199、--no-record）:**
+
+  | ビルド | 解法 | WA | 止まった回 | end 最大 |
+  |---|---|---|---|---|
+  | Clang + libc++ + zero-init + `_LIBCPP_HARDENING_MODE_DEBUG` | fix1 | 0 | 0 | 1.882 秒 |
+  | 同じ | final-time-pace | 200 | 200 | — |
+  | GCC + zero-init + `_GLIBCXX_ASSERTIONS` | fix1 | 0 | 0 | 1.882 秒 |
+
+  - final-time-pace は全部の seed で `array:234: assertion __n < _Size failed: out-of-bounds access in std::array` で止まる（shift_byte）。
+  - map_iters が 2000 万回を超える seed がある（seed 13 で 22,564,864 回、0.39 秒）。final-time-pace でも同じで、時間で決める窓の探索が、1 回が非常に軽い入力で回数を多く回すだけ。
+- **d. やり直しの道（1 回目の fix1。やり直しは固定回数で、時間の上限なし）:**
+  - 環境変数 DESIGN_TEST_FAIL=1（run 20261109-040853_final-time-pace-fix1-3、LOCAL_BENCH の GCC 標準、Pacer は既定で切、200 seed）:
+    - WA 0。200 seed 全部が汎用窓 32 で設計した。
+    - 2 回目の窓の探索は 160000 回で、約 0.29〜0.30 秒（dt_map_search_iters / _sec）。
+    - map_end は平均 0.81 秒（ふつうは 0.50 秒）、helper_end は平均 1.238 秒・最大 1.279 秒。
+    - end_sec は最大 2.048 秒（1.90 秒超え 26 回）。LOCAL_BENCH では Pacer が切で、汎用窓 32 の設計は注文処理が重いため。
+  - **Astra の作った 120 入力（run 群 20261109-040949、本番の Clang libc++ zero-init、CLOCK_SCALE=1.1）:**
+
+  | 解法 | WA | 非常用の設計 | 汎用窓 32 / 28 | 実時間の最大 | end 最大 |
+  |---|---|---|---|---|---|
+  | final-time-pace | 0 | 82 | 35 / 0 | 1.726 秒 | 1.883 秒 |
+  | fix1（1 回目） | 0 | 81 | 5 / 30 | **25.594 秒** | 24.73 秒 |
+
+  - 固定の 160000 回は、変わる窓の少ない入力では 1 回が約 150 µs と重く、20 秒を超えた（seed 43、41、4、44、45 など）。dual30 も同じ固定回数なので、dual30 でも同じことが起こる。
+  - そこで、やり直しの探索を kMapRetrySeconds = 0.35 秒（倍率込み。assign_windows の seconds 引数で、その呼び出しの始まりから）で打ち切るようにした（fix1 の最終版）。ふつうの入力の 160000 回（約 0.30 秒）は打ち切られない。
+- **e. 記録した通常の比較（run 群 20261109-041017、全 2000 seed、両方とも Pacer あり `-DPACE_SIM=1.0`、GCC 標準）:**
+  - 比べたのは 1 回目の fix1（時間の上限なし）。最終版との違いはやり直しの道だけで、その道は 2000 seed で一度も通らない（どちらの run でも 2000 seed 全部が汎用窓 38）。
+  - fix1 − final-time-pace は +0.017 ± 0.026%（994/8/998）。WA は両方 0。
+  - end の平均の差は −0.05 ± 1.13 ms。
+
+  | 解法 | end 平均 | p99 | 最大 | 1.85 秒超え | 1.90 秒超え | 手間を落としたケース |
+  |---|---|---|---|---|---|---|
+  | final-time-pace | 1.7202 | 1.7990 | 1.8304 | 0 | 0 | 44 |
+  | fix1 | 1.7201 | 1.8102 | 1.8613 | 1 | 0 | 64 |
+
+  - fix1 の p99・最大のわずかな差は、端の数ケースのぶれ。同じ final-time-pace の Pacer ありでも、run 20261109-003105 では最大 1.877 秒だった。
+- **f. 引き伸ばし（run 群 20261109-041049、fix1（1 回目）、Pacer あり、通常の評価、seed 0〜499、--no-record）:**
+
+  | 時計の倍率 | end 平均 | p99 | 最大 | 1.90 秒超え | 手間を落としたケース | 落とした注文/ケース |
+  |---|---|---|---|---|---|---|
+  | ×1.35 | 1.865 | 1.883 | 1.884 | 0 | 426/500 | 407 |
+  | ×2.0 | 1.880 | 1.885 | 1.888 | 0 | 500/500 | 1002 |
+
+  - WA 0。どの seed も汎用窓 38（やり直しの道は通らない）。
+- **途中の版の fix1（やり直しの探索を 0.35 秒で打ち切る。main.cpp sha256 0a69338a…）の検査。負荷の下では 0.35 秒の打ち切りが効くことがあったので、最終版は 0.5 秒（下）:**
+  - a・c（run 20261109-042051、DESIGN_FIXED_ITERS=1、seed 0〜199）:
+    - GCC 標準、Clang libc++ zero-init、GCC zero-init のどれでも、stdout は run 20261109-040344 の final-time-pace とも dual30 とも 200/200 で同じ。DESIGN_FIXED_ITERS=1 と Pacer 切なら出力は時間によらない。
+    - NOINIT_EMPTY + pattern init も 200/200 で同じ。WA 0。
+  - b（run 群 20261109-042148、本番の道、seed 0〜199）: libc++ hardening DEBUG で WA 0・止まった回 0（end 最大 1.878 秒）。GCC `_GLIBCXX_ASSERTIONS` で WA 0・止まった回 0（end 最大 1.882 秒）。
+  - d、DESIGN_TEST_FAIL=1（同じ run 群の 3 本目、LOCAL_BENCH、Pacer あり `-DPACE_SIM=1.0`、200 seed）:
+    - WA 0。全部が汎用窓 32 で設計した。
+    - 2 回目の窓の探索は、192 seed で 160000 回、8 seed で 0.35 秒で打ち切り（136800〜156064 回）。平均 0.298 秒、最大 0.347 秒。打ち切らない 1 回目の fix1 では、平均 0.299 秒・最大 0.379 秒で、0.35 秒超えが 7/200。
+    - map_end は平均 0.808 秒・最大 0.884 秒。helper_end は平均 1.243 秒・最大 1.297 秒。end_sec は平均 1.844 秒、p99・最大 1.881 秒（1.90 秒超え 0）。
+  - d、Astra の作った 120 入力（run 20261109-042231、本番の Clang libc++ zero-init、CLOCK_SCALE=1.1）:
+    - WA 0、非常用の設計 82（final-time-pace も 82）。汎用窓は 28 が 28、32 が 8、38 が 2。
+    - 実時間の最大 1.721 秒（final-time-pace は 1.726 秒）、end 最大 1.887 秒。helper_end は平均 1.451 秒・最大 1.652 秒。
+    - スコアは final-time-pace に対して +2.24 ± 1.10%（4/81/35）。探索した汎用窓 32 の割り当ては初期化に失敗しやすく（32 で成功 8、28 に落ちる 28。final-time-pace は探索 0 回の割り当てで 35 が成功）、作った入力では悪くなる。手元の一様乱数の入力ではこの道を通らない。
+  - g（submit.cpp）:
+    - trim_tool は tabs の段で止まり、511,701 バイト（目標 515,000、AtCoder の上限 524,288）。sha256 b97823f08aa2dfe693286e1fbd64a4814e7160a39a76ea37f6b0630b45c573a1。
+    - `-E -P` のトークン列は、本番の GCC（1,589,350 トークン）・Clang（1,590,374 トークン）の両方で main.cpp と同じ（solutions/final-time-pace-fix1/check_submit.py）。
+    - `-Wall` の警告は main.cpp と submit.cpp で同じ（GCC 4、Clang 3）。新しい警告はない。
+- **最終版の fix1（やり直しの探索を 0.5 秒で打ち切る。main.cpp sha256 1a6c722b…）の検査:**
+  - なぜ 0.5 秒か: 0.35 秒版の DESIGN_TEST_FAIL=2（run 20261109-042244、1 解法だけで 24 並列が同時に設計する重い負荷）では、100 seed のうち 57 で 0.35 秒の打ち切りが効いた。
+  - a・c（run 20261109-042900、DESIGN_FIXED_ITERS=1、seed 0〜199）:
+    - 3 つのビルドのどれでも、stdout は run 20261109-040344 の final-time-pace とも dual30 とも 200/200 で同じ。
+    - NOINIT_EMPTY + pattern init も 200/200 で同じ。WA 0。
+  - b（run 群 20261109-042957、本番の道、seed 0〜199）: libc++ hardening DEBUG で WA 0・止まった回 0（end 最大 1.880 秒）。GCC `_GLIBCXX_ASSERTIONS` で WA 0・止まった回 0（end 最大 1.881 秒）。
+  - d、DESIGN_TEST_FAIL=1（同じ run 群の 3 本目、Pacer あり、200 seed）:
+    - WA 0。全部が汎用窓 32 で、2 回目の探索は 200/200 で 160000 回（平均 0.297 秒、最大 0.392 秒）。
+    - map_end は平均 0.806 秒・最大 0.900 秒。helper_end は平均 1.243 秒・最大 1.339 秒。end_sec は p99・最大とも 1.882 秒。
+  - d、DESIGN_TEST_FAIL=2（run 20261109-043053、Pacer あり、100 seed）:
+    - WA 0。全部が汎用窓 28 で、2 回目の探索は 100/100 で 160000 回（平均 0.354 秒、最大 0.432 秒）。
+    - helper_end は平均 1.319 秒・最大 1.435 秒。end_sec の最大は 1.882 秒。実時間の最大は 1.752 秒。
+  - d、Astra の作った 120 入力（run 20261109-043040、本番の Clang libc++ zero-init、CLOCK_SCALE=1.1）:
+    - WA 0、非常用の設計 83（final-time-pace は 82）。汎用窓は 28 が 29、32 が 6、38 が 2。
+    - 実時間の最大 1.714 秒（final-time-pace は 1.726 秒）、end 最大 1.882 秒。helper_end は平均 1.598 秒・最大 1.731 秒。
+    - スコアは final-time-pace に対して +4.12 ± 0.66%（0/82/38）。作った入力では、探索した汎用窓 32 の割り当てが初期化に失敗しやすく、0.5 秒の探索が設計の時間も使う。手元の一様乱数の入力ではこの道を通らない。
+  - g（submit.cpp）:
+    - tabs の段で止まり、511,750 バイト。sha256 dc1293d15c468654f040d89475d18cdf162efcda50a9d0ca4d5820cfc9fc18ab。
+    - `-E -P` のトークン列は、本番の GCC・Clang の両方で main.cpp と同じ。
+    - `-Wall` の警告は main.cpp と同じ（GCC 4、Clang 3）。
+    - final-time-pace（GCC 3、Clang 3）と比べると、GCC に `-Warray-bounds` が 1 つ増えた。
+      - 場所は、post_optimize_impl の anchor_candidates の中で inline 展開された shift_byte の `o[p]`。添字 18446744071562067968 は (size_t)INT_MIN。
+      - shift_byte の先頭の `return` で GCC の経路の分け方が変わり、find_paper（memchr の結果の差）が範囲外になる、実際には通らない経路で出る。
+      - 実行時の範囲検査（libc++ hardening DEBUG と `_GLIBCXX_ASSERTIONS`。どちらも std::array の operator[] を検査する）では、200 seed ずつ 0 回。
+  - e（記録した run 群 20261109-043706、全 2000 seed、両方とも Pacer あり、GCC 標準。fix1 は最終版の main.cpp）:
+    - fix1 − final-time-pace は +0.013 ± 0.026%（996/9/995）。WA は両方 0。
+    - end の差は −2.55 ± 1.06 ms。2000 seed 全部が汎用窓 38。
+
+    | 解法 | end 平均 | p99 | 最大 | 1.88 秒超え | 手間を落としたケース |
+    |---|---|---|---|---|---|
+    | final-time-pace | 1.7264 | 1.8082 | 1.8470 | 0 | 65 |
+    | fix1 | 1.7238 | 1.8060 | 1.8598 | 0 | 71 |
+
+  - f は 1 回目の fix1 の結果（run 群 20261109-041049）で、最終版でも同じ。最終版との違いはやり直しの道だけで、そこは通らない。
+
+## final-time-pace-fix2（11-09 04:45〜、fix1 から設計のやり直しの修正を外したもの）
+
+- **作り方:** fix1 の main.cpp から、3 つ目の修正（`design_time.active` の切り替えと kMapRetrySeconds）を戻した。
+  - 残したもの: shift_byte の p == dest の先頭の return、samples_for の 2 つの添字、LOCAL_BENCH の DESIGN_TEST_FAIL、NOINIT_EMPTY。
+  - main.cpp は 600,855 バイト、sha256 f06c5ea40090428a6fa61555c3193f5eec5de5c54f9c595bcb2d9d6f2b51ce65。
+  - コーディネーターの判断: やり直しは探索 0 回のままが時間の面で安全で、そこを通る作った入力でも 4.1% 良い。GCC の `-Warray-bounds` はそのまま。
+- **a. 同一性（run 群 20261109-044624、DESIGN_FIXED_ITERS=1、Pacer 既定、seed 0〜199）:** GCC 標準、Clang libc++ zero-init、GCC zero-init のどれでも、stdout は run 20261109-040344 の final-time-pace と 200/200 で同じ。WA 0。
+- **b. 範囲検査（run 群 20261109-044709、本番の道、seed 0〜99）:** libc++ hardening DEBUG で WA 0・止まった回 0（end 最大 1.878 秒）。GCC `_GLIBCXX_ASSERTIONS` で WA 0・止まった回 0（end 最大 1.882 秒）。
+- **c. やり直しの道（Pacer あり）:**
+  - DESIGN_TEST_FAIL=1（20261109-044709_final-time-pace-fix2-3、100 seed）: WA 0、全部が汎用窓 32、end 最大 1.881 秒。
+  - DESIGN_TEST_FAIL=2（20261109-044752、50 seed）: WA 0、全部が汎用窓 28、end 最大 1.881 秒、実時間の最大 1.744 秒。
+  - Astra の作った 120 入力（20261109-044809）:
+    - WA 0、非常用の設計 81、汎用窓 32 が 35、実時間の最大 1.705 秒。
+    - final-time-pace（20261109-040949）は非常用 82、汎用窓 32 が 35、最大 1.726 秒。
+    - 違うのは seed 2・3・4 の 3 つだけで、時間で決める attempt 0 の結果が、run ごとに汎用窓 38 と非常用の設計の間で入れ替わったもの。
+    - スコアは final-time-pace に対して −0.46 ± 0.70%（23/80/17）。
+- **d. 記録した通常の比較（run 群 20261109-044551、全 2000 seed、両方とも `-DPACE_SIM=1.0`、GCC 標準）:**
+  - fix2 − final-time-pace は −0.060 ± 0.025%（1047/8/945）。WA は両方 0。
+  - end の差は −0.04 ± 1.09 ms。2000 seed 全部が汎用窓 38。
+  - DESIGN_FIXED_ITERS=1 では出力が同じなので、この差は時間で決める設計のぶれ。fix1 の 2 回は +0.017・+0.013%。
+
+  | 解法 | end 平均 | p99 | 最大 | 1.85 秒超え | 1.88 秒超え |
+  |---|---|---|---|---|---|
+  | final-time-pace | 1.7263 | 1.8035 | 1.8742 | 2 | 0 |
+  | fix2 | 1.7263 | 1.8068 | 1.8451 | 0 | 0 |
+
+- **e. 引き伸ばし（run 群 20261109-044824、seed 0〜499）:** ×1.35 で end 最大 1.884 秒、×2.0 で 1.892 秒（どちらも 1.90 秒超え 0、WA 0）。
+- **f. submit.cpp:**
+  - trim_tool は tabs の段で止まり、511,026 バイト。sha256 4cf544b2d61298b5dd9b6b0869319b1a9673894444203a93bc99a814ced8e793。
+  - `-E -P` のトークン列は、本番の GCC（1,589,294）・Clang（1,590,318）の両方で main.cpp と同じ。
+  - `-Wall` の警告:
+    - Clang は 3 つで、final-time-pace と同じ（used_second、prepare_positions、kMatchIterations）。
+    - GCC は 4 つ。final-time-pace の 3 つに、shift_byte の `-Warray-bounds`（fix1 と同じもの）が加わる。

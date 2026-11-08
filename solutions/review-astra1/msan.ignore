@@ -1,0 +1,8 @@
+[memory]
+# The installed libc++ is not instrumented. Its std::string return objects have
+# untracked shadow bytes even when the C++ value is fully initialized.
+# Do not use this run to assess string/iostream code; numeric scratch buffers
+# and solver state are still the focus of the application-level MSan checks.
+fun:*basic_string*
+fun:*basic_ostream*
+fun:*basic_istream*
