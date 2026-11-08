@@ -1,0 +1,55 @@
+--- solutions/legal-tie-fast/main.cpp
++++ solutions/dcomp-climb-cache/main.cpp
+@@ -3501,10 +3501,15 @@
+         // Only the two exchanged units change geometry or head eligibility;
+         // rollback restores the same cache before the next random proposal.
+         auto eligible=[&](int x){return head_eligible[x];};
+-        std::vector<double> utility(U);
++        std::vector<double> utility(U), gain_cache(U*256);
+         for (int y = 0; y < U; y++)
+             if (eligible(y))
+-                for (int t = 0; t < 256; t++) utility[y] += gain(t, y, unit[y].c);
++                for (int t = 0; t < 256; t++) utility[y] += (gain_cache[y*256+t]=gain(t, y, unit[y].c));
++        // The head probabilities stay frozen during this climb. Cache the exact
++        // current target/donor contribution; a trial changes four targets and two
++        // donors. Commit those entries only when the original objective accepts.
++        std::array<std::array<double,256>,2> next_donor{};
++        std::array<std::array<double,4>,P> next_target{};
+         // A rejected exchange can be skipped until the next acceptance. Draw the same random pairs
+         // regardless, so the cache does not change the search sequence.
+         std::vector<int> rejected_epoch(U * U, -1);
+@@ -3550,18 +3555,19 @@
+             // the two donors also changes their opacity and allowed placement.
+             for (int z = 0; z < U; z++)
+                 if (z != x && z != y && eligible(z))
+-                    for (int t : moved) if(t>=0) utility[z] -= gain(t, z, unit[z].c);
++                    for (int t : moved) if(t>=0) utility[z] -= gain_cache[z*256+t];
+             unit[x] = nx;
+             unit[y] = ny;
+             cache_unit(x);cache_unit(y);
+             utility[x] = utility[y] = 0;
+             if (eligible(x))
+-                for (int t = 0; t < 256; t++) utility[x] += gain(t, x, b);
++                for (int t = 0; t < 256; t++) utility[x] += (next_donor[0][t]=gain(t, x, b));
+             if (eligible(y))
+-                for (int t = 0; t < 256; t++) utility[y] += gain(t, y, a);
++                for (int t = 0; t < 256; t++) utility[y] += (next_donor[1][t]=gain(t, y, a));
+             for (int z = 0; z < U; z++)
+                 if (z != x && z != y && eligible(z))
+-                    for (int t : moved) if(t>=0) utility[z] += gain(t, z, unit[z].c);
++                    for (int j=0;j<4;++j) if(moved[j]>=0)
++                        utility[z] += (next_target[z][j]=gain(moved[j], z, unit[z].c));
+             auto ix = std::find(members[a].begin(), members[a].end(), x);
+             auto iy = std::find(members[b].begin(), members[b].end(), y);
+             *ix = y;
+@@ -3575,6 +3581,10 @@
+             update(ny, 1);
+             // The filler proxy contributes half its predicted saving to the climb objective.
+             if (cur - old - kClimbProxyWeight * (next - proxy) < -1e-9) {
++                for(int z=0;z<U;++z) if(z!=x&&z!=y&&eligible(z))
++                    for(int j=0;j<4;++j) if(moved[j]>=0)gain_cache[z*256+moved[j]]=next_target[z][j];
++                if(eligible(x))std::copy(next_donor[0].begin(),next_donor[0].end(),gain_cache.begin()+x*256);
++                if(eligible(y))std::copy(next_donor[1].begin(),next_donor[1].end(),gain_cache.begin()+y*256);
+                 proxy = next;
+                 climb_accepted++;
+             } else {
