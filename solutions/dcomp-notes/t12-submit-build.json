@@ -1,0 +1,43 @@
+{
+  "source_sha256": "e4d3dff32d3145020475dfb6c362fbf4e1c0708c86d131a26f1a048711d0befb",
+  "builds": {
+    "gcc": {
+      "command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "nice",
+        "-n",
+        "10",
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-march=native",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/dcomp-combo-dual30/main.cpp",
+        "-o",
+        "/tmp/ahc074-task12-submit/dcomp-combo-dual30-gcc"
+      ],
+      "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+      "binary": "/tmp/ahc074-task12-submit/dcomp-combo-dual30-gcc"
+    },
+    "clang": {
+      "command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "nice",
+        "-n",
+        "10",
+        "clang++",
+        "-std=c++23",
+        "-O2",
+        "-march=native",
+        "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/dcomp-combo-dual30/main.cpp",
+        "-o",
+        "/tmp/ahc074-task12-submit/dcomp-combo-dual30-clang"
+      ],
+      "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+      "binary": "/tmp/ahc074-task12-submit/dcomp-combo-dual30-clang"
+    }
+  }
+}

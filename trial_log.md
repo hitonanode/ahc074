@@ -1770,3 +1770,37 @@
     - 同じソースの argon・combo・alt1 も、155517 より平均 3% 遅かった。遅れは後半に集中し、開始 4 分後からは 5〜7% 遅い。
     - seed 1810 は、155517 の alt1 では 1.47 秒（実時間）だった。dual25 の設計の出力は alt1 と同じなのに、設計の段が 1.06 → 1.57 秒に延びた。同じ時刻に走った seed 1801・1815・1819 も、2 秒近くに跳ねた。
   - 評価の外の負荷の候補: VS Code のファイル監視（vscode-server の fileWatcher）が、評価中に 1 コアを使うことがある（21:33 に確認）。
+- **dual25 の上に注文処理の一段を積む（Astra Task 12、11-08 21:09〜23:10。solutions/dcomp-*、報告は solutions/dcomp-notes/REPORT12.md）: dcomp-combo-dual30 は dual25 比 −0.004%。改良元は dcomp-combo-dual25。**
+  - 中身:
+    - 同じ入力の後処理の結果を覚える whole-post memo（出力は同じ。注文処理 GCC −4.8 ms、Clang −4.1 ms）。
+    - next_cost の prefix cache を Clang だけで切る（Clang −2.9 ms。GCC では差が 2 SE 未満なので残す）。
+    - NEUTRAL_SLACK .25 → .30。
+  - 通常の 2000 件（20261108-224255）:
+    - dual25 比 **−0.0038 ± 0.0005%**（710/862/428）。alt1 比 −0.0319 ± 0.0018%。WA 0。
+    - 未見の注文列（225331）: dual25 比 −0.005%。
+    - ジャッジの模型の平均は argon の 1.075 倍。99% 点は 2.065 秒（dual25 は 2.087 秒）。
+    - Clang native（500 件、230504）: alt1 比 end −2.2 ± 2.8 ms。
+  - 効かなかったもの:
+    - 追加の親の候補の準備の cache（重複 1 ms）。
+    - expanded・near-tie pool の候補を第二の親にする（0 か悪化）。
+    - planner の費用の補正（filler 係数 .75 で +0.13%）。
+    - 細かい inline 化。
+  - dual25 で見えた GCC の設計の段の +6 ms は、dual30 では −0.4 ± 1.6 ms で、再現しなかった（原因は未確定）。
+- **ジャッジのビルドの調べ（Claude の agent、11-08 22:00〜22:57。solutions/jflags-*）: dual25 を Clang で提出したら 50 件中 27 件 TLE、再提出で 0 件。コードの問題ではなく、ジャッジの速さの揺れ。**
+  - AtCoder のコードテスト（tools/in/0000.txt を標準入力に入れると、最後の注文まで動く。Clang 21）:
+    - dual25 は end 1.684 秒（設計 1.100、注文処理 0.581）、legal-tie-fix は 1.930 秒（1.296、0.631）。
+    - 手元の Clang native（倍率込み）と比べると、設計は約 1.03 倍、注文処理は約 1.25 倍。
+  - ジャッジのビルド（AtCoder の言語一覧 2025-10）:
+    - Clang 21.1.0 は -stdlib=libc++、-flto=auto、-ftrivial-auto-var-init=zero。GCC 15.2.0 も -ftrivial-auto-var-init=zero。どちらも -march=native。
+  - 初期化していない局所変数の 0 埋め（-ftrivial-auto-var-init=zero）（run 群 20261108-220933、150 件）:
+    - 出力は変わらない。
+    - 費用は dual25 の Clang で end +44.5 ± 5.4 ms、legal-tie-fix で +22.2 ms。GCC の dual25 では注文処理 +39.6 ms。
+  - **ジャッジの提出は、手元で評価したのとは別の設計で動いていた。**
+    - -march=native で FMA の縮約が入る（GCC 149/150 件、Clang 150/150 件で設計が違う。-ffp-contract=off で一致する）。
+    - libc++ では std::sort（等しいキー）と std::shuffle の手順が違う（150/150 件）。
+    - libstdc++ と同じ手順の stdx::sort・stdx::shuffle に替え、pragma で縮約を切った jflags-portable-fp-dual25 は、ジャッジと同じ GCC・Clang の flags でも手元の評価と出力が同じになった（50/50）。費用は GCC で +19 ms。
+    - 最終版は時間で区切るので出力はどのみち変わり、この変更は採らない。
+- **最終版の方針（ユーザーの判断、11-08 23:10）:**
+  - 設計の各段を、今の時間の比率のまま時間で区切る。通常はジャッジで 1.85 秒に終わるように時間を配る。
+  - 注文処理には、段階的に軽くする fallback（ペース配分）を入れる。最後の注文は約 1.90 秒までに終え、最後の砦の軽い計画で約 1.93 秒を保証する。
+  - そのあと、ソースを 512 KiB 以下に削る。インデントを tab にし、本番で通らないコードとコメントを削る。
