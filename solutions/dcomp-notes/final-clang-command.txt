@@ -1,0 +1,2 @@
+flock -x /home/sato/ahc074/runs/.lock nice -n 10 clang++ -std=c++23 -O2 -march=native -DCLOCK_SCALE=1.1 -DLOCAL_BENCH solutions/dcomp-nine/main.cpp -o solutions/dcomp-nine/clang-native
+exit_code = 0
