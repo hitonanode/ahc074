@@ -1,0 +1,5 @@
+改良元: solutions/dcomp-combo-alt1
+
+列MDPが全列を覆わないケースのnext_costだけを短縮する。covered列の在列紙ID列（最大15枚）を正確な2語のkeyで持ち、元の紙順で足したone-step項とMDP値を列ごとの16枠に保存する。hole項と列間の加算順は変えない。キーの全体を検査し、hash衝突は値を共有しない。
+
+partial_mdp_hits/missesは列cacheの回数。予算・両コンパイラの探索設定・既存ログ・実験スイッチ・profiler・段の目印・DesignStoreを保持する。時計による切替なし。

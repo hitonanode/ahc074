@@ -1,0 +1,10 @@
+from pathlib import Path
+import difflib,subprocess
+R=Path(__file__).resolve().parents[2]
+def src(n):return(R/'solutions'/n/'main.cpp').read_text()
+patch=''.join(difflib.unified_diff(src('dcomp-t11-fast-hash').splitlines(True),src('dcomp-t11-fast-late').splitlines(True),'a/main.cpp','b/main.cpp',n=3))
+for old,name in [('dcomp-t11-stack-pc6','dcomp-t11-funded-pc6'),('dcomp-t11-shared6','dcomp-t11-funded-shared6')]:
+ d=R/'solutions'/name;assert not d.exists();d.mkdir();(d/'main.cpp').write_text(src(old))
+ r=subprocess.run(['patch','--batch','--fuzz=0','-p1'],input=patch,text=True,cwd=d,capture_output=True);assert r.returncode==0,(r.stdout,r.stderr)
+ for p in d.glob('*.orig'):p.unlink()
+ (d/'README.md').write_text('改良元: solutions/'+old+'\n\n探索方針・予算を保ったまま、dcomp-t11-fast-lateの出力同一高速化へ更新する。end-memoを合法性再生の後へ移し、修復区間を二つの端点から直接求める。Clangでは不要リンクと解決済みfirst-color検査も省く。GCC/Clangの探索予算は同一。\n\n要求探索は通常post候補6個、区間DPの広い同点選択、family選別前の二重移動結合、完成ALTの追加親一つの1→1修復、共有neutral枠6個。'+('追加親は上位一候補に制限し、merge-winを使う。'if old.endswith('shared6')else'追加親も共有6枠へ入れる。')+'設計は親と同じ9候補。\n\n既存ログ・trace・profiler・実験スイッチ・目次と段・DesignStoreを保持し、時計分岐なし。\n')

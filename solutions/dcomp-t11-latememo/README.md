@@ -1,0 +1,5 @@
+改良元: solutions/dcomp-t11-hash4
+
+end-memoの検索を合法性の再生の後へ移す。不合法な試行ではhashを計算せず、有用なcache entryも追い出さない。世代はpost呼出し単位、keyは完成stackの全192byteで照合する。canonicalizeの元のfiller順は同じ呼出しのseedで固定される。費用の浮動小数点加算順は元と同じ。MEMOとLATE_MEMOスイッチで元の経路も残す。
+
+固定予算、時計分岐なし。ログ・trace・profiler・実験スイッチ・目次と段・DesignStoreを保持する。

@@ -1,0 +1,59 @@
+[pahcer_run] run-id: 20261108-180503_dcomp-combo-alt1
+[pahcer_run] run-id: 20261108-180503_dcomp-t11-seedone-g015
+[pahcer_run] run-id: 20261108-180503_dcomp-t11-seedone-g075
+[pahcer_run] run-id: 20261108-180503_dcomp-t11-seedone-early
+[pahcer_run] run-id: 20261108-180503_dcomp-t11-seedone-expanded
+[dcomp] reused 20261108-173131_dcomp-combo-alt1
+[pahcer_run] 実行中の評価の終了を待っています: 20261108-180636_dcomp-combo-alt1 ほか 3 個の比較 (pid 27, 2026-11-08T18:40:05+09:00 から) (scripts/pahcer_run.py --status で状況を見られる)
+[pahcer_run] 5 個の解法を比べます (seed 0〜499、24 並列、seed ごとに続けて実行、20261108-155517_combo-m1-nine の設計を読み込む、注文の列 4 本)
+[pahcer_run] 50/500 seed 完了 (経過 0.6 分、残り約 5.3 分)
+[pahcer_run] 100/500 seed 完了 (経過 0.9 分、残り約 3.8 分)
+[pahcer_run] 150/500 seed 完了 (経過 1.3 分、残り約 3.1 分)
+[pahcer_run] 200/500 seed 完了 (経過 1.7 分、残り約 2.5 分)
+[pahcer_run] 250/500 seed 完了 (経過 2.0 分、残り約 2.0 分)
+[pahcer_run] 300/500 seed 完了 (経過 2.4 分、残り約 1.6 分)
+[pahcer_run] 350/500 seed 完了 (経過 2.8 分、残り約 1.2 分)
+[pahcer_run] 400/500 seed 完了 (経過 3.1 分、残り約 0.8 分)
+[pahcer_run] 450/500 seed 完了 (経過 3.5 分、残り約 0.4 分)
+[pahcer_run] 500/500 seed 完了 (経過 3.9 分、残り約 0.0 分)
+Process ForkPoolWorker-10:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 336, in _exit_function
+    debug('running all "atexit" finalizers with priority >= 0')
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 48, in debug
+    def debug(msg, *args):
+    
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+dcomp_pahcer.Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261108-180503_dcomp-combo-alt1                500   0     10260.41    0.000   10260.4   +0.000%  0.000%     0/500/   0    0.531s
+    実行時間: 99% 点 0.678 s、99.9% 点 0.830 s、最大 0.830 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 2.043 s、1.8 s 超え 8・1.9 s 超え 1・2.0 s 超え 1 ケース (500 ケース中)
+  20261108-180503_dcomp-t11-seedone-g015          500   0     10259.90    0.000   10259.9   -0.007%  0.001%   314/  0/ 186    0.548s
+    実行時間: 99% 点 0.718 s、99.9% 点 0.832 s、最大 0.832 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.913 s、1.8 s 超え 13・1.9 s 超え 2・2.0 s 超え 0 ケース (500 ケース中)
+  20261108-180503_dcomp-t11-seedone-g075          500   0     10259.35    0.000   10259.3   -0.013%  0.002%   333/  0/ 167    0.566s
+    実行時間: 99% 点 0.724 s、99.9% 点 0.944 s、最大 0.944 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.989 s、1.8 s 超え 15・1.9 s 超え 4・2.0 s 超え 0 ケース (500 ケース中)
+  20261108-180503_dcomp-t11-seedone-early         500   0     10259.50    0.000   10259.5   -0.011%  0.001%   321/  1/ 178    0.548s
+    実行時間: 99% 点 0.726 s、99.9% 点 0.796 s、最大 0.796 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 2.008 s、1.8 s 超え 15・1.9 s 超え 2・2.0 s 超え 1 ケース (500 ケース中)
+  20261108-180503_dcomp-t11-seedone-expanded      500   0     10259.32    0.000   10259.3   -0.012%  0.001%   331/  0/ 169    0.549s
+    実行時間: 99% 点 0.691 s、99.9% 点 0.807 s、最大 0.807 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.917 s、1.8 s 超え 13・1.9 s 超え 2・2.0 s 超え 0 ケース (500 ケース中)
+  設計             : 20261108-155517_combo-m1-nine が保存した設計を全部の解法が読み込んだ（注文処理だけの比較。本当のスコアではない）
+  注文の列         : seed ごとに 4 本（1 本目は tools/in、2 本目からは runs/.orders/ に生成）。差は seed ごとに 4 本の log スコア比を平均してから seed の間で取った。上の平均スコアは 1 本目
+    20261108-180503_dcomp-combo-alt1             全部の注文の列の平均スコア 10261.94
+    20261108-180503_dcomp-t11-seedone-g015       全部の注文の列の平均スコア 10261.19
+    20261108-180503_dcomp-t11-seedone-g075       全部の注文の列の平均スコア 10260.56
+    20261108-180503_dcomp-t11-seedone-early      全部の注文の列の平均スコア 10260.83
+    20261108-180503_dcomp-t11-seedone-expanded   全部の注文の列の平均スコア 10260.71
+  pahcer/ への記録 : しない (--design-from)
+  所要時間         : 3.9 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.22 コア、最大 0.62 コア (2 秒ごとに 231.7 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html
