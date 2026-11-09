@@ -1,0 +1,46 @@
+[pahcer_run] run-id: 20261109-105742_dcomp-combo-dual30
+[pahcer_run] run-id: 20261109-105742_d30a-stack1
+[pahcer_run] run-id: 20261109-105742_d30a-fret-full
+[pahcer_run] run-id: 20261109-105742_d30a-fret-full-2
+[pahcer_run] 4 個の解法を比べます (seed 0〜19、24 並列、seed ごとに続けて実行)
+[pahcer_run] 2/20 seed 完了 (経過 0.1 分、残り約 0.8 分)
+[pahcer_run] 4/20 seed 完了 (経過 0.1 分、残り約 0.4 分)
+[pahcer_run] 6/20 seed 完了 (経過 0.1 分、残り約 0.2 分)
+[pahcer_run] 8/20 seed 完了 (経過 0.1 分、残り約 0.1 分)
+[pahcer_run] 10/20 seed 完了 (経過 0.1 分、残り約 0.1 分)
+[pahcer_run] 12/20 seed 完了 (経過 0.1 分、残り約 0.1 分)
+[pahcer_run] 14/20 seed 完了 (経過 0.1 分、残り約 0.0 分)
+[pahcer_run] 16/20 seed 完了 (経過 0.1 分、残り約 0.0 分)
+[pahcer_run] 18/20 seed 完了 (経過 0.1 分、残り約 0.0 分)
+[pahcer_run] 20/20 seed 完了 (経過 0.1 分、残り約 0.0 分)
+Process ForkPoolWorker-9:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 363, in _exit_function
+    _run_finalizers()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 294, in _run_finalizers
+    keys = [key for key in list(_finalizer_registry) if f(key)]
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+jflags_pahcer.Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261109-105742_dcomp-combo-dual30               20   0     10271.10    0.000   10271.1   +0.000%  0.000%     0/ 20/   0    1.461s
+    実行時間: 99% 点 1.582 s、99.9% 点 1.582 s、最大 1.582 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.679 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (20 ケース中)
+  20261109-105742_d30a-stack1                      20   0     10250.45    0.000   10250.5   -0.203%  0.242%    13/  0/   7    1.424s
+    実行時間: 99% 点 1.524 s、99.9% 点 1.524 s、最大 1.524 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.625 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (20 ケース中)
+  20261109-105742_d30a-fret-full                   20   0     10250.45    0.000   10250.5   -0.203%  0.242%    13/  0/   7    1.417s
+    実行時間: 99% 点 1.567 s、99.9% 点 1.567 s、最大 1.567 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.691 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (20 ケース中)
+  20261109-105742_d30a-fret-full-2                 20   0     10266.10    0.000   10266.1   -0.050%  0.248%    11/  0/   9    1.425s
+    実行時間: 99% 点 1.577 s、99.9% 点 1.577 s、最大 1.577 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.676 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (20 ケース中)
+  pahcer/ への記録 : しない (--no-record)
+  所要時間         : 0.1 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.25 コア、最大 0.29 コア (2 秒ごとに 6.1 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html

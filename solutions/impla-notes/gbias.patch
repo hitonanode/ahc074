@@ -1,0 +1,113 @@
+--- solutions/d30a-reset6/main.cpp	2026-11-09 10:14:37.388007801 +0900
++++ solutions/d30a-gbias/main.cpp	2026-11-09 13:37:53.794151989 +0900
+@@ -1365,7 +1365,9 @@
+ 
+ struct WindowStats {
+     int iterations = 0;
+-    double gobj_before = 0, gobj_after = 0;  // objective before / after the climb
++    double gobj_before = 0, gobj_after = 0;  // uncorrected matching objective before / after the climb
++    double gbias_lambda = 0, gbias_before = 0, gbias_after = 0;
++    double gobj_bias_before = 0, gobj_bias_after = 0, handle_minority_after = 0;
+     int climb_steps = 0;
+ };
+ WindowStats assign_windows(std::vector<u64>& A, int m, int g, std::vector<std::pair<int, int>>& edges,
+@@ -1474,6 +1476,35 @@
+     int nvalid = 0;
+     std::vector<int> full144(np);  // 144 differences of each pair
+     for (int p = 0; p < np; p++) full144[p] = 144 * __builtin_popcountll(pairs.diff[p]);
++    // A positive lambda rewards global color imbalance in the handle set, as in
++    // as6-gproxy's B term. gobj is in moves, so subtract lambda*B after the
++    // matching sum; pair keys (1/3600 units), loss screens and caches stay exact.
++#ifdef LOCAL_BENCH
++    const double kHandleBias = env_real("D30A_GBIAS", 0.001);
++#else
++    constexpr double kHandleBias = 0.001;
++#endif
++    std::array<std::array<double, 256>, 8> bias_table{};
++    std::array<int, 64> handle_ones{};
++    for (int b = 0; b < 8; ++b) {
++        std::array<double, 8> weights{};
++        for (int bit = 0; bit < 8; ++bit) {
++            int& ones = handle_ones[8 * b + bit];
++            for (u64 a : A) ones += (a >> (8 * b + bit)) & 1;
++            weights[bit] = double((ones - 128) * (ones - 128)) / (63 - g);
++        }
++        for (int v = 1; v < 256; ++v)
++            bias_table[b][v] = bias_table[b][v & (v - 1)] + weights[__builtin_ctz(v)];
++    }
++    auto handle_bias = [&](u64 handle_mask) {
++        double bias = 0;
++        for (int b = 0; b < 8; ++b) bias += bias_table[b][(handle_mask >> (8 * b)) & 255];
++        return bias;
++    };
++    auto handle_bonus = [&](u64 handle_mask) {
++        return kHandleBias == 0 ? 0.0 : kHandleBias * handle_bias(handle_mask);
++    };
++    stats.gbias_lambda = kHandleBias;
+     // Same stable cost/tie order, with the measured layout for each compiler.
+ #if defined(__clang__)
+     // Only `valid[0..nvalid)` is traversed here. A nonzero rel stores the original rel + 1.
+@@ -1550,7 +1581,7 @@
+         dp_mc_scanned += dp_last;
+         dp_mc_count++;
+ #endif
+-        return double(total) / (need * 3600) + (need - matched) * 10.0;
++        return double(total) / (need * 3600) + (need - matched) * 10.0 - handle_bonus(handle_mask);
+     };
+     // ==== Window assignment: candidate screens and tables ====
+ 
+@@ -1627,7 +1658,7 @@
+         dp_mc_scanned += dp_last;
+         dp_mc_count++;
+ #endif
+-        return double(total) / (need * 3600) + (need - matched) * 10.0;
++        return double(total) / (need * 3600) + (need - matched) * 10.0 - handle_bonus(handle_mask);
+     };
+     // ==== Window assignment: candidate screens and tables ====
+ 
+@@ -2523,7 +2554,9 @@
+     cur = matching_cost(pairs.rel.data(), hm);
+     selected = candidate_selected;
+     screen_dirty = true;
+-    stats.gobj_before = cur;
++    stats.gbias_before = handle_bias(hm);
++    stats.gobj_bias_before = cur;
++    stats.gobj_before = cur + handle_bonus(hm);
+     best = cur;
+     best_mask = mask;
+     best_pol = pol;
+@@ -2596,7 +2629,18 @@
+     std::cerr << "as_screen = " << as_screen << "\nas_work = " << as_work << "\ndirect_checks = " << direct_checks
+               << "\ndirect_rejects = " << direct_rejects << '\n';
+     std::cerr << "path_internal = " << path_internal << '\n';
+-    stats.gobj_after = cur;
++    // The climb restored best_mask/order, but hm still describes its last
++    // accepted state. Diagnostics must use the returned best assignment.
++    u64 final_handle_mask = kActiveWindows;
++    for (u64 group : mask) final_handle_mask &= ~group;
++    stats.gbias_after = handle_bias(final_handle_mask);
++    stats.gobj_bias_after = cur;
++    stats.gobj_after = cur + handle_bonus(final_handle_mask);
++    for (u64 windows = final_handle_mask; windows; windows &= windows - 1) {
++        const int ones = handle_ones[__builtin_ctzll(windows)];
++        stats.handle_minority_after += std::min(ones, n - ones);
++    }
++    stats.handle_minority_after /= double((63 - g) * n);
+     for (int j = 0; j < g; j++) {
+         int x = order[j], e = 0;
+         while (e < ne && !(mask[e] >> x & 1)) e++;
+@@ -10693,6 +10737,14 @@
+             if (!attempt)
+                 std::cerr << "gobj_before = " << ws.gobj_before << "\ngobj_after = " << ws.gobj_after
+                           << "\ngopt_steps = " << ws.climb_steps << '\n';
++#ifdef LOCAL_BENCH
++            if (!attempt)
++                std::cerr << "gbias_lambda = " << ws.gbias_lambda
++                          << "\ngbias_before = " << ws.gbias_before << "\ngbias_after = " << ws.gbias_after
++                          << "\ngobj_bias_before = " << ws.gobj_bias_before
++                          << "\ngobj_bias_after = " << ws.gobj_bias_after
++                          << "\nhandle_minority_after = " << ws.handle_minority_after << '\n';
++#endif
+         }
+         comp.rebuild();
+         des = std::make_unique<Design>(A, M, G);

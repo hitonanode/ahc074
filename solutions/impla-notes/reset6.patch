@@ -1,0 +1,15 @@
+--- solutions/dcomp-combo-dual30/main.cpp
++++ solutions/d30a-reset6/main.cpp
+@@ -2683,7 +2683,11 @@
+     std::array<std::array<float, 256>, 256> gcost{};
+     std::vector<int> nc, nt, n1, pairOne;  // per column: units, targets, units / pairs of color 1
+     std::vector<std::array<int, 2>> hn;    // per handle: holes of color 0 and 1
+-    static constexpr double reset_strength = 2.0;
++#ifdef LOCAL_BENCH
++    inline static const double reset_strength = env_real("D30A_RESET", 6.0);
++#else
++    static constexpr double reset_strength = 6.0;
++#endif
+     std::vector<float> reset_targets;
+     std::vector<double> cval;  // colcost of the current counts
+     double cur = 0;

@@ -1,0 +1,351 @@
+{
+  "suite": "identity_final",
+  "runs": [
+    {
+      "run": "20261109-123400_final2-reset6",
+      "n": 200,
+      "wa": 0,
+      "traps": [],
+      "errors": [],
+      "source_sha256": "bd42447aeafa434510a0b160af8f0c01fe66e416dd871cd9edb88a3781127623",
+      "compile_command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "nice",
+        "-n",
+        "10",
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/home/sato/ahc074/runs/20261109-123400_final2-reset6/a.out",
+        "/home/sato/ahc074/runs/20261109-123400_final2-reset6/src/main.cpp"
+      ],
+      "outside_load": {
+        "mean_cores": 0.148,
+        "max_cores": 0.345,
+        "interval_sec": 2.0,
+        "seconds": 38.0
+      },
+      "helper_end_sec": {
+        "n": 200,
+        "mean": 1.039768825,
+        "se": 0.005085501506052494,
+        "p99": 1.1980458999999997,
+        "max": 1.24332
+      },
+      "req_sec": {
+        "n": 200,
+        "mean": 0.490463245,
+        "se": 0.0025752259151275636,
+        "p99": 0.56698872,
+        "max": 0.589412
+      },
+      "end_sec": {
+        "n": 200,
+        "mean": 1.5472208,
+        "se": 0.005820834991372279,
+        "p99": 1.7018471999999998,
+        "max": 1.71517,
+        "over": {
+          "1.8": 0,
+          "1.9": 0,
+          "1.92": 0,
+          "2.0": 0
+        }
+      },
+      "design_time_enabled": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort0": {
+        "n": 200,
+        "mean": 1024.0,
+        "se": 0.0,
+        "p99": 1024.0,
+        "max": 1024.0
+      },
+      "pace_effort1": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort2": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort3": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort4": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_light": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      }
+    },
+    {
+      "run": "20261109-123400_final2-reset6-2",
+      "n": 200,
+      "wa": 0,
+      "traps": [],
+      "errors": [],
+      "source_sha256": "bd42447aeafa434510a0b160af8f0c01fe66e416dd871cd9edb88a3781127623",
+      "compile_command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "nice",
+        "-n",
+        "10",
+        "clang++",
+        "-O2",
+        "-std=gnu++23",
+        "-march=native",
+        "-stdlib=libc++",
+        "-flto=auto",
+        "-ftrivial-auto-var-init=zero",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "-o",
+        "/home/sato/ahc074/runs/20261109-123400_final2-reset6-2/a.out",
+        "/home/sato/ahc074/runs/20261109-123400_final2-reset6-2/src/main.cpp"
+      ],
+      "outside_load": {
+        "mean_cores": 0.148,
+        "max_cores": 0.345,
+        "interval_sec": 2.0,
+        "seconds": 38.0
+      },
+      "helper_end_sec": {
+        "n": 200,
+        "mean": 0.997206515,
+        "se": 0.0044041929349872755,
+        "p99": 1.1021028000000002,
+        "max": 1.21853
+      },
+      "req_sec": {
+        "n": 200,
+        "mean": 0.472669045,
+        "se": 0.002015080635284446,
+        "p99": 0.5385989899999999,
+        "max": 0.561456
+      },
+      "end_sec": {
+        "n": 200,
+        "mean": 1.48834625,
+        "se": 0.004976214641974611,
+        "p99": 1.6131620999999998,
+        "max": 1.75923,
+        "over": {
+          "1.8": 0,
+          "1.9": 0,
+          "1.92": 0,
+          "2.0": 0
+        }
+      },
+      "design_time_enabled": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort0": {
+        "n": 200,
+        "mean": 1024.0,
+        "se": 0.0,
+        "p99": 1024.0,
+        "max": 1024.0
+      },
+      "pace_effort1": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort2": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort3": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort4": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_light": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      }
+    },
+    {
+      "run": "20261109-123400_final2-reset6-3",
+      "n": 200,
+      "wa": 0,
+      "traps": [],
+      "errors": [],
+      "source_sha256": "bd42447aeafa434510a0b160af8f0c01fe66e416dd871cd9edb88a3781127623",
+      "compile_command": [
+        "flock",
+        "-x",
+        "/home/sato/ahc074/runs/.lock",
+        "nice",
+        "-n",
+        "10",
+        "g++",
+        "-std=c++23",
+        "-O2",
+        "-DLOCAL_BENCH",
+        "-DCLOCK_SCALE=1.1",
+        "-march=native",
+        "-o",
+        "/home/sato/ahc074/runs/20261109-123400_final2-reset6-3/a.out",
+        "/home/sato/ahc074/runs/20261109-123400_final2-reset6-3/src/main.cpp"
+      ],
+      "outside_load": {
+        "mean_cores": 0.148,
+        "max_cores": 0.345,
+        "interval_sec": 2.0,
+        "seconds": 38.0
+      },
+      "helper_end_sec": {
+        "n": 200,
+        "mean": 1.03710116,
+        "se": 0.005712901683131579,
+        "p99": 1.2012521,
+        "max": 1.22278
+      },
+      "req_sec": {
+        "n": 200,
+        "mean": 0.49787655,
+        "se": 0.0022384961983074,
+        "p99": 0.5691303799999999,
+        "max": 0.579972
+      },
+      "end_sec": {
+        "n": 200,
+        "mean": 1.5518706,
+        "se": 0.006257219416187318,
+        "p99": 1.733884,
+        "max": 1.76361,
+        "over": {
+          "1.8": 0,
+          "1.9": 0,
+          "1.92": 0,
+          "2.0": 0
+        }
+      },
+      "design_time_enabled": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort0": {
+        "n": 200,
+        "mean": 1024.0,
+        "se": 0.0,
+        "p99": 1024.0,
+        "max": 1024.0
+      },
+      "pace_effort1": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort2": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort3": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_effort4": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      },
+      "pace_light": {
+        "n": 200,
+        "mean": 0.0,
+        "se": 0.0,
+        "p99": 0.0,
+        "max": 0.0
+      }
+    }
+  ],
+  "identity": [
+    {
+      "base": "20261109-122337_d30a-reset6",
+      "candidate": "20261109-123400_final2-reset6",
+      "n": 200,
+      "same": 200,
+      "different": []
+    },
+    {
+      "base": "20261109-122337_d30a-reset6-2",
+      "candidate": "20261109-123400_final2-reset6-2",
+      "n": 200,
+      "same": 200,
+      "different": []
+    },
+    {
+      "base": "20261109-122337_d30a-reset6-3",
+      "candidate": "20261109-123400_final2-reset6-3",
+      "n": 200,
+      "same": 200,
+      "different": []
+    }
+  ]
+}

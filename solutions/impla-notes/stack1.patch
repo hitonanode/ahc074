@@ -1,0 +1,45 @@
+--- solutions/dcomp-combo-dual30/main.cpp
++++ solutions/d30a-stack1/main.cpp
+@@ -2673,6 +2673,11 @@
+     };
+     static constexpr double kHoleWeight = 0.38;
+     inline static double kClimbProxyWeight = 0.5;
++#ifdef LOCAL_BENCH
++    inline static const double kFillerReturn = env_real("D30A_FRET", 0.8);
++#else
++    static constexpr double kFillerReturn = 0.8;
++#endif
+     XorShift rng{0x6176abcd1349ULL ^ deval_seed_salt()};
+     int G, H, U, need;  // generic windows, handles, units, pairs
+     std::vector<u64> A, hb;
+@@ -2683,7 +2688,11 @@
+     std::array<std::array<float, 256>, 256> gcost{};
+     std::vector<int> nc, nt, n1, pairOne;  // per column: units, targets, units / pairs of color 1
+     std::vector<std::array<int, 2>> hn;    // per handle: holes of color 0 and 1
+-    static constexpr double reset_strength = 2.0;
++#ifdef LOCAL_BENCH
++    inline static const double reset_strength = env_real("D30A_RESET", 6.0);
++#else
++    static constexpr double reset_strength = 6.0;
++#endif
+     std::vector<float> reset_targets;
+     std::vector<double> cval;  // colcost of the current counts
+     double cur = 0;
+@@ -3552,7 +3561,7 @@
+             p1 = p1 * (1 - p) + p0 * p;
+             p0 *= 1 - p;
+         }
+-        return std::max(0.0, expected - (1 - p0) - 0.6 * (1 - p0 - p1));
++        return std::max(0.0, expected - (1 - p0) - kFillerReturn * (1 - p0 - p1));
+     }
+     // The expected saving of the paper of a unit (colors yb at the handles, pair differences dy) of
+     // column c as a filler for a target (colors tb, its paper in column l with pair differences
+@@ -3561,7 +3570,7 @@
+     // excluded). A covered hole h_j saves a fix when the head of column j shows the other color, with
+     // probability p_j = (q[j + 1] - q[j]) / 2 (independent; q: prefix sums of twice the wrong-color
+     // probabilities of the heads for the target, resolved once before calls). The saving is the expected number of fixes, less 1
+-    // move if there is at least one (the placement) and 0.6 more if there are two (the later return),
++    // move if there is at least one (the placement) and kFillerReturn more if there are two (the later return),
+     // at least 0.
+     static double filler_gain(u64 tb, int l, u64 targetdiff, u64 yb, u64 dy, int c, const double* q) {
+         if (c == l) return 0;

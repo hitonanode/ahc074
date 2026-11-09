@@ -1,0 +1,46 @@
+{
+  "arms": [
+    [
+      "solutions/d30a-reset6",
+      [
+        "g++",
+        "-std=c++23 -O2"
+      ],
+      {}
+    ],
+    [
+      "solutions/d30a-gbias",
+      [
+        "g++",
+        "-std=c++23 -O2"
+      ],
+      {
+        "D30A_GBIAS": "0.001"
+      }
+    ],
+    [
+      "solutions/d30a-gbias",
+      [
+        "g++",
+        "-std=c++23 -O2"
+      ],
+      {
+        "D30A_GBIAS": "0.002"
+      }
+    ]
+  ],
+  "command": [
+    "/usr/bin/python3",
+    "-u",
+    "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/impla-notes/run.py",
+    "--compare",
+    "solutions/d30a-reset6",
+    "solutions/d30a-gbias",
+    "solutions/d30a-gbias",
+    "--seeds",
+    "0-500",
+    "-c",
+    "A gbias screen on reset6; lambda 0.001",
+    "--save-design"
+  ]
+}

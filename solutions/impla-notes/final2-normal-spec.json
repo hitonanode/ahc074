@@ -1,0 +1,29 @@
+{
+  "suite": "normal",
+  "arms": [
+    [
+      "solutions/final-time-pace-fix2",
+      "g++",
+      "-std=c++23 -O2 -DLOCAL_BENCH -DCLOCK_SCALE=1.1"
+    ],
+    [
+      "solutions/final2-reset6",
+      "g++",
+      "-std=c++23 -O2 -DLOCAL_BENCH -DCLOCK_SCALE=1.1"
+    ]
+  ],
+  "fixed": false,
+  "seeds": "0-2000",
+  "command": [
+    "/usr/bin/python3",
+    "-u",
+    "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/final2-reset6/run.py",
+    "--compare",
+    "solutions/final-time-pace-fix2",
+    "solutions/final2-reset6",
+    "--seeds",
+    "0-2000",
+    "-c",
+    "final2-reset6 normal; fixed=0"
+  ]
+}

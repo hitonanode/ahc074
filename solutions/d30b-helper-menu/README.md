@@ -1,0 +1,13 @@
+改良元: solutions/dcomp-combo-dual30
+
+注文処理のhelper計画に、前の商品紙のfiller化が可能な場合だけ、旧fillerの置き直しも併用する戻し方を追加する。従来の全返却状態で選んだ最良の単独helperと最良の2枚組だけを、追加状態から各1回試す。
+
+helperが覆うhandle穴を先に除き、残る穴に対して level_for と refill_or_return を使う。選んだhelper自身は列へ返してから通常どおり取り出す。汎用6枚が連続していない追加状態は棄却する。残したfillerの被覆を最後のhandle修復から除き、表示・操作の合法性・fillerを取り出せることを既存の検査で確認する。
+
+既定は D30B_HELPER_MENU=2 相当（前の商品紙を再利用できるときだけ）。LOCAL_BENCHのみ D30B_HELPER_MENU=0 で追加状態を止め、1で旧fillerの置き直しだけの候補も試せる。通常計画のrefill_or_returnはtemplateで分け、helper除外分岐を加えない。追加する計画は最大2個/注文。時計読み・時間打切り・反復回数変更はない。設計は変更しない。
+
+near-tie幅は既定0.3。コンパイル定数 D30B_TIE_GAP と、LOCAL_BENCHの同名環境変数で変更できる。候補poolと最終選択で同じ幅を使う。
+
+helper_menu_trials/valid は追加状態の試行数と完成して合法だった計画数。reuse は前の商品紙をfillerとして使った試行数、nogen は汎用層の連続配置を満たさず棄却した試行数。improved は従来のhelper計画より小さい未後処理plan_costが得られた注文数、cost_gain はその費用差の和（実得点改善とは異なる）。
+
+helper_menu_no_reuse は前の商品紙の再利用ができず、追加計画を早めに棄却した試行数。
