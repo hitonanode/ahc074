@@ -1,0 +1,152 @@
+{
+ "proposals": [
+  {
+   "lens": "request",
+   "ideas": [
+    {
+     "id": "helper-return-menu",
+     "title": "Helper plans with the full return menu (reposition/keep old fillers, keep the previous product as a filler)",
+     "category": "request",
+     "mechanism": "try_helpers (l.6848-6856) always returns the previous product with mode 1 and returns every visible old filler (return_visible_fillers(olds,u,1)) before inserting the helper. The ordinary menu offers fret_mode 4 (refill_or_return, l.5949) and ret_mode 3 (keep the previous product at a filler level, l.6225-6255), and those two families carry the highest family value (trial_log l.234: 108-130 and 92-116 per case). fret moves are 1.20 moves/order (71 % of orders) and ret 0.67 (stats of 20261109-003105), so a helper plan with fillers out pays a systematic return tax that the plain plans can avoid; post-processing deletions can drop a useless return but cannot synthesise a repositioning. Helper plans are chosen in 58 orders/case (interleave_selected).",
+     "change": "In try_helpers (l.6848): build a second clean state when fillers or top_d exist: (a) old fillers via refill_or_return(u, olds, pre_cov, placed) as in run_plan's fret_mode 4 branch (l.6258-6262) with pre_cov = holes the helper will cover (from Interleave goal: ~h_opq[x] & hmask & D's holes); (b) the previous product via level_for + move_to_level as in l.6225-6250. Run only the best single pick and the best pair pick (picks[0], pair_picks[0]) from that second state (2 extra run_interleave per helper order ~ +5-10 ms), record with keep(). Keep the existing mode-1 state for the other picks.",
+     "evidence": "stats 20261109-003105_dcomp-combo-dual30: fret 1.199 moves/order (71.2 % of orders), ret 0.665, help 0.074 (6.5 %), interleave_selected 57.7/case, interleave_trials 1543/case; family values trial_log l.234.",
+     "prior_attempts": "R4 argon-req-helperkeep (trial_log l.1140-1143, 11-06): helpers tried with old fillers left in place: -0.0029 +- 0.0023 % (200x2 fixed design) and -0.0021 % with delete-only tidy; closed as too small. Differences here: refill_or_return (reposition, not only keep), the previous product kept at a filler level (never tried for helper plans), and the pipeline now has NS_ALTERNATE/second parent which exploit extra families (alt1 -0.034 %). Expect the gain to stay small.",
+     "expected_gain_pct": 0.008,
+     "gain_range": "0.000-0.015 %",
+     "time_cost_ms": 8,
+     "effort_hours": 2,
+     "evaluation": "--compare dual30 vs candidate --design-from 20261109-000022_dcomp-combo-dual30 --orders 4 --seeds 0-500 (SE ~0.0015 %); adopt into a stack if <= -0.005 % at >= 2 SE and req_sec +<= 10 ms; confirm with normal --compare 2000 only as part of a stack reaching 0.03 %.",
+     "probe": "Count in try_helpers how many helper orders have visible old fillers / a top product (helper_orders 567/case in probe 20261109-095331; filler_helper_orders 160 and top_helper_orders 81 are the subsets where the paper is itself a helper). Cheaper go/no-go: implement (a) only for picks[0] and run 200 seeds fixed design.",
+     "probe_result": "Not run as a plan variant. Counting probe 20261109-095331_if2-tophelper-probe (100 seeds, --design-from 20261109-000022): try_helpers reaches the clean state in 567 orders/case; 160 of them have an old filler listed in helpers[u], 81 have the previous product listed.",
+     "risks": "R4 says the same direction was ~0; refill_or_return inside the helper state must not reorder the generic sheets (helper goals assume order[1..M] are the sheets); +8 ms must be paid from design (0.0025 %)."
+    },
+    {
+     "id": "direct-helper-from-top",
+     "title": "Use the previous product or an old filler as the helper directly, without returning and re-digging it",
+     "category": "request",
+     "mechanism": "try_helpers returns top_d and the visible fillers first (l.6851-6853) and then only considers helpers at column depth <= 5 (l.6878), charging dep digs. A paper already out of its column (the previous product on top, or a visible filler) that is in helpers[u] could be moved into the generic layer with one move (same as its return), saving the generic moves and the re-dig, at the price of leaving it out (filler charge 0.7, later return).",
+     "change": "In try_helpers before return_paper(top_d): if top_d is in interleave->helpers[u] (or a visible filler is), build a variant clean state that returns the other fillers but not that paper, compute Interleave::best(s,h,future) with dep = 0 from that state, add it to picks with score pk.distance + 1.8 + fixes (no dep), and in run_interleave skip the dig when the paper is not in its column (insert_helper must accept a paper at depth 0 of the stack / a filler level). Only orders where the hit exists (81 + 160 per case) pay anything.",
+     "evidence": "Probe 20261109-095331_if2-tophelper-probe (100 seeds, fixed designs of 20261109-000022): top_helper_orders 81.3/case, but top_helper_better (generic distance strictly lower than the plain generic plan) only 7.4/case with total saving 7.9 generic moves/case (i.e. almost always 1 move), top_helper_deep 1.5 (excluded today by dep > 5); filler_helper_orders 159.6/case. Since each use leaves the paper out (0.7 charge + a later return), the net is <= ~2-3 moves/case.",
+     "prior_attempts": "trial_log l.230 (11-01, imp- line): '補助紙の使い回し（前の紙を汎用紙の間へ直接）' chosen in only 4 of 161 cases, dropped. The Interleave tables are richer now (helper_papers 3431/case) but the probe shows the same picture: the generic saving is rarely > 1 move.",
+     "expected_gain_pct": 0.005,
+     "gain_range": "0.000-0.012 %",
+     "time_cost_ms": 3,
+     "effort_hours": 2,
+     "evaluation": "--compare --design-from 20261109-000022 --orders 4 --seeds 0-500; adopt into a stack only if <= -0.004 % at 2 SE.",
+     "probe": "Done: counting probe (above). Next go/no-go: implement for the top product only and run 200 seeds fixed design; stop if not <= -0.003 %.",
+     "probe_result": "20261109-095331_if2-tophelper-probe: 7.4 orders/case with a strict generic saving (7.9 moves/case gross), 81 orders/case with the top product listed as a helper, 160 with an old filler listed.",
+     "risks": "Gross bound ~8 moves/case before the 0.7 charge and the later return; realistic net near 0. Helper goals assume the sheets occupy order[1..M], so the variant state must keep that invariant."
+    },
+    {
+     "id": "tie-gap-sweep",
+     "title": "Re-sweep the near-tie window kTieGap (0.3) and the tie pool rule on dual30",
+     "category": "request",
+     "mechanism": "The near-tie correction (l.8727-8818, legal-tie-fix -0.068 %) competes only plans within kTieGap = 0.3 of the chosen plan_cost and keeps one plan per end order (note l.8739). The pool now receives plans from every stage (menu l.9051, ALT l.9130, expanded l.9229, neutral l.9268/9304/9355), and tie_switches are 221/case out of 700 decisions, so the window is a live knob never re-swept since the fit (ridge on deval-helper-wide rollouts). Widening lets the fitted correction act on more decisions; narrowing protects against mis-scaled features; either direction can give a small solid step.",
+     "change": "Make kTieGap (l.8727) an env-overridable constant under LOCAL_BENCH (and the pool pre-filter at l.8740 uses the same constant); run 0.2, 0.4, 0.5. Optionally a second variant: keep two plans per end order with different moved-paper multisets in note().",
+     "evidence": "stats 20261109-003105: tie_decisions 700/case, tie_switches 221/case, tie_rejected 0. The fit's own remark (trial_log legal-tie-fix section, '差 0.3 以上の代替は損') was made on deval-helper-wide, before ALT/dual25/dual30 enlarged the pool.",
+     "prior_attempts": "legal-tie-fix chose 0.3 at fit time; refit on dual25 +0.006 %, extra features n.s., GBM no better, correction inside plan_cost +0.171 %, use for neutral accept/reject +0.0045 %, pool after double-move merge +-0. No recorded sweep of the gap or the pool rule on the current pipeline.",
+     "expected_gain_pct": 0.004,
+     "gain_range": "-0.005..+0.008 % (any of the three values)",
+     "time_cost_ms": 0.5,
+     "effort_hours": 1,
+     "evaluation": "One --compare dual30 vs 3 variants --design-from 20261109-000022 --orders 4 --seeds 0-500 (SE ~0.0015 %). Take the best value only if <= -0.004 % at 2 SE; it stacks with other request-only steps.",
+     "probe": "The 500-seed fixed-design compare is itself the probe (about 6 min of lock time for 4 solutions).",
+     "probe_result": "",
+     "risks": "The fitted coefficients were trained with alternatives within 0.3; outside it the linear correction is extrapolated and may pick worse plans (the fit note says alternatives beyond 0.3 lost). Expected effect tiny."
+    },
+    {
+     "id": "retire-expanded-pass",
+     "title": "Retire the nearly dead expanded-plan pass (Step 8b) and its screening",
+     "category": "speed",
+     "mechanism": "With POST_CANDIDATES = kPostCandidates = 6 both collectors receive the same candidates and Step 6 caches them all, so Step 8b (l.9142-9252) mostly skips: f2_plan_skipped 3541/case, f2_plan_screens 27.8/case, f2_plan_wins 0.58/case, f2_plan_reused 0. The remaining screens (delete-only post_optimize) and the loop bookkeeping cost a few ms for 0.58 wins per 1024 orders.",
+     "change": "Set PLAN_LIMIT 0 / skip the block at l.9142 when POST_CANDIDATES == kPostCandidates (or delete expanded_candidates and the second collect_future at l.8940-8942). Alternatively redirect the width-6 slot to a different family (shortlist by moved-paper multiset) if the wins turn out to be worth more than their time.",
+     "evidence": "observe.py stats 20261109-003105_dcomp-combo-dual30: f2_plan_screens 27.845, f2_plan_skipped 3540.93, f2_plan_wins 0.579, f2_plan_reused 0. REPORT11: PLAN_LIMIT 1 +0.0003 % for -0.2 ms; pl2 was +3.0 ms when pc was 4.",
+     "prior_attempts": "pl2 adopted when POST_CANDIDATES (5) > kPostCandidates (3-4); REPORT11 PLAN_LIMIT 1 +0.0003 %/-0.2 ms; EXP4 +0.0062 %/-9.4 ms. No measurement since pc = 6 made the lists identical.",
+     "expected_gain_pct": 0.001,
+     "gain_range": "-0.002..+0.002 % (score), -2..-4 ms",
+     "time_cost_ms": -3,
+     "effort_hours": 0.5,
+     "evaluation": "--compare --design-from 20261109-000022 --orders 4 --seeds 0-500: accept if the score change is within +0.002 % and req_sec drops >= 2 ms (the saved time is worth ~0.001 % of design in the final version). Only as part of a stack.",
+     "probe": "Add a timer around l.9142-9252 (CF_SCOPE) and read its mean in stderr on 100 fixed-design seeds; if < 2 ms, drop the idea.",
+     "probe_result": "",
+     "risks": "Gain is below the noise of any decision; worth doing only as a free cleanup together with other request-only steps."
+    }
+   ],
+   "notes": "Overall verdict from this angle: the request side is at its measured bound and I found no untried mechanism that plausibly reaches 0.03 % alone; the four ideas above are small steps (sum of expectations ~0.02 %) and I would rank helper-return-menu first, tie-gap-sweep second (cheapest), the other two as fillers of a stack.\n\nChecked and rejected (with the reason):\n- Generic-layer value as an MDP / 2-step lookahead instead of future[s]: closed three times (audit3-mdp +0.002 % '1 段先読みがすでに最適' trial_log l.127; generic-mdp policy gap 0.00008 moves/order l.362; genvalue adding generic_share*future to plan_cost +0.270 % l.539).\n- Menu family {ret_mode 3, fret_mode 5}: already covered — run_joint treats the previous product x0 as a joint-DP filler candidate (kOpReuse at l.6170-6180), so the menu's omission is not a gap.\n- Horizon (last orders): closed by if4-horizon 20261109-093425 (-0.000 %); scaling over the last few orders can only be smaller.\n- Rollout / 1-step exact choice among candidates: astra-endval -0.024 +- 0.014 % at 255x compute (l.324), closed-loop 500x -0.003 % (legal-notes); the chapter-4 bound is mostly unrealisable foresight.\n- adaptive_insert dig-depth weight, helper depth limits, pair candidates, beam, chain length: all |diff| <= 0.003 % (l.436); delprobe (l.639-649) shows the insert depths are locally optimal in realised cost despite the 3-5x under-pricing.\n- Tie pool extension to neutral/expanded plans: note() is already called from every stage (l.9051, 9075, 9130, 9229, 9268, 9304, 9355); 'expanded/near-tie pool as second parent' 0 or worse (l.1785).\n- Funding sub-rate request additions from the design budget (NEUTRAL_WIDTH 12 -0.0051 %/+11 ms, REPEAT_MIN 0 -0.0058 %/+23 ms, gap 1.25 -0.0022 %/+12 ms, REPORT11): together about -0.013 % for +46 ms, which the final version pays at ~0.03 %/100 ms = +0.014 %; net ~0. Not proposed.\n- Repeated targets: i.i.d. uniform, P(same next) = 1/256; a repeat is already 0 moves; the pair-partner case (d == top0, helpers skipped) is ~0.55 orders/case.\n- Stationary tables vs observed orders: nothing to learn (uniform i.i.d.).\n\nProbe run: 20261109-095331_if2-tophelper-probe (solutions/if2-tophelper-probe, counters only, output identical to dual30; 100 seeds, --design-from 20261109-000022_dcomp-combo-dual30). Counters per case: helper_orders 566.9, top_helper_orders 81.3, top_helper_better 7.4, top_helper_saving 7.9, top_helper_deep 1.5, filler_helper_orders 159.6. The two never-run directories solutions/if2-horizon and if2-horizon-b from the earlier proposer were not touched (the mechanism is closed by if4-horizon)."
+  },
+  {
+   "lens": "audit",
+   "ideas": [
+    {
+     "id": "mono-columns",
+     "title": "Relax the hub-era rule 'both handle colours in every column' (lone minority unit in 18 of 25 columns)",
+     "category": "design",
+     "mechanism": "colcost adds 1e5 when a column lacks a handle colour (l.2736-2737, colcost40 l.2743) and Design::initialize seeds every column with one unit of each colour (take(c, v) l.2855). The premise is from the hub era: only the column's own papers could fix its handle. Today a minority-colour demand at handle c can also be covered by a filler from a deeper column (a column-c'' paper, c'' > c, is opaque at h_c; fill/relevel/fdig/chain already cover ~0.8 moves/order of holes) or by a perforated head, and the MDP keeps the rarely demanded minority unit deep, so digging to it in a 10-14 unit column costs far more than a filler (fill 1 + fret ~1). In 50 cases of the run, 18.4 of the 25 columns hold exactly one unit of one colour at their own handle (from @paper col/hcolor), i.e. the rule binds ~18 of 185 unit placements and forces the pairing/assignment around a unit that is mostly dead weight except in the deepest columns. Removing the hard rule (except for the deepest 1-2 columns, where no deeper filler exists) frees the anneal to place those ~18 units where their column/hole costs are lowest.",
+     "change": "Design: in colcost_of/colcost40 (l.2735-2745) replace the 1e5 term by a soft cost for c < H-2: minority hole demand min(hn[c][0], hn[c][1]) x kMonoFill (about 1.7 = fill + return, in the same per-256-orders units as hcost, times 4*kHoleWeight scaling as hole_cost_of uses); keep 1e5 for the deepest two columns. Drop the forced both-colour seeding in initialize (l.2855 loop) for those columns. Request side: fix_handles/set_handle (l.5668-5692) and handle_fix_cost in adaptive_insert must treat an absent colour as 'no dig possible' (cost large, so the interval DP l.5850 / choose_fillers picks a deeper-column filler); ColumnMdp fix[b] for an absent colour = large; init_adaptive's adaptive_holes depth-of-first-paper term uses a cap depth (e.g. column length) when absent. improve_initial_columns and V's State (xy, probabilities) tolerate 0 units of a colour (check division by zero in head_probability: n = x+y+reset > 0 already). Keep the Design::initialize fallback (return false) only for the deepest columns.",
+     "evidence": "run 20261109-003105_dcomp-combo-dual30, seeds 0-49: 18.4/25 columns per case have exactly one unit of one hcolor (awk over @paper col and @paper hcolor); fill 0.425 + relevel 0.221 + fdig 0.158 + chain moves per order show fillers already cover holes routinely (observe.py stats). hcost (l.2740) already prices a minority demand at ~0.76 regardless of whether the column has that colour, so the design model needs only the soft term.",
+     "prior_attempts": "Hub era (trial_log l.25): 'odd column sizes break colour alternation'; l.332 removed stale alternation rules in initialization (no effect) but kept the hard constraint. No experiment relaxing the both-colours rule since fillers (hole-level, 11-01), perforation and the Column MDP (11-05) exist. Differs: the rule itself is removed for non-deepest columns, with the request side guarded.",
+     "expected_gain_pct": 0.03,
+     "time_cost_ms": 5,
+     "effort_hours": 2.5,
+     "evaluation": "First a mechanism check (30 min): a replay script over the run counting how often the lone minority paper of each column is moved with label fix (if it is rarely used in columns c < 20 the premise holds). Then --compare dual30 vs candidate, 500 seeds; continue to 2000 only if <= 0 at 500 (design change, SE 0.026% at 2000). Also check E stays 0 (plan_failures) and req_sec.",
+     "probe": "Count fix moves of lone-minority papers per column from queries/@paper of run 20261109-003105 (no solver run); then a 200-seed compare for WA/E safety.",
+     "probe_result": "",
+     "risks": "Request-side invariants ('heads per column/colour exist', fix_handles digging until the right colour) can loop or produce invalid plans if any path is missed: E = 384 moves each. The anneal may make too many columns monochrome if kMonoFill is too low (minority demands then always need a filler, and when the deeper filler itself is dug out the cover is lost). V was fit on designs with both colours everywhere and may misjudge monochrome columns. 2.5 h is tight for the request-side guards.",
+     "gain_range": "-0.10 .. +0.08 %"
+    },
+    {
+     "id": "finish-return-07",
+     "title": "Align the finishing stages' filler return cost (0.6) with the request side (kFillerCharge 0.7, realised ~1 fret per filler)",
+     "category": "design",
+     "mechanism": "The filler climb proxy, the head-aware rematch (ProbabilityHead) and perforation profits price a filler as 'fixes saved - 1 placement - 0.6 return' (covered_gain l.3555). The 0.6 dates from when the request side charged kFillerCharge 0.6 (11-04 morning); the request side moved to 0.7 (11-04, -0.011%, and 0.65/0.75 are worse on dual25), and the realised return is about one move per filler (fret 1.199/order vs fill+relevel+reuse+help ~0.8/order plus kept products). The finishing therefore overvalues head papers as fillers by ~0.1-0.4 per filler relative to what the planner will actually do, so the column heads it arranges (climb exchanges, rematch, holes) are biased toward filler duty that the request side does not take.",
+     "change": "l.3555: 0.6 -> kFillerReturn (0.7 first, 0.8 as a second value); the same constant wherever ProbabilityHead (l.3822-3950) or Perforation (l.9510-9984) duplicates the '1 placement + 0.6 return' arithmetic (grep found only l.3555, so the others call covered_gain). Leave kClimbProxyWeight, rematch weights and perforation 0.7 as they are (they multiply this value).",
+     "evidence": "stats of 20261109-003105: fret 1.199, fill 0.425, relevel 0.221, reuse 0.095, help 0.074 moves/order; kFillerCharge 0.7 (l.4907). Finishing-only changes move dv_best with a paired SE of 0.0001-0.0006 V at 200 seeds (round 1), so the direction is cheap to read.",
+     "prior_attempts": "kFillerCharge sweeps on the request side (trial_log l.206, 435; REPORT12 l.70-71); climb lambda 0.4/0.5/0.6 (l.496), rematch weights 0.7-1.25, perforation 0.75/0.80: all tuned around the fixed 0.6 return. No sweep of the return constant itself is recorded.",
+     "expected_gain_pct": 0.012,
+     "time_cost_ms": 0,
+     "effort_hours": 1,
+     "evaluation": "Step 1: 200-seed compare dual30 vs 0.7 vs 0.8, read dv_best paired difference (go if dv_best drops >= 0.001 V, ~0.015-0.02%). Step 2: 2000-case --compare for the chosen value (design change; merge only if <= -0.03% alone or as part of a stack).",
+     "probe": "200 seeds, dv_best paired difference for 0.7 and 0.8 (two candidates in one compare).",
+     "probe_result": "",
+     "risks": "V's own Donors model has its own filler pricing; if V shares the 0.6 bias, dv_best may not show the gain and the 2000-case compare is the only judge. Small effect; could be lost in the ±0.026% noise.",
+     "gain_range": "-0.01 .. +0.03 %"
+    },
+    {
+     "id": "gc-realized",
+     "title": "Generic cost weight: the design prices 2*gcost per pair but the request side now realises only 0.92 of it",
+     "category": "design",
+     "mechanism": "The anneal (gc = 2*gcost, l.2755), the window assignment (gobj key 5*both_of = 2*gcost in 1/3600 units, l.1501/1578), initialize (l.2809/2823) and the rematch (l.4091) all price a pair's generic moves at the exact comparator mean. On 11-04 the realised generic moves matched the model (1.358 vs 1.360, trial_log l.450). In dual30 the realised value is 1.247 moves/order (role generic; label gen 1.212 + repair 0.035) against model_gc 1.360, an 8% gap that appeared with the wider helpers (help 0.074/order replaces ~2 gen moves each), eject repairs and the neutral search. The design therefore trades too many hole/column costs for generic savings and the pair choice is biased toward low-gcost pairs.",
+     "change": "Introduce kGenericRealized = 0.9: l.2755 gcost*2 -> gcost*2*kGenericRealized; l.2809, l.2823, l.4091 likewise; in gobj keep 5*both_of but rescale the other terms to 2000*hd + 5*both_of + 160*d (l.1501, l.1578; keys stay below the 17 cost bits noted at l.1478) and the missing-pair penalty by the same 10/9 factor. GenericTable in V untouched (V was fit with helpers present).",
+     "evidence": "stats of 20261109-003105: generic_moves 1277/1024 = 1.247, model_gc 1.360, help 0.074, hdig 0.026; trial_log l.450 (11-04: 1.358 vs 1.360).",
+     "prior_attempts": "11-02: design gc x0.9/x0.8 +0.035..+0.189% and gobj both_of weight 5->4/6 +0.167/+0.057% (trial_log l.219, l.332), both when realised generic moves equalled the model. Counter-evidence: V3's gc coefficient is 1.03 (l.1381, fit 11-07 with helpers), suggesting the marginal realised cost is still ~1 and the gap is a constant offset; this idea is therefore a small, uncertain step.",
+     "expected_gain_pct": 0.01,
+     "time_cost_ms": 0,
+     "effort_hours": 1,
+     "evaluation": "2000-case --compare dual30 vs candidate (design change, SE 0.026%); 500 first, extend only if <= 0. dv_best is too noisy for anneal changes (SE 0.003 V at 200 seeds) to screen it.",
+     "probe": "none cheaper than the 500-seed compare; optionally a replay to see whether the gen saving concentrates in high- or low-gcost pairs (if concentrated, a per-pair helper-aware gcost would be the right change instead of a uniform factor).",
+     "probe_result": "",
+     "risks": "If the gap is a constant offset (V3 slope 1.03), a uniform factor changes the pairing for nothing and may cost up to +0.04%.",
+     "gain_range": "-0.04 .. +0.03 %"
+    },
+    {
+     "id": "perf-after-select",
+     "title": "Perforate and late-rematch only the candidates that can win (branch candidates 0-3 win 12%)",
+     "category": "speed",
+     "mechanism": "Every one of the 9 candidates gets perforation (6.3 ms) + late rematch (4.4 ms) before V. dv_chosen shows ids 0-3 win only 12.3% (76/59/58/53 of 2000) while the chain ids 5/7/8 win 18/24/29%. Perforation changes the score by ~0.1% (perf_donor_gain 0.012 moves/order) nearly uniformly, so V can rank the four branch candidates before perforation and only the branch that becomes best_assignment needs finishing to the end (it is the start of the chain anyway). Saves ~3 x 10.7 ms = 32 ms of design time per case, worth ~0.01% at the design rate in the time-based final version; output changes only when an unperforated branch ranks differently (rare, since the perturbation is small and shared).",
+     "change": "In the finish lambda (l.10716-10888) add a flag skipping steps 4-5 for extra=0; in the candidate loop (l.10889-10945) evaluate V on the unperforated branches, pick the best branch, finish it fully (perforation + late rematch) and set it as best_assignment before ids 4-8. Keep chosen_log consistent.",
+     "evidence": "dv_chosen histogram of run 20261109-003105 (ids 0..8: 76, 59, 58, 53, 164, 355, 172, 486, 577); per-candidate perforation 6.8 ms + late rematch 5.1 ms (Task 8 profile); perf_donor_gain 0.012, perf_owner 0.0035 moves/order.",
+     "prior_attempts": "successive halving by raw V (+0.002%) dropped candidates by V before finishing them completely; this keeps all 9 candidates and removes only the near-uniform perforation step from the 3 losing branches. Not recorded otherwise (map open question 11).",
+     "expected_gain_pct": 0.008,
+     "time_cost_ms": -32,
+     "effort_hours": 1,
+     "evaluation": "200-seed compare on dv_best and the count of cases where the chosen branch differs (expect < 5%); then fixed-iteration 2000 compare must be within noise, and the gain is realised only through the final version's time budget (31.9/8/20/16% shares).",
+     "probe": "200 seeds: dv_finish_sec change and share of cases whose winning branch differs from dual30's.",
+     "probe_result": "",
+     "risks": "If V ranks unperforated branches differently in more cases than expected, the selection loses part of the -0.165% branch gain. Pure time saving, so it needs the time-based final to pay out.",
+     "gain_range": "0 .. +0.015 %"
+    }
+   ],
+   "notes": "Checked and rejected (with evidence): (1) Horizon / last-order end-weight 0: already probed by other proposers (solutions/if2-horizon, if4-horizon exist with that exact change), so not re-proposed; it remains the cleanest request-only stacker (~0.01-0.02%, measurable with --design-from --orders 4). (2) The 'one initial legal cap move' comment at l.10027 is stale but harmless: out_index (l.11280) prints the cap as paper 0, so no move is emitted (seed 0 r=0 has no cap move). (3) Clang/GCC path differences (20 #if sites: live lists in evaluate_move, matching key layout l.1478, next_colors in adaptive_next_cost l.4850/5142, PREFIX 0 vs 1 l.7009, screened evaluate l.7433/7535) are meant to be output-identical; the ia team's run 20261109-094911 evaluates Clang arms, so I did not spend a run on it. (4) Expanded plan pass (Step 8b): f2_plan_screens 27.8/case, f2_plan_skipped 3541, f2_plan_wins 0.58/case: nearly dead as suspected, but removing it saves ~0.2 ms and nothing to gain. (5) Design::initialize hd weight 0.65 vs gobj 0.5 (l.2809 vs l.1343) is a stale leftover from search-hd (11-02), but the anneal fixes initial pairs (PAIR_EXACT_INIT flat), so no proposal. (6) hcost 0.76 per mismatch and the dig model were verified against the request side on 11-04 (trial_log l.450: 0.73-0.81 per mismatch, digs 2.884 vs 2.955); the only term that drifted since is the generic cost (idea gc-realized). (7) Candidate chain vs branch length: dv_chosen rises monotonically along the chain (ids 4-8: 164/355/172/486/577) but the 10th candidate was -0.003..-0.0045% for 12 ms, i.e. at the design rate, so no reallocation idea. (8) V refit for dual30 (stale since flex125/warm/nine) would need the deval-seed data pipeline (7 designs x 8 orders x 500 seeds) - too long for 2.5 h and 'refit on branch candidates did not help'. (9) Window-anneal and design-anneal internals, filler weights, kHoleWeight depth shapes: round-1 territory or closed twice (l.219, lastw). No probe runs were made: the only informative cheap probe for these ideas is dv_best at 200 seeds for finishing-only changes (ideas 2 and 4); the lock was busy with the ia compare and the deadline was short. The mono-columns idea is the only one with >= 0.03% potential; it carries the most implementation risk (request-side invariants)."
+  }
+ ]
+}

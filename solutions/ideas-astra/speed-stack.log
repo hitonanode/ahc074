@@ -1,0 +1,46 @@
+[pahcer_run] run-id: 20261109-095348_dcomp-combo-dual30
+[pahcer_run] run-id: 20261109-095348_ia-speed-stack
+[pahcer_run] run-id: 20261109-095348_dcomp-combo-dual30-2
+[pahcer_run] run-id: 20261109-095348_ia-speed-stack-2
+[pahcer_run] 4 個の解法を比べます (seed 200〜499、24 並列、seed ごとに続けて実行)
+[pahcer_run] 30/300 seed 完了 (経過 0.2 分、残り約 1.7 分)
+[pahcer_run] 60/300 seed 完了 (経過 0.3 分、残り約 1.1 分)
+[pahcer_run] 90/300 seed 完了 (経過 0.4 分、残り約 0.9 分)
+[pahcer_run] 120/300 seed 完了 (経過 0.5 分、残り約 0.7 分)
+[pahcer_run] 150/300 seed 完了 (経過 0.7 分、残り約 0.7 分)
+[pahcer_run] 180/300 seed 完了 (経過 0.8 分、残り約 0.5 分)
+[pahcer_run] 210/300 seed 完了 (経過 0.9 分、残り約 0.4 分)
+[pahcer_run] 240/300 seed 完了 (経過 1.0 分、残り約 0.2 分)
+[pahcer_run] 270/300 seed 完了 (経過 1.1 分、残り約 0.1 分)
+[pahcer_run] 300/300 seed 完了 (経過 1.2 分、残り約 0.0 分)
+Process ForkPoolWorker-21:
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/multiprocessing/process.py", line 317, in _bootstrap
+    util._exit_function()
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 336, in _exit_function
+    debug('running all "atexit" finalizers with priority >= 0')
+  File "/usr/lib/python3.12/multiprocessing/util.py", line 48, in debug
+    def debug(msg, *args):
+    
+  File "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/scripts/pahcer_run.py", line 133, in _raise_interrupted
+    raise Interrupted()
+jflags_pahcer.Interrupted
+[pahcer_run] 比較が終わりました
+  差は最初の解法に対するケースごとの log スコア比の平均（負なら良い）。± は標準誤差。勝/分/敗は最初の解法よりスコアが小さい/同じ/大きいケースの数
+  run-id                                         ケース  WA      平均スコア     平均E      平均T        差       ±         勝/分/敗     平均時間
+  20261109-095348_dcomp-combo-dual30              300   0     10258.57    0.000   10258.6   +0.000%  0.000%     0/300/   0    1.435s
+    実行時間: 99% 点 1.577 s、99.9% 点 1.620 s、最大 1.620 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.768 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (300 ケース中)
+  20261109-095348_ia-speed-stack                  300   0     10258.57    0.000   10258.6   +0.000%  0.000%     0/300/   0    1.438s
+    実行時間: 99% 点 1.577 s、99.9% 点 1.620 s、最大 1.620 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.735 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (300 ケース中)
+  20261109-095348_dcomp-combo-dual30-2            300   0     10268.32    0.000   10268.3   +0.094%  0.072%   137/  1/ 162    1.416s
+    実行時間: 99% 点 1.522 s、99.9% 点 1.571 s、最大 1.571 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.677 s、1.8 s 超え 0・1.9 s 超え 0・2.0 s 超え 0 ケース (300 ケース中)
+  20261109-095348_ia-speed-stack-2                300   0     10268.32    0.000   10268.3   +0.094%  0.072%   137/  1/ 162    1.410s
+    実行時間: 99% 点 1.522 s、99.9% 点 1.672 s、最大 1.672 s (2 s 超え 0 ケース)
+    end_sec (ジャッジでの時間の見積り): 最大 1.806 s、1.8 s 超え 1・1.9 s 超え 0・2.0 s 超え 0 ケース (300 ケース中)
+  pahcer/ への記録 : した
+  所要時間         : 1.2 分 (ケースの実行。待ち・コンパイル・指標の計算を除く)
+  評価の外の負荷: 平均 0.17 コア、最大 0.48 コア (2 秒ごとに 74.0 秒間測定)
+[pahcer_run] ダッシュボードを更新しました: /home/sato/ahc074/runs/report.html

@@ -1,0 +1,93 @@
+{
+  "runs": [
+    {
+      "run": "20261109-132432_d30a-reset6",
+      "n": 2000,
+      "wa": 0,
+      "source_unchanged": true,
+      "status": "ok"
+    },
+    {
+      "run": "20261109-132432_d30b-cover040",
+      "n": 500,
+      "wa": 0,
+      "source_unchanged": true,
+      "status": "ok"
+    },
+    {
+      "run": "20261109-132432_d30b-cover045",
+      "n": 500,
+      "wa": 0,
+      "source_unchanged": true,
+      "status": "ok"
+    },
+    {
+      "run": "20261109-132432_d30b-cover050",
+      "n": 2000,
+      "wa": 0,
+      "source_unchanged": true,
+      "status": "ok"
+    },
+    {
+      "run": "20261109-134929_d30a-reset6",
+      "n": 500,
+      "wa": 0,
+      "source_unchanged": true,
+      "status": "ok"
+    },
+    {
+      "run": "20261109-134929_d30b-ramp-a",
+      "n": 500,
+      "wa": 0,
+      "source_unchanged": true,
+      "status": "ok"
+    },
+    {
+      "run": "20261109-134929_d30b-ramp-b",
+      "n": 500,
+      "wa": 0,
+      "source_unchanged": true,
+      "status": "ok"
+    }
+  ],
+  "prefix_check": [
+    {
+      "run": "20261109-133747_d30a-reset6",
+      "wa": 0,
+      "jflags": {
+        "compiler": "g++",
+        "flags": "-std=c++23 -O2"
+      }
+    },
+    {
+      "run": "20261109-133747_d30b-cover050",
+      "wa": 0,
+      "jflags": {
+        "compiler": "g++",
+        "flags": "-std=c++23 -O2 -DNEXT_PREFIX_CHECK"
+      }
+    },
+    {
+      "run": "20261109-133747_d30b-cover050-2",
+      "wa": 0,
+      "jflags": {
+        "compiler": "clang++",
+        "flags": "-std=c++23 -O2 -march=native -stdlib=libc++ -ftrivial-auto-var-init=zero -DNEXT_PREFIX_CHECK"
+      }
+    }
+  ],
+  "normal_smoke_designs": [
+    {
+      "candidate": "20261109-132202_d30b-cover040",
+      "designs_equal": 20
+    },
+    {
+      "candidate": "20261109-132202_d30b-cover045",
+      "designs_equal": 20
+    },
+    {
+      "candidate": "20261109-132202_d30b-cover050",
+      "designs_equal": 20
+    }
+  ]
+}

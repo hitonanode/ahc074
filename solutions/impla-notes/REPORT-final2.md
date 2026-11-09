@@ -1,0 +1,61 @@
+[final2-reset6/submit.cpp](/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/final2-reset6/submit.cpp) を作成しました。指定した全検査は合格です。fix2 に reset6 と測定に基づく設計時間比率を統合し、設計予算1.22秒、pacerの1.88／1.92秒、NOINIT、2件の範囲外参照修正を保持しました。
+
+通常の2000件比較は **-0.1112 ± 0.0253%**、勝/分/敗 **1066/4/930**、両案WA 0です。通常比較でも改善を確認できました。 ±はケースごとのlogスコア比の標準誤差です。
+
+|ファイル|bytes|SHA-256|
+|---|---:|---|
+|[main.cpp](/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/final2-reset6/main.cpp)|600,968|`bd42447aeafa434510a0b160af8f0c01fe66e416dd871cd9edb88a3781127623`|
+|[submit.cpp](/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/final2-reset6/submit.cpp)|511,136|`0b6d3bb5f7195b0ec92d680158aff81b67d5959976104fcc6bcfb98826448547`|
+
+提出上限524,288 bytes以内です。`unexpand --first-only -t 4` だけで作成し、trim_toolによる短縮は使っていません。
+
+固定反復・各200件の出力一致は、次の3条件すべてで200/200一致、WA・trapとも0です。時間比率の更新前後で確認しました。LOCAL_BENCHでは全注文effort 0でした。
+
+|条件|reset6基準 run-id|更新前 final2 run-id|最終 final2 run-id|一致|
+|---|---|---|---|---:|
+|GCC既定|`20261109-122337_d30a-reset6`|`20261109-122337_final2-reset6`|`20261109-123400_final2-reset6`|200/200|
+|Clang提出相当（LTO含む）|`20261109-122337_d30a-reset6-2`|`20261109-122337_final2-reset6-2`|`20261109-123400_final2-reset6-2`|200/200|
+|GCC native|`20261109-122337_d30a-reset6-3`|`20261109-122337_final2-reset6-3`|`20261109-123400_final2-reset6-3`|200/200|
+
+時間比率は、同じ境界計測を持つfix2の固定反復をdual30側の段別対照として測定しました。GCCの `20261109-122337_final-time-pace-fix2` と Clangの `20261109-122337_final-time-pace-fix2-2`、対応するfinal2各200件を使用しました。helpersは20.31092→18.49998 ms（−8.916%、対応差 −1.81094 ± 0.31591 ms）。c1_print、c1_perforation、c4_print、c5_printと合わせて5段が3%を超えたため、Task 13と同じく両コンパイラの平均を等重みで合算し、全66段の比率を再計算しました。総予算は維持しています。
+
+全段の測定値と新旧比率は [final2-shares.md](/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/impla-notes/final2-shares.md) にあります。
+
+|検査|条件|run-id|件数|WA / trap|end最大 s|
+|---|---|---|---:|---|---:|
+|bounds|Clang libc++ HARDENING_MODE_DEBUG|`20261109-124040_final2-reset6`|200|0 / 0|1.88811|
+|bounds|GCC _GLIBCXX_ASSERTIONS|`20261109-124040_final2-reset6-2`|200|0 / 0|1.98497|
+|pattern|Clang NOINIT_EMPTY＋pattern初期化|`20261109-124734_final2-reset6`|200|0 / 0|1.67863|
+|stretch|PACE_SIM=1.35|`20261109-125705_final2-reset6`|200|0 / 0|1.88276|
+|stretch|PACE_SIM=2.0|`20261109-125705_final2-reset6-2`|200|0 / 0|1.88477|
+|judge|Clang 本番相当|`20261109-125831_final2-reset6`|50|0 / 0|1.79451|
+|judge|GCC 本番相当|`20261109-125831_final2-reset6-2`|50|0 / 0|1.82558|
+
+pattern初期化版も、ゼロ初期化側の `20261109-123400_final2-reset6-2` と200/200件で出力が一致しました。両伸長試験の最大endは1.92秒以下でした。
+
+本番相当50件はLOCAL_BENCH・CLOCK_SCALEを付けず、指定されたGCC／Clangのnative＋zero初期化フラグで実行しました。この2ビルドは指定どおりLTOなしです。
+
+本番相当検査の外部負荷は平均0.830・最大1.239コアでした。WAの確認に用い、得点差の判定は低負荷の通常2000件比較（平均0.125・最大0.330コア）に基づきます。
+
+通常比較は以下の2 run です。LOCAL_BENCHの全力処理で測定し、end_secはCLOCK_SCALE=1.1を適用した値です。
+
+|run-id|件数|end平均 s|p99 s|最大 s|>1.8 / >1.9 / >2.0|WA|
+|---|---:|---:|---:|---:|---|---:|
+|`20261109-125120_final-time-pace-fix2`|2000|1.717159|1.794493|1.88405|12/0/0|0|
+|`20261109-125120_final2-reset6`|2000|1.715521|1.792870|1.89361|12/0/0|0|
+
+同じ通常比較での時間差（final2−fix2）です。差は平均 ± SE、p99は各案の分位点です。
+
+|指標|対応差 ms|fix2 p99 s|final2 p99 s|
+|---|---:|---:|---:|
+|helper_end_sec|-0.065 ± 0.205|1.230423|1.228911|
+|req_sec|-1.450 ± 0.995|0.566563|0.563366|
+|end_sec|-1.638 ± 1.077|1.794493|1.792870|
+
+提出ファイルの `-E -P` トークン列は、LOCAL_BENCHなしのGCC・Clang両方でmain.cppと一致しました。GCCは1,589,294 tokens、Clangは1,590,318 tokens。`-Wall` の警告はmain/submitともGCC 4件、Clang 3件で差0です。
+
+検査ログは [final2-submit-check.log](/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/impla-notes/final2-submit-check.log)。
+
+計画上の変更は、指定条件に該当した時間比率の再計算です。三方向マージの競合はなく、ソース差分もreset係数・その試験用スイッチ・時間比率だけであることを機械的に確認しました。手元はGCC 13.3／Clang 18.1.3で、ジャッジのClang 21実機による検証ではありません。
+
+全runの結果・コンパイル条件・外部負荷は [PROGRESS-final2.md](/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/impla-notes/PROGRESS-final2.md) と同ディレクトリのfinal2-*.jsonに保存しています。コミットは作成していません。同文の [REPORT-final2.md](/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/impla-notes/REPORT-final2.md) を保存しました。

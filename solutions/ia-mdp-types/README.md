@@ -1,0 +1,9 @@
+改良元: solutions/dcomp-combo-dual30。
+
+既定のCOLMDP_NEXTKEEP=1では、次状態の列MDPの加算時に1注文の費用を差し引かない（colmdp_next_drop=0）。このとき部分的にしか列MDPを用意できなかったケースでも、MDPの値は列内の紙の種類列だけで決まる。通常のnext_costの走査で種類列を符号化し、全列MDP用の正確な小cacheを、対応した列だけに使う。
+
+従来の部分経路は、紙ID列を記録し、紙ごとの重みと色修復費用を計算した後に0を掛けていた。その計算を省く。列のMDPがない列は同じように無視する。加算する列の順と各列のF値、その他の1注文費用は不変。COLMDP_NEXTKEEPを変えた実験の非zero差引き経路は従来の計算を維持する。
+
+NEXT_PREFIX_CHECKで全missの結果を元の費用関数とdouble全bit比較できる。乱数、探索量、設計、ログと操作属性、時計、DesignStoreを保つ。小さな速度probe用。
+
+全列対応/部分対応はtemplateで分け、全列対応の元のloopには列ごとの分岐を足さない。

@@ -1,0 +1,65 @@
+{
+  "suite": "identity",
+  "arms": [
+    [
+      "solutions/final-time-pace-fix2",
+      "g++",
+      "-std=c++23 -O2 -DLOCAL_BENCH -DCLOCK_SCALE=1.1"
+    ],
+    [
+      "solutions/d30a-reset6",
+      "g++",
+      "-std=c++23 -O2 -DLOCAL_BENCH -DCLOCK_SCALE=1.1"
+    ],
+    [
+      "solutions/final2-reset6",
+      "g++",
+      "-std=c++23 -O2 -DLOCAL_BENCH -DCLOCK_SCALE=1.1"
+    ],
+    [
+      "solutions/final-time-pace-fix2",
+      "clang++",
+      "-O2 -std=gnu++23 -march=native -stdlib=libc++ -flto=auto -ftrivial-auto-var-init=zero -DLOCAL_BENCH -DCLOCK_SCALE=1.1"
+    ],
+    [
+      "solutions/d30a-reset6",
+      "clang++",
+      "-O2 -std=gnu++23 -march=native -stdlib=libc++ -flto=auto -ftrivial-auto-var-init=zero -DLOCAL_BENCH -DCLOCK_SCALE=1.1"
+    ],
+    [
+      "solutions/final2-reset6",
+      "clang++",
+      "-O2 -std=gnu++23 -march=native -stdlib=libc++ -flto=auto -ftrivial-auto-var-init=zero -DLOCAL_BENCH -DCLOCK_SCALE=1.1"
+    ],
+    [
+      "solutions/d30a-reset6",
+      "g++",
+      "-std=c++23 -O2 -DLOCAL_BENCH -DCLOCK_SCALE=1.1 -march=native"
+    ],
+    [
+      "solutions/final2-reset6",
+      "g++",
+      "-std=c++23 -O2 -DLOCAL_BENCH -DCLOCK_SCALE=1.1 -march=native"
+    ]
+  ],
+  "fixed": true,
+  "seeds": "0-200",
+  "command": [
+    "/usr/bin/python3",
+    "-u",
+    "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/final2-reset6/run.py",
+    "--compare",
+    "solutions/final-time-pace-fix2",
+    "solutions/d30a-reset6",
+    "solutions/final2-reset6",
+    "solutions/final-time-pace-fix2",
+    "solutions/d30a-reset6",
+    "solutions/final2-reset6",
+    "solutions/d30a-reset6",
+    "solutions/final2-reset6",
+    "--seeds",
+    "0-200",
+    "-c",
+    "final2-reset6 identity; fixed=1"
+  ]
+}

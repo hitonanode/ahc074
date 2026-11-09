@@ -1,0 +1,22 @@
+{
+  "suite": "pattern",
+  "arms": [
+    [
+      "solutions/final2-reset6",
+      "clang++",
+      "-O2 -std=gnu++23 -march=native -stdlib=libc++ -flto=auto -ftrivial-auto-var-init=pattern -DLOCAL_BENCH -DCLOCK_SCALE=1.1 -DNOINIT_EMPTY"
+    ]
+  ],
+  "fixed": true,
+  "seeds": "0-200",
+  "command": [
+    "/usr/bin/python3",
+    "-u",
+    "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/final2-reset6/run.py",
+    "solutions/final2-reset6",
+    "--seeds",
+    "0-200",
+    "-c",
+    "final2-reset6 pattern; fixed=1"
+  ]
+}

@@ -1,0 +1,10 @@
+改良元: solutions/dcomp-combo-dual30
+
+窓割当て探索が保存したeliteから、汎用窓集合が異なる1候補を選び、4本目の設計枝を置き換える。窓目的値差が0.02以内の候補では、解放商品数、窓目的値、交換窓数、pool番号の順で選ぶ。近い候補がなければ窓目的値順。共有prefixの物理handleが新候補にも残る列は保持し、替わったhandle列の全商品と不適合ペアを解放する。貪欲マッチングとEdmondsの増加路で71ペアを修復し、列の両色を確保する。修復領域内で足りなければ全商品へ領域を広げる。修復できない候補は棄却する。
+
+枝のanneal回数・仕上げ回数・V選択は元のまま。再仕上げ時も最良候補の窓座標、Comparatorを復元する。新しい時計読みや時間打切りは加えない。
+
+LOCAL_BENCHのみ MAP_ELITE=0 で変更を止められる（既定1）。
+map_alt_attempt/success は修復の試行・成功、selected は初回仕上げ時に最良となったか、final は最終設計が別窓枝の系統かを表す。gap は窓目的値差、v/main_v は別窓枝と先行3枝の最良V。broken/free_targets/new_pairs/expanded は不適合ペア数、解放商品数、新ペア数、修復領域の全体拡張回数。
+
+候補選択では共有prefixの旧unitだけを調べる。全ペアグラフを作るのは選んだ1候補だけ。LOCAL_BENCHの MAP_ELITE_REPAIR_FIRST=0 で初版の窓目的値順になる。map_alt_released_estimate は追加のsingle解放前の見積り。

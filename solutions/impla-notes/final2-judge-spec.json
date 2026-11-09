@@ -1,0 +1,29 @@
+{
+  "suite": "judge",
+  "arms": [
+    [
+      "solutions/final2-reset6",
+      "clang++",
+      "-O2 -std=gnu++23 -march=native -stdlib=libc++ -ftrivial-auto-var-init=zero"
+    ],
+    [
+      "solutions/final2-reset6",
+      "g++",
+      "-O2 -std=gnu++23 -march=native -ftrivial-auto-var-init=zero"
+    ]
+  ],
+  "fixed": false,
+  "seeds": "0-50",
+  "command": [
+    "/usr/bin/python3",
+    "-u",
+    "/home/sato/ahc074/.claude/worktrees/esw-fixiter-improvement-55c629/solutions/final2-reset6/run.py",
+    "--compare",
+    "solutions/final2-reset6",
+    "solutions/final2-reset6",
+    "--seeds",
+    "0-50",
+    "-c",
+    "final2-reset6 judge; fixed=0"
+  ]
+}
