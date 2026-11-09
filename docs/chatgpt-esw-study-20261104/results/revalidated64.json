@@ -1,0 +1,85 @@
+{
+  "audit_kind": "replay of retained historical outputs; no solver rerun or new timing measurement",
+  "checked_outputs": 320,
+  "cases": 64,
+  "errors": 0,
+  "illegal_outputs": 0,
+  "fast_requests": 0,
+  "identical_designs_within_each_case": true,
+  "moves": {
+    "base-full": 667917,
+    "local-two": 667234,
+    "mdp-only": 667249,
+    "local-four": 667100,
+    "batch-extract": 667728
+  },
+  "statistics": [
+    {
+      "method": "base-full",
+      "cases": 64,
+      "moves": 667917,
+      "reduction_percent": 0.0,
+      "wins": 0,
+      "ties": 64,
+      "losses": 0,
+      "mean_saving_per_case": 0,
+      "saving_se": 0.0,
+      "mean_log_ratio_percent": 0.0,
+      "log_ratio_se_percent": 0.0
+    },
+    {
+      "method": "mdp-only",
+      "cases": 64,
+      "moves": 667249,
+      "reduction_percent": 0.1000124266937359,
+      "wins": 48,
+      "ties": 1,
+      "losses": 15,
+      "mean_saving_per_case": 10.4375,
+      "saving_se": 2.3980062609963673,
+      "mean_log_ratio_percent": -0.09966107743767233,
+      "log_ratio_se_percent": 0.022955885214170205
+    },
+    {
+      "method": "batch-extract",
+      "cases": 64,
+      "moves": 667728,
+      "reduction_percent": 0.028296929109455218,
+      "wins": 40,
+      "ties": 2,
+      "losses": 22,
+      "mean_saving_per_case": 2.953125,
+      "saving_se": 1.3803880161566202,
+      "mean_log_ratio_percent": -0.028182236082562106,
+      "log_ratio_se_percent": 0.013242108454721398
+    },
+    {
+      "method": "local-two",
+      "cases": 64,
+      "moves": 667234,
+      "reduction_percent": 0.10225821471829584,
+      "wins": 47,
+      "ties": 1,
+      "losses": 16,
+      "mean_saving_per_case": 10.671875,
+      "saving_se": 2.433546823590852,
+      "mean_log_ratio_percent": -0.1019275932545725,
+      "log_ratio_se_percent": 0.023292142531970636
+    },
+    {
+      "method": "local-four",
+      "cases": 64,
+      "moves": 667100,
+      "reduction_percent": 0.12232058773769795,
+      "wins": 48,
+      "ties": 3,
+      "losses": 13,
+      "mean_saving_per_case": 12.765625,
+      "saving_se": 2.5995785475249606,
+      "mean_log_ratio_percent": -0.12201523254377704,
+      "log_ratio_se_percent": 0.02486046695633879
+    }
+  ],
+  "archive_sha256": "8ec68edeb35809ebe98fb78a30fe6a80d38fd162e571dc827603e7befc825f1c",
+  "checker_sha256": "9471fb7184dbd9ecc9b285d704e60cd505ccf055639394702c80a91d3669385c"
+}
