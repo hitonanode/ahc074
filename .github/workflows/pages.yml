@@ -1,0 +1,35 @@
+# writeup/ を GitHub Pages（https://hitonanode.github.io/ahc074/）に公開する。
+# 公開するのは writeup/ の中だけ（docs/ の問題文や tools/ の入力は載せない）。
+name: Deploy writeup to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "writeup/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: writeup
+      - id: deployment
+        uses: actions/deploy-pages@v5

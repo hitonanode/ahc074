@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AtCoder Heuristic Contest 074 の With AI 部門の参加記。使った AI とハーネス、スコアに効いた指示、階段状の解法にたどり着いた経緯。">
+<title>AHC074 With AI 参加記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+/* Layout: a single reading column (~70ch) with a sticky table of contents on wide screens; prompts are set as terminal-like input blocks. */
+:root {
+  --bg: #f5f6f4;
+  --surface: #ffffff;
+  --ink: #16191c;
+  --muted: #59616a;
+  --rule: #dde1e3;
+  --accent: #0a6680;
+  --accent-soft: #e2eff2;
+  --prompt-bg: #eceeea;
+  --cell-black: #121416;
+  --cell-white: #fbfbf9;
+  --cell-edge: #9aa2a8;
+  --hole-edge: #c3c9cc;
+  --font-display: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  --font-body: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.5rem;
+  --step-3: 2.125rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111416;
+    --surface: #171b1e;
+    --ink: #e7eaec;
+    --muted: #9ca5ad;
+    --rule: #2a3034;
+    --accent: #5fb8d0;
+    --accent-soft: #15303a;
+    --prompt-bg: #1c2124;
+    --cell-black: #0b0c0d;
+    --cell-white: #e9ebe7;
+    --cell-edge: #6c757c;
+    --hole-edge: #3c4449;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111416;
+  --surface: #171b1e;
+  --ink: #e7eaec;
+  --muted: #9ca5ad;
+  --rule: #2a3034;
+  --accent: #5fb8d0;
+  --accent-soft: #15303a;
+  --prompt-bg: #1c2124;
+  --cell-black: #0b0c0d;
+  --cell-white: #e9ebe7;
+  --cell-edge: #6c757c;
+  --hole-edge: #3c4449;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.85;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+  margin: 0;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--prompt-bg); padding: 0.1em 0.35em; border-radius: 3px; overflow-wrap: anywhere; }
+strong { font-weight: 700; }
+
+.shell {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 40px;
+}
+@media (min-width: 1040px) {
+  .shell { grid-template-columns: 220px minmax(0, 1fr); }
+}
+
+header.masthead {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-block: 48px 32px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 32px;
+  display: grid;
+  gap: 16px;
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-3);
+  line-height: 1.3;
+  margin: 0;
+  text-wrap: balance;
+}
+.lead { margin: 0; max-width: 46em; color: var(--muted); }
+.trajectory {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.trajectory .from { font-size: var(--step-2); color: var(--muted); }
+.trajectory .arrow { color: var(--muted); }
+.trajectory .to { font-size: var(--step-3); font-weight: 500; color: var(--accent); }
+.trajectory .unit { font-size: var(--step--1); color: var(--muted); }
+
+nav.toc { font-size: var(--step--1); line-height: 1.6; }
+nav.toc .toc-title { font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--muted); margin: 0 0 8px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+nav.toc ol ol { padding-left: 12px; margin-top: 6px; }
+nav.toc a { color: var(--ink); text-decoration: none; }
+nav.toc a:hover { color: var(--accent); text-decoration: underline; }
+@media (min-width: 1040px) {
+  nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; max-height: calc(100vh - 48px); overflow-y: auto; }
+}
+@media (max-width: 1039px) {
+  nav.toc { border: 1px solid var(--rule); background: var(--surface); padding: 16px 20px; }
+  nav.toc ol ol { display: none; }
+}
+
+article { min-width: 0; max-width: 46em; }
+article section { display: grid; gap: 0; }
+h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-2);
+  line-height: 1.4;
+  margin: 56px 0 16px;
+  text-wrap: balance;
+  scroll-margin-top: 24px;
+}
+article > section:first-child h2 { margin-top: 0; }
+h2 .num, h3 .num { font-family: var(--font-mono); font-weight: 500; color: var(--accent); margin-right: 0.5em; font-size: 0.8em; }
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-1);
+  line-height: 1.5;
+  margin: 40px 0 12px;
+  text-wrap: balance;
+  scroll-margin-top: 24px;
+}
+h4 { font-size: var(--step-0); font-weight: 700; margin: 28px 0 8px; }
+p { margin: 0 0 16px; }
+ul, ol { margin: 0 0 16px; padding-left: 1.4em; }
+li { margin: 4px 0; }
+li > ul, li > ol { margin: 4px 0 0; }
+
+.note { font-size: var(--step--1); color: var(--muted); }
+
+/* Prompts: what the participant actually typed */
+figure.prompt {
+  margin: 8px 0 20px;
+  background: var(--prompt-bg);
+  border: 1px solid var(--rule);
+  padding: 12px 16px 14px;
+}
+figure.prompt figcaption {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--muted);
+  margin-bottom: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+figure.prompt figcaption .who { color: var(--accent); }
+figure.prompt blockquote { margin: 0; }
+figure.prompt blockquote::before { content: "› "; font-family: var(--font-mono); color: var(--accent); }
+
+.lesson {
+  margin: 8px 0 20px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+  font-weight: 500;
+}
+
+/* Tables */
+.table-wrap { overflow-x: auto; margin: 8px 0 20px; border: 1px solid var(--rule); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.6; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font-family: var(--font-mono); font-size: var(--step--1); font-weight: 500; color: var(--muted); letter-spacing: 0.03em; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); white-space: nowrap; }
+td.when { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
+tr.final td { font-weight: 700; background: var(--accent-soft); }
+tr.phase-start td { border-top: 2px solid var(--rule); }
+table.history td:nth-child(2) { min-width: 14em; }
+table.roles td:first-child { white-space: nowrap; font-weight: 500; }
+table.roles td:nth-child(3) { min-width: 18em; }
+
+/* Staircase diagram */
+.stair {
+  margin: 8px 0 24px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 16px;
+  overflow-x: auto;
+}
+.stair-grid {
+  display: grid;
+  grid-template-columns: 6.5em repeat(3, 28px) 12px repeat(4, 28px);
+  gap: 4px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  width: max-content;
+}
+.stair-grid .hdr { color: var(--muted); text-align: center; }
+.stair-grid .lbl { color: var(--muted); white-space: nowrap; padding-right: 6px; }
+.stair-grid .gap { width: 12px; }
+.c { width: 28px; height: 20px; border: 1px solid var(--cell-edge); }
+.c.b { background: var(--cell-black); }
+.c.w { background: var(--cell-white); }
+.c.h { border: 1px dashed var(--hole-edge); background: transparent; }
+.c.vis { outline: 2px solid var(--accent); outline-offset: 1px; }
+.stair-grid .sep { grid-column: 1 / -1; height: 1px; background: var(--rule); margin: 2px 0; }
+.stair figcaption { font-size: var(--step--1); color: var(--muted); margin-top: 12px; max-width: 40em; line-height: 1.7; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: var(--step--1); color: var(--muted); margin-top: 8px; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend .c { width: 18px; height: 14px; }
+
+footer.colophon { max-width: 1120px; margin: 64px auto 0; padding-top: 16px; border-top: 1px solid var(--rule); font-size: var(--step--1); color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="eyebrow">AtCoder Heuristic Contest 074 · A - Layered Barcode Display · With AI 部門 · hitonanode</div>
+  <h1>AHC074 With AI 参加記：AI をどう使い、どの指示が効いたか</h1>
+  <p class="lead">Claude Code（Opus 5.5・Fable 5.1）、Codex CLI（GPT-6 Astra）、ChatGPT（GPT-6 Pro）を使った 10 日間の記録です。作業リポジトリの会話ログ、実験の記録 <code>trial_log.md</code>（約 1900 行）、評価の記録（約 5300 回）、PR、ChatGPT の会話記録をもとに Claude にまとめさせ、私が確認しました。</p>
+  <div class="trajectory" aria-label="1 注文あたりの手数の推移">
+    <span class="from">32.0</span><span class="arrow">→</span><span class="to">10.0</span><span class="unit">手 / 注文（手元 2000 ケースの平均スコア 10247、誤表示 0）</span>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="toc" aria-label="目次">
+    <p class="toc-title">目次</p>
+    <ol>
+      <li><a href="#summary">0. 要約</a></li>
+      <li><a href="#tools">1. 使った AI とハーネス</a></li>
+      <li><a href="#infra">2. 評価基盤</a></li>
+      <li><a href="#solution">3. 最終解法の骨格</a></li>
+      <li><a href="#history">4. 経緯と、効いた指示</a>
+        <ol>
+          <li><a href="#scores">4.1 スコアの推移</a></li>
+          <li><a href="#staircase">4.2 階段状の解法への道筋</a></li>
+          <li><a href="#parallel">4.3 初日の並列探索</a></li>
+          <li><a href="#chatgpt">4.4 ChatGPT の独立改良</a></li>
+          <li><a href="#astra">4.5 Codex Astra</a></li>
+          <li><a href="#audit">4.6 食い違いの監査</a></li>
+          <li><a href="#later">4.7 11-04〜11-07</a></li>
+          <li><a href="#final">4.8 最終盤</a></li>
+        </ol>
+      </li>
+      <li><a href="#lessons">5. 効いた指示・やり方</a></li>
+      <li><a href="#failures">6. うまくいかなかったこと</a></li>
+    </ol>
+  </nav>
+
+  <article>
+    <section id="summary">
+      <h2><span class="num">0</span>要約</h2>
+      <ul>
+        <li>手元の平均は、各 bit 独立の解法（32.0 手/注文）から、最終版の <strong>10.0 手/注文（平均スコア 10247）</strong> まで下がりました。暫定順位は 11-09 朝の時点で 3 位です（最終順位は確定後に追記します）。</li>
+        <li>最初に手で試した解法（33.6 手/注文）のほかは、私はコードを書いていません。私がしたのは、評価の仕組みを整えること、方針と制約を与えること、結果を見て次の指示を出すこと、外部の AI の成果を持ち込むことでした。</li>
+        <li><strong>階段状の解法（後述の hub 構造）は、コンテスト初日の深夜に、Claude Opus 5.5 の 1 セッションが約 70 分で自力で作りました。</strong>私が出した指示は「今の best を圧倒的に上回る解法を作って。テストは何度回してもいい」だけです。それまでの best は 32.0 手/注文で、hub の初版は 23.0 手、その 50 分後に 15.1 手になりました。</li>
+        <li>その後の改善で大きかったものは次のとおりです（詳細は 4 章）。
+          <ol>
+            <li>初日（10-31）に Opus 5.5 のエージェントを並列に回した探索：15.1 → 11.5 手（−24%）。汎用層の作り直し、段付き穴埋め紙、色の偏りの利用、最良解の監査など。</li>
+            <li>ChatGPT（GPT-6 Pro）に私たちのコードを渡して独立に改良させた案（汎用紙 6 枚の相対順による比較器）と、それ以降の取り込み：11.5 → 10.6 手（−7.4%）。</li>
+            <li>Codex（GPT-6 Astra）による探索の効率化と高速化、ChatGPT の Draft PR から入れたキャップ紙：10.6 → 10.4 手（−2.1%）。</li>
+            <li>私の「設計の目的関数と注文処理の評価が食い違っていないか」という問いから始めた、古い規則の監査：−0.76%。</li>
+            <li>別に動かした Codex エージェントの構造実験（PR 90）：−1.46%。ChatGPT の Draft PR（PR 114・115）の中立探索と列 MDP：−0.7%。</li>
+            <li>設計を複数作り、評価関数で選ぶ方式：−0.4%。最終日の改善ラウンド：−0.1%。</li>
+          </ol>
+        </li>
+      </ul>
+    </section>
+
+    <section id="tools">
+      <h2><span class="num">1</span>使った AI とハーネス</h2>
+      <div class="table-wrap">
+        <table class="roles">
+          <thead><tr><th>役割</th><th>AI・ハーネス</th><th>使い方</th></tr></thead>
+          <tbody>
+            <tr><td>司令塔・実装・実験</td><td>Claude Code（WSL2 上）、<strong>Claude Opus 5.5</strong>（主に effort xhigh / max）</td><td>メインのセッションが方針を立て、subagent（Opus 5.5）に実装・実験・分析を任せて PR を作り、マージしました。11-08 からは、司令塔は自分では作業せず監督に専念させました。</td></tr>
+            <tr><td>案出し・レビュー</td><td>Claude Code の subagent、<strong>Claude Fable 5.1</strong></td><td>初日の構造の考察、最終コードの独立レビュー、最終日の案出し（Workflow の Ultracode）に使いました。</td></tr>
+            <tr><td>数理・最適化の専門家</td><td><strong>Codex CLI</strong> の <code>codex exec -m gpt-6-astra</code>（effort xhigh / max / ultra）を、Claude が subagent として起動</td><td>11-02 から使いました。出力を変えない高速化、探索の効率化、評価関数の研究、最終日の実装などで、合計 27 セッションです。</td></tr>
+            <tr><td>独立した改良</td><td>ChatGPT の Web 版（<strong>GPT-6 Pro</strong>）</td><td>私が問題文と手元の最良のコードを渡し、独立に改良させました。成果は <code>[ChatGPT]</code> を付けた Draft PR（17 本）で受け取り、Claude に部品ごとに検証させて取り込みました。</td></tr>
+            <tr><td>独立した構造実験</td><td>別に動かした Codex のエージェント</td><td>11-03〜04 に 199 ディレクトリの構造実験を行い、PR 90 を作りました。</td></tr>
+            <tr><td>外部の助言</td><td><strong>Gemini 4 Argon</strong>（文脈を共有しない）</td><td>11-05 に、過去の最良のコードを読ませて改善の助言（Markdown）を書かせました。Claude と Astra に 1 項目ずつ検証させました。11-08 の助言は GPT-6 Pro に書かせました。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>規模（10-30〜11-09）：解法のディレクトリ 2057 個、評価 5265 回（設計を固定した比較を含む）、PR 177 本。Claude のログ上の応答メッセージは、Opus 5.5 が約 2.6 万件、Fable 5.1 が約 900 件です。評価は Core Ultra 9 285K で 24 並列でした。</p>
+      <p>課金は Claude Max と ChatGPT Pro です。Claude の 5 時間枠を何度か使い切りました（初日に Opus の max/xhigh エージェントを 6 本同時に動かしたら 1 時間で止まりました）。それ以降は、同時に動かすエージェントを 2 本程度に抑えさせました。</p>
+    </section>
+
+    <section id="infra">
+      <h2><span class="num">2</span>AI に自走させるための評価基盤</h2>
+      <p>初日に、過去のコンテスト（MM167、AHC072）と同じ形の評価基盤を Claude に作らせました。後半の 0.1% 単位の改善は、この基盤なしには判断できませんでした。</p>
+      <ul>
+        <li><strong>評価の記録とロック</strong>（<code>scripts/pahcer_run.py</code>）：評価ごとに、ソース、全ケースの stdout と stderr、スコアを <code>runs/&lt;run-id&gt;/</code> に残します。複数のエージェントが同時に 24 並列の評価をしないように、ロックで 1 本ずつ実行します。</li>
+        <li><strong>同時比較</strong>（<code>--compare</code>）：seed ごとに基準と候補を続けて実行し、ケースごとの log スコア比の平均、標準誤差、勝/分/敗を出します。順位はケースごとの順位スコアの和で決まるので、平均スコアではなく、ケースごとの比で判断させました。</li>
+        <li><strong>ケース数の決定</strong>：「500 ケースで足りるか、統計的に検討して」と頼みました。ケースごとの比の標準偏差は約 1.17% で、0.1% の差を見分けるには 2000 ケース（標準誤差 0.026%）が要ると分かり、以後は 2000 ケースを既定にしました。</li>
+        <li><strong>設計を固定した比較</strong>（<code>--save-design</code> / <code>--design-from</code> / <code>--orders N</code>）：注文処理だけの変更は、保存した同じ設計の上で、注文列を N 本に増やして比べます。標準誤差が約 1/9 になり、0.01% の差まで判断できるようになりました。</li>
+        <li><strong>AI 向けのビジュアライザ</strong>（<code>scripts/observe.py</code>）：保存した出力を再生し、注文ごとの操作、重なりの状態、行動の統計をテキストで出します。解法は stderr に <code>名前 = 数値</code> の指標や、紙の役割（<code>@paper</code>）と操作の種類（<code>@ops</code>）の注釈を出し、それも集計できます。この注釈は、11-03 に「作業で不便なことはないか」と Claude に聞いて足したものです。</li>
+        <li><strong>ジャッジとの時間合わせ</strong>：手元の時計を 1.1 倍に読む <code>CLOCK_SCALE</code> と、時間不足のときの軽い処理を手元の評価で止める <code>LOCAL_BENCH</code> を入れました。この問題の入力は決まっているので、AtCoder のコードテストで stderr と実行時間を取れることに気付き、それでジャッジの速さを測りました。</li>
+        <li><strong>trial_log.md と CLAUDE.md</strong>：試したこと、結果、根拠の run-id を記録させ、規則（ベースのコピーから新しいディレクトリを作る、README を書く、2 SE 未満の差では判断しない、など）は CLAUDE.md に書きました。私が出した方針は、Claude のメモリにも残させました。</li>
+        <li><strong>人間用のダッシュボード</strong>：評価のたびに HTML を作り直し、公式ビジュアライザと並べて見られるようにしました。三角形の構造が人間に見えるように、列を並べ替えて表示する機能も付けました。</li>
+      </ul>
+    </section>
+
+    <section id="solution">
+      <h2><span class="num">3</span>最終解法の骨格</h2>
+      <p>64 窓を、汎用窓 38、ハンドル窓 25、キャップ窓 1 に分けます。紙は、汎用紙 6 枚、キャップ紙 1 枚、商品紙 185 枚（単独の商品用 114 枚と、近い 2 商品で共有する 71 枚）です。</p>
+
+      <figure class="stair">
+        <div class="stair-grid" role="img" aria-label="階段構造の模式図。上から汎用層、列 0、列 1、列 2、列 3 の紙が積まれ、列 l の紙はハンドル窓 h0 から hl だけ不透明で、各列の一番上の紙が自分のハンドル窓から見えている。">
+          <div></div><div class="hdr">G</div><div class="hdr">G</div><div class="hdr">G</div><div class="gap"></div><div class="hdr">h0</div><div class="hdr">h1</div><div class="hdr">h2</div><div class="hdr">h3</div>
+          <div class="lbl">汎用層</div><div class="c b vis"></div><div class="c w vis"></div><div class="c b vis"></div><div class="gap"></div><div class="c h"></div><div class="c h"></div><div class="c h"></div><div class="c h"></div>
+          <div class="sep"></div>
+          <div class="lbl">列 0 の紙 1</div><div class="c w"></div><div class="c b"></div><div class="c b"></div><div class="gap"></div><div class="c b vis"></div><div class="c h"></div><div class="c h"></div><div class="c h"></div>
+          <div class="lbl">列 0 の紙 2</div><div class="c b"></div><div class="c w"></div><div class="c w"></div><div class="gap"></div><div class="c w"></div><div class="c h"></div><div class="c h"></div><div class="c h"></div>
+          <div class="lbl">列 1 の紙 1</div><div class="c b"></div><div class="c b"></div><div class="c w"></div><div class="gap"></div><div class="c w"></div><div class="c b vis"></div><div class="c h"></div><div class="c h"></div>
+          <div class="lbl">列 1 の紙 2</div><div class="c w"></div><div class="c b"></div><div class="c b"></div><div class="gap"></div><div class="c b"></div><div class="c w"></div><div class="c h"></div><div class="c h"></div>
+          <div class="lbl">列 2 の紙 1</div><div class="c w"></div><div class="c w"></div><div class="c b"></div><div class="gap"></div><div class="c b"></div><div class="c w"></div><div class="c b vis"></div><div class="c h"></div>
+          <div class="lbl">列 2 の紙 2</div><div class="c b"></div><div class="c w"></div><div class="c b"></div><div class="gap"></div><div class="c w"></div><div class="c b"></div><div class="c w"></div><div class="c h"></div>
+          <div class="lbl">列 3 の紙 1</div><div class="c b"></div><div class="c b"></div><div class="c w"></div><div class="gap"></div><div class="c w"></div><div class="c w"></div><div class="c b"></div><div class="c b vis"></div>
+          <div class="lbl">列 3 の紙 2</div><div class="c w"></div><div class="c b"></div><div class="c w"></div><div class="gap"></div><div class="c b"></div><div class="c w"></div><div class="c w"></div><div class="c w"></div>
+        </div>
+        <div class="legend">
+          <span><i class="c b"></i>黒</span><span><i class="c w"></i>白</span><span><i class="c h"></i>穴</span><span><i class="c b vis"></i>その窓で見えている紙</span>
+        </div>
+        <figcaption>階段の模式図（窓を一部だけ描いたもの）。上から順に積んだ紙を行で表します。列 l の紙はハンドル窓 h<sub>0</sub>〜h<sub>l</sub> だけ不透明で、それより深いハンドル窓は穴なので、どの列でも一番上の紙が自分のハンドル窓から見えていて、動かせます。列の中の紙は、自分のハンドル窓の色を交互にしておきます。商品紙の汎用窓の部分は汎用層に隠れています。</figcaption>
+      </figure>
+
+      <ul>
+        <li><strong>階段（hub）</strong>：商品紙を 25 本の列に分け、汎用層の下に積みます。注文が来たら、目的の紙を列から掘り出して一番上に持ち上げます。穴の窓の色は、他の紙を差し込んで合わせます。</li>
+        <li><strong>汎用層（比較器）</strong>：汎用紙 6 枚の相対順（720 通り）で 38 窓の色を表します。2 商品で共有する紙は、2 商品で色の違う窓が穴なので、その窓の色をこの比較器で出します。</li>
+        <li><strong>段付き穴埋め紙</strong>：ハンドル窓の穴は、どこかの列の一番上の紙を適切な段に差し込み、1 手で複数まとめて覆います（区間 DP で選びます）。</li>
+        <li><strong>設計</strong>（約 1.22 秒）：窓の割り当ての焼きなまし → 対・列・ハンドルの焼きなまし → 穴埋めの山登り、ハンガリアン法の再割り当て、穴あけ。焼きなましの後半から候補を複数作って仕上げ、評価関数 V で 1 つ選びます。</li>
+        <li><strong>注文処理</strong>：複数の計画を作って短縮します（2 手を消して 1 手で修復する、など）。手数が同じなら、終わりの状態の価値（列 MDP など）が良い方を選びます。1 秒あたりの価値の高い探索から時間を割り当て、最後の注文が 1.88 秒までに終わるようにしています。</li>
+      </ul>
+    </section>
+
+    <section id="history">
+      <h2><span class="num">4</span>経緯と、効いた指示</h2>
+
+      <h3 id="scores"><span class="num">4.1</span>スコアの推移</h3>
+      <div class="table-wrap">
+        <table class="history">
+          <thead><tr><th>時期（JST）</th><th>版</th><th class="num">手/注文</th><th class="num">前の行から</th><th>主な出どころ</th></tr></thead>
+          <tbody>
+            <tr><td class="when">10-31 01:34</td><td>bit-pair（各窓に白・黒 1 枚）</td><td class="num">31.99</td><td class="num">—</td><td>Claude（私の指示どおり）</td></tr>
+            <tr><td class="when">10-31 03:04</td><td>hub（階段の初版）</td><td class="num">23.04</td><td class="num">−28.0%</td><td>Claude Opus 5.5（単独セッション）</td></tr>
+            <tr><td class="when">10-31 03:45</td><td>hub8（2 商品の共有、焼きなまし）</td><td class="num">15.10</td><td class="num">−34.5%</td><td>同上</td></tr>
+            <tr class="phase-start"><td class="when">10-31 10:30</td><td>gen-bf2（汎用層：土台 + 反転紙）</td><td class="num">13.81</td><td class="num">−8.6%</td><td>並列の Opus エージェント</td></tr>
+            <tr><td class="when">10-31 13:13</td><td>gen-relax（整合の制約を満たす窓の選び方。search- を含む）</td><td class="num">13.17</td><td class="num">−4.6%</td><td>同上</td></tr>
+            <tr><td class="when">10-31 13:38</td><td>hole-relax（段付き穴埋め紙）</td><td class="num">12.41</td><td class="num">−5.8%</td><td>同上</td></tr>
+            <tr><td class="when">10-31 18:10</td><td>mix-pt（色の持続と偏り、穴埋め紙の供給）</td><td class="num">11.90</td><td class="num">−4.1%</td><td>同上</td></tr>
+            <tr><td class="when">10-31 22:39</td><td>audit4-flip（4 回の監査など）</td><td class="num">11.46</td><td class="num">−3.7%</td><td>同上</td></tr>
+            <tr class="phase-start"><td class="when">11-01 07:43</td><td>gpt6pro-06（汎用紙 6 枚の比較器）</td><td class="num">11.08</td><td class="num">−3.3%</td><td>ChatGPT GPT-6 Pro</td></tr>
+            <tr><td class="when">11-01 23:27</td><td>imp-gla（GPT-6 Pro の改良の取り込み）</td><td class="num">10.61</td><td class="num">−4.3%</td><td>Claude（ChatGPT の案）</td></tr>
+            <tr class="phase-start"><td class="when">11-02 17:53</td><td>as6-cap38p0（Astra の探索、G の再調整、キャップ紙）</td><td class="num">10.39</td><td class="num">−2.1%</td><td>Astra、ChatGPT PR 78</td></tr>
+            <tr><td class="when">11-03 03:25</td><td>as6-canon（古い規則の監査）</td><td class="num">10.32</td><td class="num">−0.6%</td><td>Claude（私の問い）</td></tr>
+            <tr><td class="when">11-04 08:43</td><td>eject-single-window（構造実験）</td><td class="num">10.18</td><td class="num">−1.4%</td><td>Codex（PR 90）</td></tr>
+            <tr><td class="when">11-05 02:24</td><td>esw-colmdp（中立探索 + 列 MDP）</td><td class="num">10.10</td><td class="num">−0.7%</td><td>ChatGPT PR 114・115 → Astra・Claude</td></tr>
+            <tr class="phase-start"><td class="when">11-06 06:24</td><td>argon-des-perf-latew105（Gemini 4 Argon の助言）</td><td class="num">10.07</td><td class="num">−0.3%</td><td>Gemini 4 Argon の助言 → Astra</td></tr>
+            <tr><td class="when">11-07 21:02</td><td>deval-helper-wide（設計の評価関数 V）</td><td class="num">10.03</td><td class="num">−0.4%</td><td>Claude・Astra</td></tr>
+            <tr><td class="when">11-08 22:42</td><td>dcomp-combo-dual30（時間の効率化）</td><td class="num">10.02</td><td class="num">−0.2%</td><td>Astra・Claude</td></tr>
+            <tr class="final"><td class="when">11-09 12:51</td><td>final2-reset6（最終提出）</td><td class="num">10.00</td><td class="num">−0.1%</td><td>Fable の案 → Astra の実装</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">10-31 の行は seed 0〜499、11-01 の imp 以降は seed 0〜1999 の平均です（imp 以降は 2 つの集合でほぼ同じ値）。どの版も誤表示は 0 なので、スコア ÷ 1024 が 1 注文あたりの手数です。</p>
+
+      <h3 id="staircase"><span class="num">4.2</span>階段状の解法にどうたどり着いたか（10-30〜31 深夜）</h3>
+      <h4>指示の流れ</h4>
+      <p>評価基盤を作らせた直後に、私が最初の方針を指定しました。結果は 32.0 手/注文でした。</p>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>10-31 01:33 JST</span></figcaption>
+        <blockquote>では試しに、各 bit 毎に、そこが 0 だけとか、そこが 1 だけで他が全部 empty になるようなものを用意して、毎回平均 32 手弱で構築できる、みたいな解法を実装してください。</blockquote>
+      </figure>
+      <p>次に、同じセッションに方向のヒントだけを出しました。</p>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>10-31 01:46 JST</span></figcaption>
+        <blockquote>この方針の延長線上で解を改善してもらえますか。 1 bit だけ独立にだと限界があるので、もっと複雑な紙を使うと良いはずです。</blockquote>
+      </figure>
+      <p>その 1 分後に、別のセッション（Opus 5.5）に次の指示を出しました。<strong>階段はこのセッションから生まれました。</strong></p>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude（別セッション）</span><span>10-31 01:47 JST</span></figcaption>
+        <blockquote>現在の手元の best の解法を圧倒的に上回る解法を構築してください。手元のテストケース実行は何度回して試行錯誤しても構いません。</blockquote>
+      </figure>
+
+      <h4>Claude がたどった道筋（会話ログより）</h4>
+      <ul>
+        <li>まず、目標を知らない汎用の構造に限界があるかを、計算で確かめました。窓を 3〜6 個の小グループに分け、各グループの紙の模様を、厳密な平均費用 MDP（状態は紙の順列）と山登りで最適化しました。どの形でも 1 窓あたり約 0.40 手（1 注文 約 26 手）が限界でした。1 手で届く表示は、g 窓のグループで高々 g(g+1)/2 通りしかないからです。</li>
+        <li>そこから、<strong>256 個の目標を事前に知っていることを使うしかない</strong>と判断し、目標専用の紙（ほぼ全面が不透明）を隠しておいて、必要なときに掘り出す方式を考えました。</li>
+        <li>紙を動かせるのは見えている紙だけなので、隠した紙も、どこかの窓から見えている必要があります。そこで、紙の列ごとに専用の窓（ハンドル窓）を 1 つ割り当て、上にある紙はすべて、下の紙のハンドル窓で穴にしました。これが<strong>三角形（階段）の制約</strong>で、列 l の紙はハンドル h<sub>0</sub>〜h<sub>l</sub> だけが不透明です（3 章の図）。</li>
+        <li>列の中の紙は色を交互に並べ、列を 1 回回すと一番上の色が反転するようにしました。この設計の見積りは 19〜20 手でした。MDP の実験からここまで約 25 分、指示から初版の 23.0 手までは約 70 分でした。</li>
+        <li>その後の 50 分で、次の改良を自分で積みました。15.1 手まで下がりました。
+          <ul>
+            <li>汎用層を MDP で最適化した 5〜6 窓のグループにする（18.3 手）。</li>
+            <li>紙 192 枚では 256 目標に 1 枚ずつ配れないので、近い 2 目標で 1 枚を共有する（16.4 手）。</li>
+            <li>対の組み方と列の配置を焼きなます（15.6 手）。</li>
+            <li>前の紙を列へ戻すときに、上端と下端の都合の良い方を選ぶ（−1.9%）。</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h4>「下限」の主張と、それが破れたこと</h4>
+      <p>hub8 の後、このセッションは「この方式の下限は約 13.5 手で、hub8 は下限から 5〜7% 以内にいる」と報告し、ヒントを求めてきました。私は次のように返しました。</p>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>10-31 08:30 JST</span></figcaption>
+        <blockquote>いいや、発想がまだまだ足りてないです！！！　真に革新的な手法がある！！！</blockquote>
+      </figure>
+      <p>これを受けて、セッションは「自分の枠組みに引きずられている」と判断し、問題文だけを見せた分析エージェントと、自分の前提を攻撃させるレビューのエージェントを並列に立てました。2 本とも同じ下限（13.0〜13.5 手）に同意し、このやり取りから直接の改善は出ませんでした。</p>
+      <p>しかし、同じ日に並列のエージェントが積んだ改良（4.3 節）で、その日のうちに 11.46 手になり、「下限」は破れました。下限の見積りは、「穴 1 個を直す費用は、目標と独立な 0.5 手」と仮定していました。実際には、次の 3 つでこの仮定が破れていました。</p>
+      <ul>
+        <li>対の 2 目標は、汎用窓の穴で互いに逆の色になる（相補ブロックで安く出せる）。</li>
+        <li>1 手で複数の穴を直せる（段付き穴埋め紙）。</li>
+        <li>穴に見える色には持続と偏りがある。</li>
+      </ul>
+      <p class="lesson">AI の「これが下限」という主張を、そのまま信じてはいけない。これが最初の教訓でした。</p>
+
+      <h4>独立に作っても同じ形になった</h4>
+      <ul>
+        <li>同じ夜から翌朝にかけて、私は ChatGPT（GPT-6 Pro）にも問題文だけを渡し、独立に解かせていました。ChatGPT も「制御窓 + データ窓 + テンプレート + 三角制約」に行き着き、平均 13.7 手まで下げました。</li>
+        <li>文脈を共有しない Codex（Astra）の試作 4 本も、すべて「持ち手の窓で掘り出す紙 + 下地」の形でした。</li>
+        <li>11-02 に、今の構造を伏せた Claude のエージェント（fresh-arch）に、ゼロから考えさせたことがあります。このときも同じ骨組み（階段 + 偏りを使う割り当て）に戻りました。</li>
+        <li>11-03〜04 の Codex の構造実験は、階段を崩す部品を 10 種類以上試しました。結果は、18 条件中 14 条件で階段型が最良でした。</li>
+      </ul>
+      <p>Fable 5.1 の考察（10-31）は、「紙 192 枚という予算では、ほぼ全面の専用紙を 1 枚持ち上げ、残りを穴として直す方式が強制される」と結論しています。この問題では、階段はかなり必然的な構造だったようです。</p>
+
+      <h3 id="parallel"><span class="num">4.3</span>初日の並列探索：15.1 → 11.5 手（10-31）</h3>
+      <p>10-31 09:33 に、別の Claude セッションを司令塔にして、次のように指示しました（要旨）。</p>
+      <ul>
+        <li>翌日 02:00 のトークンのリセットまでに、使い切るペースで改善を続ける。</li>
+        <li>エージェントを多数立てる（原則 Opus 5.5 の xhigh か max、ときどき Fable）。</li>
+        <li>各エージェントは PR を作って経過を書き、効果の小さいものもマージする。</li>
+        <li><strong>序盤なので、細かい調整より、勝てる方針を見落とさない探索を優先する。</strong></li>
+      </ul>
+      <p>テーマ別のエージェント（汎用層、計画探索、穴、プール、小模型、共有、構造、監査）が並行して、次のものを見つけました。</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>改良</th><th class="num">効果（500 ケース）</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td>汎用層の作り直し（gen-cb → gen-bf → gen-bf2）</td><td class="num">−9.1%</td><td>対の 2 目標は、汎用窓の穴で互いに逆の色になります。そこで、窓をブロックに分け、土台の紙 1 枚と、ブロックごとの反転紙を置きます。反転紙を土台より上にすると、そのブロックの色が反転します。</td></tr>
+            <tr><td>整合の制約を緩める（gen-relax）</td><td class="num">−4.5%</td><td>対がブロックで「整合」する（GF(2) の線形条件）確率が上がるように、汎用窓とブロック分けを山登りで選びます。</td></tr>
+            <tr><td>段付き穴埋め紙（hole-level → hole-relax）</td><td class="num">−6.7%</td><td>列の一番上の紙を、別の列の上に差し込むと、その間のハンドル窓の穴をまとめて 1 手で覆えます。どの紙をどの段に差し込むかは、区間スケジューリングの DP で選びます。</td></tr>
+            <tr><td>プールと穴埋め紙の供給（pool-climb）</td><td class="num">−1.7%</td><td>深い列の紙ほど、浅い列の目標の穴を覆える候補になります。列を入れ替える山登りで、この候補を増やします。</td></tr>
+            <tr><td>色の持続と偏り（tiny-bias）</td><td class="num">−2.0%</td><td>紙 9 枚の模型を厳密に解いて見つけました。ハンドル窓の色は、最後にそこを使った注文の色のまま残るので、浅い列の目標の色を多数派にそろえます。</td></tr>
+            <tr><td>最良解の監査 4 回と、汎用層の費用の見直し（audit-〜audit4-、cons-）</td><td class="num">計 −3.7%</td><td>「抜いても表示が合う手」や「1 手を足すと短くなる計画」を道具で数え、取りこぼしを直しました。同じ紙を 2 回動かす、戻し先の規則、汎用層の終わりの状態、記録の取りこぼし、などです。汎用層の費用も、触れたブロックの数ではなく、実際の手数（ブロックの向き）で見積もるようにしました。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>この日のうちに、上の監査（司令塔が自分で立てたもの）が型になりました。<strong>手数の内訳を取る → 下限や模型と比べる → ずれている部品を直す</strong>という型です。</p>
+
+      <h3 id="chatgpt"><span class="num">4.4</span>ChatGPT に独立に改良させ、部品ごとに取り込む（11-01）</h3>
+      <p>11-01 に、私は ChatGPT（GPT-6 Pro）に、Claude が整理した clean-base（11.46 手）と問題文を渡し、改良させました。返ってきた gpt6pro-06 は −3.3% でした。汎用層を「汎用紙 6 枚の相対順（720 通り）による比較符号」に替え、列の中の決まった巡回順もやめたものです。Claude の側では、反転ブロック（32 通り）を前提にした改良が頭打ちになっていたところでした。</p>
+      <p>次に、Claude に次のように指示しました。</p>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>11-01 07:49 JST</span></figcaption>
+        <blockquote>gpt6pro-06 にあなたがやっていただいた改善を組み入れてよくなるか検討して。そうしてできたものを新しい base として、リファクタリングを行って簡潔なコードに直してください。</blockquote>
+      </figure>
+      <p>同じ日に、次のくぎも刺しました。</p>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>11-01 11:30 JST</span></figcaption>
+        <blockquote>なお解法改善はパラメータチューニングなどの小粒なものはせず、本質的な改善、大胆な修正（それこそ clean-base から gpt6pro-06 を生み出したように）に取り組んでください。コンテストはまだ1週間以上あり、現時点で既存解法の最適化に入るのは早すぎます。</blockquote>
+      </figure>
+      <p>その後も、GPT-6 Pro の改良版（07〜10）を Claude に部品ごとに移植させ、10.61 手まで下げました（imp-all −1.1%、imp-910 −0.9% など）。</p>
+      <p>ChatGPT の版は、総合点では手元の最良に届かないことが多くありました。11-03 未明に、Claude がそれを理由に検討を打ち切ろうとしたので、次のように正しました。</p>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>11-03 00:43 JST</span></figcaption>
+        <blockquote>ChatGPT Pro にポン出しさせたやつなのでそんなすぐ最良に届くわけないでしょう、届かないから価値ないというロジックはおかしくて、我々が試していない・考慮できていない要素があったら、それを取り込めば、スコアが上がるかもしれないわけじゃないですか</blockquote>
+      </figure>
+      <p>以後は、<strong>外部の案は「部品 → 手元での状態（実装済み / 試して不採用 / 未着手）」の表にして、未着手の部品だけを検証させる</strong>ようにしました。キャップ紙（ChatGPT の PR 78、−0.2%）、中立探索と列 MDP（PR 114・115、−0.7%）は、この方法で入りました。</p>
+
+      <h3 id="astra"><span class="num">4.5</span>Codex Astra を数理・高速化の担当に（11-02〜）</h3>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>11-01 22:07 JST</span></figcaption>
+        <blockquote>現状の解法の性質・コストの構造・問題点を正確にとらえたうえで、本質的な改善アイデア、大規模な変更、物の見方の大転換、といったアプローチで改善を進めたいです。codex の Astra xhigh を subagent として一度使用して… Astra は、指示されたことには愚直に従い、数理的能力は圧倒的に高いですが、空気は読めないので、やってほしいことを正確に依頼するように心がけてください。</blockquote>
+      </figure>
+      <p>Astra が効いたのは、目標と測り方がはっきりした課題でした。</p>
+      <ul>
+        <li><strong>出力を変えない高速化</strong>：窓の割り当てが 2.29 倍、焼きなましが 1.34 倍になり、その時間で探索を増やしました（−0.25%、−0.08%）。</li>
+        <li><strong>同じ時間での探索の効率化</strong>：窓の割り当ての近傍を改善しました（−0.63%）。探索が良くなると構造の最適点が動いたので、汎用窓の数 G を 36 → 38 → 39 と測り直しました（−0.34%、−0.13%）。</li>
+        <li>「1 位との差を生む構造を見つけて」のような開放的な課題では、分析は正確でしたが、改善は出ませんでした。</li>
+      </ul>
+      <p>Claude には、Astra への依頼文を「目的、触ってよいファイル、禁止事項（直接実行しない、commit しない、など）、CPU の上限、出力の形式」まで書かせました。</p>
+
+      <h3 id="audit"><span class="num">4.6</span>設計と注文処理の食い違いを疑わせる（11-03）：−0.76%</h3>
+      <p>11-02 の深夜、「最初の数注文だけ手数が多いので、設計後に架空の注文で慣らす（warm start）」という案が出てきました。私は対症療法だと感じたので、次のように頼みました。</p>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>11-03 00:34 JST</span></figcaption>
+        <blockquote>warm start ってあまり根本的な解決ではなく対症療法に見えます。むしろ、これがなぜ起きているのかをよく検討して、アルゴリズム全体の不整合を解消して飛躍的に性能を高める良い機会だと思いました。例えば、最初の紙の設計の目的関数(?)と、注文の処理の際の評価関数の平仄があっていないとかが原因だったりしないでしょうか？</blockquote>
+      </figure>
+      <p>Claude は、別のエージェントに Solver と Design を読ませ、各規則が暗に置いている仮定を、今の設計と実測に照らさせました。その結果、代を経て仕組みが変わった後も残っていた古い規則が 3 つ見つかりました。</p>
+      <ul>
+        <li>各列の一番上を少数派の色で印刷していた（as6-majtop、−0.23%）。</li>
+        <li>巡回列の時代の、色の釣り合いの罰が、設計の偏りに逆らっていた（as6-imb0gb、−0.42%）。</li>
+        <li>穴埋め紙の水準が、空の列を考えていなかった（as6-canon、−0.07%）。</li>
+      </ul>
+      <p>重みの調整は何日も平らだったのに、この監査では見つかりました。以後、構造を変えたときは、<strong>古い規則の前提を監査してから調整する</strong>ことにしました。</p>
+
+      <h3 id="later"><span class="num">4.7</span>その後の大きめの改善（11-04〜11-07）</h3>
+      <ul>
+        <li><strong>Codex の構造実験（PR 90、−1.46%）</strong>：私が別に動かした Codex のエージェントが、11-03〜04 に 199 ディレクトリの実験を行いました。採用されたのは次の系列です。
+          <ul>
+            <li>紙を戻す位置に、他の目標で穴埋めに使える見込みを入れる。</li>
+            <li>列の先頭に来る紙を予測して、対と列を選ぶ。</li>
+            <li>計画の候補を短縮してから比べる。</li>
+            <li>2 手を消して、途中に 1 手の修復を入れる。</li>
+          </ul>
+        </li>
+        <li><strong>中立探索と列 MDP（−0.7%）</strong>：ChatGPT の PR 114（2 手 → 2 手の中立な書き換え）と PR 115（列の部分列 MDP）を、Astra と Claude が今のベースに移植しました。列 MDP は単独で −0.10% でしたが、中立探索と合わせると、中立探索単独の約 3 倍の効果が出ました（設計固定 2000 件で −0.59%）。中立探索は、手数が同じで終わりの状態の評価が良い操作列を探すので、状態の評価が正確になるほど効きます。</li>
+        <li><strong>Gemini 4 Argon の助言の検証（11-05〜06、計 −0.14%）</strong>：文脈を共有しない Gemini 4 Argon に過去の最良のコードを読ませて書かせた助言 2 本を、Astra 2 本に 1 項目ずつ検証させました。採用されたのは、注文処理の穴埋め紙の DP、穴あけ、再割り当ての小さな改良で、合わせて −0.14% でした。</li>
+        <li><strong>設計を複数作って評価関数で選ぶ（−0.4%）</strong>：きっかけは、11-07 未明に、一部の seed でベストが特に良い（9951 点）ことに私が気付いて調べさせたことでした。同じケースでも設計の乱数だけで手数が約 0.5% ぶれ、模擬の注文列で設計を選ぶと効くと分かりました。</li>
+      </ul>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>11-07 01:49 JST</span></figcaption>
+        <blockquote>「複数の設計案を模擬クエリ列でシミュレートしてよかった方を使う」で効果が出るというのは確かだと思うので、そのご利益を、シミュレートなしで享受したいです。…予測精度の向上は妥協せず、熱心にやってください。</blockquote>
+      </figure>
+      <p>Astra が、142 特徴の評価関数 V を作りました（ケース内の相関は、旧モデルの 0.36 に対して 0.81）。焼きなましの後半を分けて仕上げた複数の候補から、V で選ぶ形にしました（候補の数は、その後の高速化で増やしました）。V を焼きなましの目的関数に入れる案（私の発案）は、効きませんでした。</p>
+
+      <h3 id="final"><span class="num">4.8</span>最終盤（11-08〜09）</h3>
+      <ul>
+        <li><strong>助言の検証</strong>：GPT-6 Pro に今の出力を読ませた助言の 3 章（窓・対・列を同時に壊して直す LNS）と 4 章（重い合法探索で反例を集める）を、Astra と Claude に並行して検証させました。
+          <ul>
+            <li>LNS は、同じ計算量で設計を丸ごとやり直すより悪く、打ち切りました。分かったのは、効く梃子は設計の計算量だということです（2 倍で −0.25%）。</li>
+            <li>合法探索では、注文処理の余地は小さい（0.0015 手/注文）と分かりました。それでも、副産物の 2 つの規則（同じ紙の 2 回目の移動を消す、ほぼ同点の計画を終わりの状態の特徴で選び直す）で −0.065% になりました。</li>
+          </ul>
+        </li>
+        <li><strong>時間の効率化</strong>：出力を変えない高速化と、浮いた時間の配分で −0.1% 程度でした。100 ms あたりの価値（設計 0.03%、注文処理 0.055%）を測ってから配分しました。</li>
+        <li><strong>最終日の改善ラウンド</strong>：Fable 5.1（Workflow の Ultracode）と Astra（effort ultra）に案を出させ、Astra（xhigh）2 本に実装させました。採用は 1 件で、焼きなましの穴の費用の「戻り」の強さを 2 → 6 にする案です（GCC −0.086%、Clang −0.125%）。</li>
+        <li><strong>提出版の時間管理</strong>：開発中は、時間不足の fallback を解法に入れることを禁止していました。</li>
+      </ul>
+      <figure class="prompt">
+        <figcaption><span class="who">私 → Claude</span><span>11-05 01:55 JST</span></figcaption>
+        <blockquote>fallback があると、どれくらい高速化しないといけないのかがわからないので...。</blockquote>
+      </figure>
+      <ul>
+        <li>最終日に、設計を時間で打ち切る形（1.22 秒）と、注文処理の段階的なペース配分（目標 1.85〜1.88 秒、最後の手段は軽い計画で 1.92 秒）を入れました。私は最初 1950 ms を目標にするつもりでしたが、Claude の助言で 1.85 秒と段階的な fallback にしました。</li>
+        <li><strong>最終コードのレビュー</strong>：Astra（max）と Fable 5.1 に独立に読ませました。Astra が、範囲外参照（hardened libc++ なら全ケースで落ちる）を見つけ、提出前に直しました。</li>
+      </ul>
+    </section>
+
+    <section id="lessons">
+      <h2><span class="num">5</span>スコアに寄与した指示・やり方のまとめ</h2>
+      <ol>
+        <li><strong>大きな目標を与え、試行錯誤を無制限に許す。</strong>「圧倒的に上回る解法」「テストは何度回してもいい」という指示で、Claude は小さな MDP の実験で限界を測るところから始め、階段構造にたどり着きました。</li>
+        <li><strong>序盤は並列エージェントで探索を優先する。</strong>初日は、テーマ別のエージェントを並列に回し、効果の小さいものもマージしました。1 日で −24% でした。調整を禁じたのは 11-01 です。</li>
+        <li><strong>外部の AI に独立に解かせ、部品ごとに取り込む。</strong>GPT-6 Pro の比較器（−3.3%）とその後の取り込み、キャップ紙、中立探索などです。総合点で判断しないことを明示しました。他の AI の途中経過を見ること（カンニング）は止めて、独立性を保ちました。</li>
+        <li><strong>ずれを疑う問いを投げる。</strong>「設計の目的関数と注文処理の評価の平仄が合っていないのでは」という問いから、調整では見つからない古い規則が見つかりました。「同じ注文が来たら過去の操作列を使えないか」「キャップは要るのか」なども同じ趣旨で聞きました（前者はごく小さな改善、後者はキャップが要ると確認しただけでした）。</li>
+        <li><strong>差を正しく測る仕組みに投資する。</strong>同時比較、2000 ケース、設計を固定した比較、時計の倍率です。採用の基準も途中で決めました。11-06 からは、0.03% 未満の改善は拾わず記録だけ残し、失敗した案の深掘りは 1 回の修正までにしました。</li>
+        <li><strong>Astra には、目標と測り方の決まった仕事を、正確な依頼文で頼む。</strong>高速化と探索の効率化では強く、開放的なブレインストーミングでは改善が出ませんでした。</li>
+        <li><strong>AI の「下限」や「飽和」の主張を疑う。</strong>初日の下限 13.5 手は、その日のうちに 11.5 手で破れました。「設計の計算量は飽和している」という結論も、時間で打ち切る安全装置が実験中に効いていただけの誤りでした（11-02 に訂正）。</li>
+      </ol>
+    </section>
+
+    <section id="failures">
+      <h2><span class="num">6</span>うまくいかなかったこと</h2>
+      <ul>
+        <li><strong>階段を崩す構造</strong>：列の一部を全順序の MDP で解く、前に張り出す部品など、10 種類以上を試しましたが、利得はありませんでした。</li>
+        <li><strong>汎用紙を使わない系列</strong>（11-06）：手元の最良が局所最適だと考え、外部の研究版（商品紙だけで汎用層を作る）をベースに Astra に 1 日改善させました。それでも +0.48% 悪いままで止めました。</li>
+        <li><strong>紙の配分を変える案</strong>：3 商品の共有、汎用紙を 7〜8 枚にする、2 枚目のキャップなどです。紙 1 枚の値段が約 0.3〜0.5% と高く、どれも損でした。</li>
+        <li><strong>V を焼きなましの中で使う、V を直接最適化する案</strong>：どちらも悪化しました。V は、仕上がった候補を選ぶことにしか使えませんでした。</li>
+        <li><strong>運用面</strong>：エージェントを一度に多く立てて、5 時間枠を使い切ったことがあります。手元の負荷（エディタのファイル監視など）が、時間で打ち切る解法の結果をゆがめたこともあります。ジャッジの一時的な遅さで TLE が出て、時間を削りかけたこともあります（同じソースを再提出したら通りました）。</li>
+      </ul>
+      <p class="note">リポジトリ：<code>solutions/final2-reset6/</code>（最終提出の解法）、<code>trial_log.md</code>（全実験の記録）、<code>scripts/</code>（評価基盤：pahcer_run.py、observe.py、replay.py、report.py）。</p>
+    </section>
+  </article>
+</div>
+
+<footer class="colophon">AHC074（AtCoder Heuristic Contest 074）With AI 部門の参加記。記録の集計と下書きは Claude（Opus 5.5）、確認は hitonanode。</footer>
+</body>
+</html>

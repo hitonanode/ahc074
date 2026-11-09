@@ -16,6 +16,7 @@ AtCoder Heuristic Contest 074（A - Layered Barcode Display）の問題を解く
 ## ディレクトリ構成
 
 - docs/statement_ja.md, docs/statement_en.md : 問題文
+- writeup/index.html : AI の使い方の参加記（With AI 部門）。main に push すると .github/workflows/pages.yml が GitHub Pages（https://hitonanode.github.io/ahc074/）に公開する。公開されるのは writeup/ の中だけ
 - tools/ : 公式のローカルツール（Rust。tools/src/lib.rs に入力生成・対話・得点計算の正確な仕様）。tools/in/ は手元のテストケース 2000 個（seed 0〜1999。2026-11-01 までは seed 0〜499 の 500 個。tools/seeds.txt から `cargo run -r --bin gen seeds.txt` で作った。ファイル番号 = seed）。入力ファイルの末尾には、解法には知らされない注文の列 $a_0, \ldots, a_{R-1}$ が入っている
 - solutions/<name>/main.cpp : 解法ごとのソースコード。solutions/<name>/README.md : その解法の説明（下記「解法の説明」）。solutions/sample は公式の Python サンプル（紙 k に A_k を印刷し、上の紙を下へ回す）の移植で、動作確認用のベースライン
 - scripts/pahcer_run.py : 解法の評価スクリプト（使い方は下記）
